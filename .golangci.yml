@@ -41,16 +41,18 @@ linters-settings:
       - empty
       - stdlib
       - generic
-      - git.time2go.tech/antifraud/frogocore/queue/nats.Pool
-      - git.time2go.tech/antifraud/frogocore/db/aerospike.Namespace
-      - git.time2go.tech/antifraud/frogocore/fastlog/metrics.Chart
-      - git.time2go.tech/antifraud/frogocore/db/mongodb.Client
-      - git.time2go.tech/antifraud/frogocore/queue/nats/client.Logger
-      - git.time2go.tech/antifraud/frogocore/utils/phone.Decoder
-      - git.time2go.tech/antifraud/frogocore/queue/nats/consumer.Client
+      - github.com/InsideGallery/core/queue/nats.Pool
+      - github.com/InsideGallery/core/db/aerospike.Namespace
+      - github.com/InsideGallery/core/fastlog/metrics.Chart
+      - github.com/InsideGallery/core/db/mongodb.Client
+      - github.com/InsideGallery/core/queue/nats/client.Logger
+      - github.com/InsideGallery/core/utils/phone.Decoder
+      - github.com/InsideGallery/core/queue/nats/consumer.Client
       - github.com/neo4j/neo4j-go-driver/v5/neo4j/auth.TokenManager
       - github.com/aerospike/aerospike-client-go/v7.Error
       - github.com/aerospike/aerospike-client-go/v7.Value
+      - github.com/aerospike/aerospike-client-go/v8.Error
+      - github.com/aerospike/aerospike-client-go/v8.Value
       - gorgonia.org/gorgonia.Value
       - go.opentelemetry.io/otel/trace.Span
       - go.opentelemetry.io/otel/metric.Meter
@@ -79,7 +81,7 @@ linters-settings:
       - blank
       - dot
       - default
-      - prefix(git.time2go.tech/antifraud/frogocore)
+      - prefix(github.com/InsideGallery/core)
     custom-order: true
   forbidigo:
     forbid:
