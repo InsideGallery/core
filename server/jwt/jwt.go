@@ -4,10 +4,11 @@ import (
 	"crypto/rsa"
 	"time"
 
-	"github.com/InsideGallery/core/server/jwt/model"
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v4"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/InsideGallery/core/server/jwt/model"
 )
 
 const (

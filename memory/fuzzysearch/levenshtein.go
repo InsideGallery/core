@@ -5,7 +5,7 @@ package fuzzysearch
 // single-character edits (i.e. insertions, deletions or substitutions)
 // required to change one word into the other.
 //
-// This implemention is optimized to use O(min(m,n)) space and is based on the
+// This implemention is optimized to use O(minInt(m,n)) space and is based on the
 // optimized C version found here:
 // http://en.wikibooks.org/wiki/Algorithm_implementation/Strings/Levenshtein_distance#C
 func LevenshteinDistance(s, t string) int {
@@ -27,7 +27,7 @@ func LevenshteinDistance(s, t string) int {
 				cost = 1
 			}
 
-			column[y] = min(column[y]+1, column[y-1]+1, lastDiag+cost)
+			column[y] = minInt(column[y]+1, column[y-1]+1, lastDiag+cost)
 			lastDiag = oldDiag
 		}
 	}
@@ -35,7 +35,7 @@ func LevenshteinDistance(s, t string) int {
 	return column[len(r1)]
 }
 
-func min(a, b, c int) int {
+func minInt(a, b, c int) int {
 	if a < b && a < c {
 		return a
 	} else if b < c {

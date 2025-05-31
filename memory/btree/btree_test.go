@@ -2,6 +2,7 @@ package btree
 
 import (
 	"fmt"
+	"log/slog"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestBTreeGet1(t *testing.T) {
 	tree.Put(7, "g")
 
 	v, e := tree.Get(4)
-	fmt.Println(v, e)
+	slog.Info("Test tree get", "v", v, "e", e)
 
 	tests := [][]interface{}{
 		{0, nil, false},
@@ -563,7 +564,7 @@ func TestBTreeRemove8(t *testing.T) {
 }
 
 func TestBTreeRemove9(t *testing.T) {
-	const max = 1000
+	const maxElm = 1000
 	orders := []int{3, 4, 5, 6, 7, 8, 9, 10, 20, 100, 500, 1000, 5000, 10000}
 	for _, order := range orders {
 		tree, err := NewWithIntComparator(order)
@@ -572,36 +573,36 @@ func TestBTreeRemove9(t *testing.T) {
 		}
 
 		{
-			for i := 1; i <= max; i++ {
+			for i := 1; i <= maxElm; i++ {
 				tree.Put(i, i)
 			}
-			assertValidTree(t, tree, max)
+			assertValidTree(t, tree, maxElm)
 
-			for i := 1; i <= max; i++ {
+			for i := 1; i <= maxElm; i++ {
 				if _, found := tree.Get(i); !found {
 					t.Errorf("Not found %v", i)
 				}
 			}
 
-			for i := 1; i <= max; i++ {
+			for i := 1; i <= maxElm; i++ {
 				tree.Remove(i)
 			}
 			assertValidTree(t, tree, 0)
 		}
 
 		{
-			for i := max; i > 0; i-- {
+			for i := maxElm; i > 0; i-- {
 				tree.Put(i, i)
 			}
-			assertValidTree(t, tree, max)
+			assertValidTree(t, tree, maxElm)
 
-			for i := max; i > 0; i-- {
+			for i := maxElm; i > 0; i-- {
 				if _, found := tree.Get(i); !found {
 					t.Errorf("Not found %v", i)
 				}
 			}
 
-			for i := max; i > 0; i-- {
+			for i := maxElm; i > 0; i-- {
 				tree.Remove(i)
 			}
 			assertValidTree(t, tree, 0)
@@ -717,7 +718,7 @@ func TestBTreeIteratorValuesAndKeys(t *testing.T) {
 	tree.Put(7, "g")
 	tree.Put(2, "b")
 	tree.Put(1, "x") // override
-	fmt.Println(tree.Keys())
+	slog.Info("Get keys", "keys", tree.Keys())
 
 	if actualValue, expectedValue := fmt.Sprintf("%s%s%s%s%s%s%s", tree.Values()...), "xbcdefg"; actualValue != expectedValue {
 		t.Errorf("Got %v expected %v", actualValue, expectedValue)

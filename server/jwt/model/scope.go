@@ -120,7 +120,7 @@ func (s *ScopeChecker) IsAllowed(role UserRole, scopes Scopes, requestPasswordCh
 			return true
 		}
 
-		if !(userScope.AccessType == s.scope.AccessType || userScope.AccessType == AccessTypeAll) {
+		if userScope.AccessType != s.scope.AccessType && userScope.AccessType != AccessTypeAll {
 			continue
 		}
 
@@ -176,7 +176,8 @@ func NormalizeScopes(ctx context.Context, scopes Scopes) (filtered Scopes, err e
 		// check opposite permission
 		var foundOpposite bool
 
-		if scope.AccessType == AccessTypeRead {
+		switch scope.AccessType {
+		case AccessTypeRead:
 			opposite := scope
 			opposite.AccessType = AccessTypeWrite
 
@@ -188,7 +189,7 @@ func NormalizeScopes(ctx context.Context, scopes Scopes) (filtered Scopes, err e
 				}
 				foundOpposite = true
 			}
-		} else if scope.AccessType == AccessTypeWrite {
+		case AccessTypeWrite:
 			opposite := scope
 			opposite.AccessType = AccessTypeRead
 

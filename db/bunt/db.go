@@ -28,7 +28,7 @@ func GetConnection() (*Wrapper, error) {
 
 // Get get value by key
 func (w *Wrapper) Get(name string, value interface{}) error {
-	return w.DB.View(func(tx *buntdb.Tx) error {
+	return w.View(func(tx *buntdb.Tx) error {
 		content, err := tx.Get(name)
 		if err != nil {
 			return err
@@ -42,7 +42,7 @@ func (w *Wrapper) Get(name string, value interface{}) error {
 
 // Set set value by key
 func (w *Wrapper) Set(name string, value interface{}) error {
-	return w.DB.Update(func(tx *buntdb.Tx) error {
+	return w.Update(func(tx *buntdb.Tx) error {
 		content, err := json.Marshal(value)
 		if err != nil {
 			return err

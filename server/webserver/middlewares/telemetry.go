@@ -67,7 +67,7 @@ var (
 			}
 		}
 
-		return !(r.Method == http.MethodGet && strings.HasPrefix(r.URL.RequestURI(), "/health"))
+		return r.Method != http.MethodGet || !strings.HasPrefix(r.URL.RequestURI(), "/health")
 	}
 )
 

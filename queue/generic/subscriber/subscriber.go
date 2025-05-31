@@ -54,7 +54,7 @@ func (s *Subscriber) SubscribeWithParameters(
 		buffer = 1
 	}
 
-	s.Pool.Execute(func(ctx context.Context) error {
+	s.Execute(func(ctx context.Context) error {
 		sub, err := NewSubscription(s, subject, queue)
 		if err != nil {
 			return err

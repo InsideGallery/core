@@ -88,28 +88,28 @@ func EncodeInt(v int, buffer *bytes.Buffer) {
 
 // EncodeInt64 encode int64
 func EncodeInt64(v int64, buffer *bytes.Buffer) {
-	data := make([]byte, 8) //nolint:mnd
-	binary.BigEndian.PutUint64(data, uint64(v))
+	data := make([]byte, 8)                     //nolint:mnd
+	binary.BigEndian.PutUint64(data, uint64(v)) //nolint:gosec
 	buffer.Write(data)
 }
 
 // EncodeInt32 encode int32
 func EncodeInt32(v int32, buffer *bytes.Buffer) {
-	data := make([]byte, 4) //nolint:mnd
-	binary.BigEndian.PutUint32(data, uint32(v))
+	data := make([]byte, 4)                     //nolint:mnd
+	binary.BigEndian.PutUint32(data, uint32(v)) //nolint:gosec
 	buffer.Write(data)
 }
 
 // EncodeInt16 encode int16
 func EncodeInt16(v int16, buffer *bytes.Buffer) {
-	data := make([]byte, 2) //nolint:mnd
-	binary.BigEndian.PutUint16(data, uint16(v))
+	data := make([]byte, 2)                     //nolint:mnd
+	binary.BigEndian.PutUint16(data, uint16(v)) //nolint:gosec
 	buffer.Write(data)
 }
 
 // EncodeInt8 encode int8
 func EncodeInt8(v int8, buffer *bytes.Buffer) {
-	buffer.Write([]byte{uint8(v)})
+	buffer.Write([]byte{uint8(v)}) //nolint:gosec
 }
 
 // EncodeBytes encode bytes

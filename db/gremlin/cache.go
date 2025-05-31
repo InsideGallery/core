@@ -4,8 +4,9 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/InsideGallery/core/memory/registry"
 	gremlingo "github.com/apache/tinkerpop/gremlin-go/v3/driver"
+
+	"github.com/InsideGallery/core/memory/registry"
 )
 
 var ErrCastType = errors.New("error cast type")
@@ -32,7 +33,7 @@ func (c *Cache) GetVertex(label, id string) (*gremlingo.Vertex, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	rawVertex, err := c.Registry.Get(label, id)
+	rawVertex, err := c.Get(label, id)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func (c *Cache) DeleteVertex(label, id string) error {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	err := c.Registry.Remove(label, id)
+	err := c.Remove(label, id)
 
 	return err
 }

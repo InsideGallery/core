@@ -1,12 +1,13 @@
 package gremlin
 
 import (
-	"fmt"
+	"log/slog"
 	"testing"
+
+	gremlingo "github.com/apache/tinkerpop/gremlin-go/v3/driver"
 
 	"github.com/InsideGallery/core/testutils"
 	"github.com/InsideGallery/core/utils"
-	gremlingo "github.com/apache/tinkerpop/gremlin-go/v3/driver"
 )
 
 func TestGremlin(t *testing.T) {
@@ -31,7 +32,7 @@ func TestGremlin(t *testing.T) {
 	id2, err := utils.GetShortID()
 	testutils.Equal(t, err, nil)
 
-	fmt.Println(string(id1), string(id2))
+	slog.Info("gremlin ids", "id1", string(id1), "id2", string(id2))
 	id1 = []byte("34f30e6d69bb")
 	id2 = []byte("38220e6d9f4e")
 
@@ -46,7 +47,7 @@ func TestGremlin(t *testing.T) {
 			NewLabelVertexGetter("airports", string(id2)),
 		),
 		NewCallbackOp(func(cache *Cache, source *gremlingo.GraphTraversalSource) ([]*gremlingo.Result, error) {
-			fmt.Println(cache.Registry.GetGroups())
+			slog.Info("Cached groups", "groups", cache.GetGroups())
 
 			src := source.GetGraphTraversal()
 
@@ -60,7 +61,7 @@ func TestGremlin(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			fmt.Println(res)
+			slog.Info("MergeV Result", "res", res)
 
 			getter1 := NewLabelVertexGetter("test_merge2", "id1")
 			getter2 := NewLabelVertexGetter("test_merge2", "id2")
@@ -73,7 +74,7 @@ func TestGremlin(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			fmt.Println(id1, id2)
+			slog.Info("ids", "id1", id1, "id2", id2)
 
 			src = source.GetGraphTraversal()
 			res, err = MergeE(src, "test_edge2", "123", v1, v2, map[interface{}]interface{}{
@@ -82,7 +83,7 @@ func TestGremlin(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			fmt.Println(res)
+			slog.Info("MergeE Result", "res", res)
 			return nil, nil
 		}),
 		// NewDropVertexOp(NewLabelVertexGetter("airports", "TST")),

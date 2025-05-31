@@ -1,8 +1,9 @@
 package gremlin
 
 import (
-	"github.com/InsideGallery/core/errors"
 	gremlingo "github.com/apache/tinkerpop/gremlin-go/v3/driver"
+
+	"github.com/InsideGallery/core/errors"
 )
 
 type Client struct {

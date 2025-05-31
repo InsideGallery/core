@@ -3,7 +3,7 @@ package btree
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/InsideGallery/core/memory/comparator"
@@ -178,7 +178,7 @@ func (tree *Tree[K, V]) RightValue() any {
 func (tree *Tree[K, V]) String() string {
 	var buffer bytes.Buffer
 	if _, err := buffer.WriteString("BTree\n"); err != nil {
-		log.Printf("write to output: %v", err)
+		slog.Info("write to output", "err", err)
 	}
 
 	if !tree.Empty() {
@@ -196,11 +196,11 @@ func (tree *Tree[K, V]) output(buffer *bytes.Buffer, node *Node[K, V], level int
 
 		if e < len(node.Entries) {
 			if _, err := buffer.WriteString(strings.Repeat("    ", level)); err != nil {
-				log.Printf("write to output: %v", err)
+				slog.Info("write to output", "err", err)
 			}
 
 			if _, err := buffer.WriteString(fmt.Sprintf("%v", node.Entries[e].Key) + "\n"); err != nil {
-				log.Printf("write to output: %v", err)
+				slog.Info("write to output", "err", err)
 			}
 		}
 	}

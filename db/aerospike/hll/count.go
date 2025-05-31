@@ -4,9 +4,10 @@ package hll
 import (
 	"fmt"
 
-	aero "github.com/InsideGallery/core/db/aerospike"
 	as "github.com/aerospike/aerospike-client-go/v7"
 	"github.com/aerospike/aerospike-client-go/v7/types"
+
+	aero "github.com/InsideGallery/core/db/aerospike"
 )
 
 // CountHLL calculates amount of unique transactions by passed keys.

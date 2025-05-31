@@ -85,12 +85,12 @@ func (c *Client) SearchByIndex(
 	}
 
 	// Perform the search request.
-	res, err := c.Client.Search(
-		c.Client.Search.WithContext(ctx),
-		c.Client.Search.WithIndex(indexes...),
-		c.Client.Search.WithBody(&buf),
-		c.Client.Search.WithTrackTotalHits(true),
-		c.Client.Search.WithPretty(),
+	res, err := c.Search(
+		c.Search.WithContext(ctx),
+		c.Search.WithIndex(indexes...),
+		c.Search.WithBody(&buf),
+		c.Search.WithTrackTotalHits(true),
+		c.Search.WithPretty(),
 	)
 	if err != nil {
 		return r, fmt.Errorf("error getting response: %w", err)

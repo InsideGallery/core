@@ -63,7 +63,7 @@ func (s *Subscription) setupMetrics() error {
 				return err
 			}
 
-			observer.Observe(m.Pending, metric.WithAttributes(Subject.String(s.Subscription.Subject)))
+			observer.Observe(m.Pending, metric.WithAttributes(Subject.String(s.Subject)))
 
 			return nil
 		}))
@@ -78,7 +78,7 @@ func (s *Subscription) setupMetrics() error {
 				return err
 			}
 
-			observer.Observe(m.PendingBytes, metric.WithAttributes(Subject.String(s.Subscription.Subject)))
+			observer.Observe(m.PendingBytes, metric.WithAttributes(Subject.String(s.Subject)))
 
 			return nil
 		}))
@@ -93,7 +93,7 @@ func (s *Subscription) setupMetrics() error {
 				return err
 			}
 
-			observer.Observe(m.Dropped, metric.WithAttributes(Subject.String(s.Subscription.Subject)))
+			observer.Observe(m.Dropped, metric.WithAttributes(Subject.String(s.Subject)))
 
 			return nil
 		}))
@@ -108,7 +108,7 @@ func (s *Subscription) setupMetrics() error {
 				return err
 			}
 
-			observer.Observe(m.Delivered, metric.WithAttributes(Subject.String(s.Subscription.Subject)))
+			observer.Observe(m.Delivered, metric.WithAttributes(Subject.String(s.Subject)))
 
 			return nil
 		}))

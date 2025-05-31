@@ -52,11 +52,11 @@ func (m *NATSMsg) Respond(data []byte) error {
 }
 
 func (m *NATSMsg) GetHeader() map[string][]string {
-	return m.Msg.Header
+	return m.Header
 }
 
 func (m *NATSMsg) GetData() []byte {
-	return m.Msg.Data
+	return m.Data
 }
 
 func (m *NATSMsg) RespondMsg(msg interfaces.Msg) error {
@@ -86,7 +86,7 @@ func (s *NATSSubscription) Drain() error {
 }
 
 func (s *NATSSubscription) GetSubject() string {
-	return s.Subscription.Subject
+	return s.Subject
 }
 
 func (s *NATSSubscription) Pending() (int64, int64, error) {
@@ -108,15 +108,15 @@ type NATSConfig struct {
 }
 
 func (c *NATSConfig) GetReadTimeout() time.Duration {
-	return c.Config.ReadTimeout
+	return c.ReadTimeout
 }
 
 func (c *NATSConfig) GetMaxConcurrentSize() uint64 {
-	return c.Config.MaxConcurrentSize
+	return c.MaxConcurrentSize
 }
 
 func (c *NATSConfig) GetConcurrentSize() int {
-	return c.Config.ConcurrentSize
+	return c.ConcurrentSize
 }
 
 type NATSSubscriber struct {

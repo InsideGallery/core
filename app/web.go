@@ -7,13 +7,14 @@ import (
 	"sync/atomic"
 	"syscall"
 
+	"github.com/gofiber/fiber/v2"
+
 	"github.com/InsideGallery/core/fastlog"
 	"github.com/InsideGallery/core/fastlog/handlers/otel"
 	"github.com/InsideGallery/core/fastlog/metrics"
 	"github.com/InsideGallery/core/oslistener"
 	"github.com/InsideGallery/core/server/profiler"
 	"github.com/InsideGallery/core/server/webserver"
-	"github.com/gofiber/fiber/v2"
 )
 
 type InitRouter func(ctx context.Context, app *fiber.App, met *metrics.OTLPMetric) error

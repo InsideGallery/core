@@ -1,8 +1,9 @@
 package entity
 
 import (
-	"github.com/InsideGallery/core/db/aerospike"
 	as "github.com/aerospike/aerospike-client-go/v7"
+
+	"github.com/InsideGallery/core/db/aerospike"
 )
 
 type Operation struct {

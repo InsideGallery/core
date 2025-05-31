@@ -3,10 +3,11 @@ package middlewares
 import (
 	"errors"
 
-	jwtCore "github.com/InsideGallery/core/server/jwt"
-	"github.com/InsideGallery/core/server/webserver"
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v4"
+
+	jwtCore "github.com/InsideGallery/core/server/jwt"
+	"github.com/InsideGallery/core/server/webserver"
 )
 
 func NewJWT(jwtService *jwtCore.Service) fiber.Handler {

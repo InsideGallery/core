@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+	"log/slog"
 	"sync"
 	"testing"
 
@@ -23,7 +23,7 @@ func TestBatchSlice(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			fmt.Println(res)
+			slog.Info("bath slice", "res", res)
 		}()
 		c++
 	}

@@ -26,8 +26,8 @@ func WeightIndex(prob map[interface{}]uint64) interface{} {
 	}
 
 	nBig, _ := rand.Int(rand.Reader, new(big.Int).SetUint64(math.MaxUint64))
-	max := uint64(math.MaxUint64)
-	r := uint64(float64(nBig.Uint64()) / float64(max) * float64(sumWeights))
+	maxUint64 := uint64(math.MaxUint64)
+	r := uint64(float64(nBig.Uint64()) / float64(maxUint64) * float64(sumWeights))
 
 	var prevp uint64
 

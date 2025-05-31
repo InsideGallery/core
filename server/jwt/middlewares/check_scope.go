@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gofiber/fiber/v2"
+
 	coreJWT "github.com/InsideGallery/core/server/jwt"
 	jwtModel "github.com/InsideGallery/core/server/jwt/model"
 	"github.com/InsideGallery/core/server/webserver"
-	"github.com/gofiber/fiber/v2"
 )
 
 type ScopeMiddleware struct {

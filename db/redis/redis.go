@@ -40,5 +40,5 @@ func (c Connection) Set(ctx context.Context, key, value string, expiration time.
 }
 
 func (c Connection) Stop() error {
-	return c.Client.Close()
+	return c.Close()
 }

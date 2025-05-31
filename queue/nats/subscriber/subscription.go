@@ -68,7 +68,7 @@ func (s *Subscription) Process(
 			case <-s.ctx.Done():
 				return
 			default:
-				msg, err := s.Subscription.NextMsg(timeout) // Read with timeout
+				msg, err := s.NextMsg(timeout) // Read with timeout
 				if err != nil {
 					s.Client.Logger().Debug("Error getting next message with timeout",
 						"err", err,
@@ -116,7 +116,7 @@ func (s *Subscription) Process(
 }
 
 func (s *Subscription) Stop() error {
-	err := s.Subscription.Drain()
+	err := s.Drain()
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"testing"
 
-	_ "github.com/InsideGallery/core/fastlog/handlers/otel"
 	_ "github.com/InsideGallery/core/fastlog/handlers/stderr"
 
 	"github.com/nats-io/nats.go"

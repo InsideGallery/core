@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/cast"
+
 	"github.com/InsideGallery/core/memory/comparator"
 	"github.com/InsideGallery/core/testutils"
-	"github.com/spf13/cast"
 )
 
 func TestTimeQueue(t *testing.T) {
