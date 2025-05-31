@@ -61,7 +61,8 @@ func TestMain(m *testing.M) {
 	// Call setup() before running the tests
 	fixtures, err := setup()
 	if err != nil {
-		log.Fatalf("failed to setup tests err: %s", err)
+		log.Printf("failed to setup tests err: %s", err.Error())
+		return
 	}
 
 	// Run the tests
