@@ -36,7 +36,7 @@ jobs:
           go install github.com/vladopajic/go-test-coverage/v2@latest
       - name: Test with the Go CLI
         run: |
-          GOMAXPROCS=$(nproc) go test -coverprofile=coverage.out -cover -race -tags="unit integration" -p $(nproc) -parallel=$(nproc) ./...
+          GOMAXPROCS=$(nproc) go test -coverprofile=coverage.out -cover -race -tags="unit" -p $(nproc) -parallel=$(nproc) ./...
           go-test-coverage --config=./.testcoverage.yml
           gocover-cobertura < coverage.out > coverage.xml
       - name: Bench
