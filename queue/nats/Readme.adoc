@@ -1,0 +1,15 @@
+= NATS High-Level Wrapper &amp; Proxy for Golang
+
+== Overview
+
+This repository provides a high-level wrapper for the https://github.com/nats-io/nats.go[official NATS Go client], enabling scalable and efficient message processing. It dynamically adjusts the number of goroutines to optimize performance by increasing worker count under load and reducing idle workers automatically.
+
+Additionally, the repository includes a proxy implementation that balances messages between pods based on a given rule, ensuring efficient distribution across multiple instances.
+
+== Features
+
+* *Automatic Scaling of Workers:* Adjusts goroutine count based on message load.
+* *High-Level API:* Simplifies integration with NATS Core.
+* *Proxy Implementation:* Balances messages across pods based on predefined rules.
+* *Efficient Resource Utilization:* Reduces idle workers to conserve CPU and memory.
+* *Resilient and Fault-Tolerant:* Designed for high availability in distributed environments.

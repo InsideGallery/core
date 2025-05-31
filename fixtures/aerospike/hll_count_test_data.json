@@ -1,0 +1,38 @@
+[
+  {
+    "namespace": "transactions",
+    "set": "account",
+    "key": "account_email:sergay@test.com",
+    "bins": {
+      "name": "account_email",
+      "value": "sergay@test.com"
+    }
+  },
+  {
+    "namespace": "transactions",
+    "set": "account",
+    "key": "account_email:sergay1@test.com",
+    "bins": {
+      "name": "account_email",
+      "value": "sergay1@test.com"
+    }
+  },
+  {
+    "namespace": "transactions",
+    "set": "account",
+    "key": "account_email:sergay2@test.com",
+    "bins": {
+      "name": "account_email",
+      "value": "sergay2@test.com"
+    }
+  },
+  {
+    "namespace": "transactions",
+    "set": "account",
+    "key": "account_email:hll_benchmark",
+    "bins": {
+      "name": "account_email",
+      "value": "hll_benchmark"
+    }
+  }
+]

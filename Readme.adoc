@@ -1,0 +1,11 @@
+[TOC]
+
+== core
+
+core is a lightweight framework to build any go applications.
+This repository must contain common algorithms, and common wrappers for required DBs.
+Also, that repository provides configurable observability for services
+
+== Version convention
+
+Follow Semantic Versioning 2.0.0: https://semver.org/

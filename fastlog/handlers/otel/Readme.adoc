@@ -1,0 +1,29 @@
+== Environment variables
+
+Usually it can be very confusing which env variables are required for opentelementry logging, here we describe all required environment variables for minimal setup.
+
+=== Parameters required for proper logging:
+
+- LOG_OUTPUTS:otel:json
+- LOG_LEVEL: INFO
+- LOG_CALLER: true
+- LOG_ERROR_FORMATING: false
+
+=== Parameters required for Tracing, Logging and Metrics:
+
+- OTEL_SERVICE_NAME: <your service name>
+- OTEL_SERVICE_VERSION: <your service version>
+- OTEL_NAMESPACE: <your project name>
+- OTEL_LEVEL: INFO
+- OTEL_EXPORTER_OTLP_ENDPOINT: http://agent.monitoring.svc.cluster.local:4317
+- OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+- OTEL_EXPORTER_OTLP_COMPRESSION: gzip
+
+=== Parameters required for Metrics:
+
+- OTEL_PREFIX: <prefix for metrics or keep empty>
+
+=== Parameters required for Traces:
+
+- OTEL_TRACES_SAMPLER:"traceidratio"
+- OTEL_TRACES_SAMPLER_ARG:"0.1"
