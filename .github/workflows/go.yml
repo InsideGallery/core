@@ -32,7 +32,7 @@ jobs:
           go-version: stable
       - name: Install dependencies
         run: |
-          go install github.com/jstemmer/go-junit-report@latest
+          go install github.com/boumenot/gocover-cobertura@latest
           go install github.com/vladopajic/go-test-coverage/v2@latest
       - name: Test with the Go CLI
         run: |
