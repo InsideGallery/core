@@ -22,20 +22,15 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: [ '1.24' ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      - name: Install dependencies
+      - name: Test with the Go CLI
         run: |
           go install github.com/boumenot/gocover-cobertura@latest
           go install github.com/vladopajic/go-test-coverage/v2@latest
-      - name: Test with the Go CLI
-        run: |
           GOMAXPROCS=$(nproc) go test -coverprofile=coverage.out -cover -race -tags="unit" -p $(nproc) -parallel=$(nproc) ./...
           go-test-coverage --config=./.testcoverage.yml
           gocover-cobertura < coverage.out > coverage.xml
