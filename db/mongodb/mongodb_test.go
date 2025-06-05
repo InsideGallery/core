@@ -31,8 +31,7 @@ func TestOID(t *testing.T) {
 
 func TestNewMongoClient(t *testing.T) {
 	config := &ConnectionConfig{
-		Host:     "zzzzz",
-		Port:     "27017",
+		Hosts:    []string{"localhost:27017"},
 		User:     "xxxx",
 		Scheme:   "mongodb",
 		Pass:     "^",

@@ -4,6 +4,7 @@ go 1.24.0
 
 retract (
 	v1.0.1 // Version contains broken tests
+	v1.0.2 // Remove miss-use of mongo config hosts
 )
 
 require (
