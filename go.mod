@@ -12,8 +12,8 @@ require (
 	github.com/valyala/fasthttp v1.52.0
 	go.mongodb.org/mongo-driver v1.15.0
 	go.uber.org/atomic v1.11.0
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
 )
 
@@ -60,8 +60,8 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.27.0
 	go.opentelemetry.io/otel/trace v1.28.0
 	go.uber.org/mock v0.5.0
-	golang.org/x/crypto v0.23.0
-	golang.org/x/text v0.16.0
+	golang.org/x/crypto v0.35.0
+	golang.org/x/text v0.22.0
 	gorgonia.org/gorgonia v0.9.18
 	gorgonia.org/tensor v0.9.24
 )
