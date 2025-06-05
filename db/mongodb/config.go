@@ -16,6 +16,7 @@ type ConnectionConfig struct {
 	Port          string   `env:"_PORT" envDefault:"27017"`
 	User          string   `env:"_USER" envDefault:""`
 	Pass          string   `env:"_PASS" envDefault:""`
+	Scheme        string   `env:"_SCHEME" envDefault:"mongodb"`
 	Database      string   `env:"_DATABASE" envDefault:"default"`
 	Args          string   `env:"_ARGS" envDefault:""`
 	Mode          string   `env:"_MODE" envDefault:"secondarypreferred"`
@@ -39,7 +40,7 @@ func GetConnectionConfigFromEnv() (*ConnectionConfig, error) {
 }
 
 func (c *ConnectionConfig) GetDSN() string {
-	dsn := "mongodb://"
+	dsn := c.Scheme + "://"
 
 	if len(c.Hosts) > 0 {
 		dsn = strings.Join([]string{dsn, strings.Join(c.Hosts, ",")}, "")
