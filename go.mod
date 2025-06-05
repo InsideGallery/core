@@ -40,7 +40,7 @@ require (
 	github.com/neo4j/neo4j-go-driver/v5 v5.20.0
 	github.com/newrelic/go-agent/v3 v3.35.1
 	github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrslog v1.3.0
-	github.com/redis/go-redis/v9 v9.5.1
+	github.com/redis/go-redis/v9 v9.5.5
 	github.com/samber/lo v1.47.0
 	github.com/samber/slog-datadog/v2 v2.8.0
 	github.com/samber/slog-multi v1.0.3
