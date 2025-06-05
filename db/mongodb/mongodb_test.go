@@ -34,6 +34,7 @@ func TestNewMongoClient(t *testing.T) {
 		Host:     "zzzzz",
 		Port:     "27017",
 		User:     "xxxx",
+		Scheme:   "mongodb",
 		Pass:     "^",
 		Database: "",
 		Args:     "replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false",
