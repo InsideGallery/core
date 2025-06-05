@@ -2,6 +2,10 @@ module github.com/InsideGallery/core
 
 go 1.24.0
 
+retract (
+	v1.0.1 // Version contains broken tests
+)
+
 require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gops v0.3.28
