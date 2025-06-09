@@ -11,9 +11,7 @@ const EnvPrefix = "MONGO"
 
 // ConnectionConfig contains required data for mongo
 type ConnectionConfig struct {
-	Hosts         []string `env:"_HOSTS" envDefault:""`
-	Host          string   `env:"_HOST" envDefault:"localhost"`
-	Port          string   `env:"_PORT" envDefault:"27017"`
+	Hosts         []string `env:"_HOSTS" envDefault:"localhost:27017"`
 	User          string   `env:"_USER" envDefault:""`
 	Pass          string   `env:"_PASS" envDefault:""`
 	Scheme        string   `env:"_SCHEME" envDefault:"mongodb"`
@@ -44,8 +42,6 @@ func (c *ConnectionConfig) GetDSN() string {
 
 	if len(c.Hosts) > 0 {
 		dsn = strings.Join([]string{dsn, strings.Join(c.Hosts, ",")}, "")
-	} else {
-		dsn = strings.Join([]string{dsn, c.Host, ":", c.Port}, "")
 	}
 
 	if c.Args != "" {
