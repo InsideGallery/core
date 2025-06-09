@@ -53,7 +53,6 @@ func Monitor(ctx context.Context) func() {
 	mux := http.NewServeMux()
 	mux.Handle("/health", http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		writer.Header().Add("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusOK)
 
 		msg := map[string]any{"online": true}
 
