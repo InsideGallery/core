@@ -13,7 +13,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/nats-io/nats.go v1.34.1
 	github.com/pkg/errors v0.9.1
-	github.com/tidwall/buntdb v1.3.0
+	github.com/tidwall/buntdb v1.3.2
 	github.com/valyala/fasthttp v1.62.0
 	go.mongodb.org/mongo-driver v1.15.0
 	go.uber.org/atomic v1.11.0
