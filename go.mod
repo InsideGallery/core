@@ -51,7 +51,7 @@ require (
 	github.com/samber/slog-multi v1.0.3
 	github.com/samber/slog-otel v0.1.0
 	github.com/segmentio/go-hll v1.0.1
-	github.com/spf13/cast v1.6.0
+	github.com/spf13/cast v1.9.2
 	github.com/stretchr/testify v1.10.0
 	github.com/twmb/murmur3 v1.1.8
 	go.opentelemetry.io/contrib/instrumentation/host v0.52.0
