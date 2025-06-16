@@ -33,7 +33,7 @@ require (
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/elastic/go-elasticsearch/v8 v8.16.0
 	github.com/go-redsync/redsync/v4 v4.13.0
-	github.com/go-slog/otelslog v0.1.0
+	github.com/go-slog/otelslog v0.3.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/jwt/v4 v4.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -61,7 +61,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.27.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.27.0
 	go.opentelemetry.io/otel/metric v1.36.0
-	go.opentelemetry.io/otel/sdk v1.27.0
+	go.opentelemetry.io/otel/sdk v1.31.0
 	go.opentelemetry.io/otel/sdk/metric v1.27.0
 	go.opentelemetry.io/otel/trace v1.36.0
 	go.uber.org/mock v0.5.0
