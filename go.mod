@@ -46,9 +46,9 @@ require (
 	github.com/newrelic/go-agent/v3 v3.35.1
 	github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrslog v1.3.0
 	github.com/redis/go-redis/v9 v9.5.5
-	github.com/samber/lo v1.47.0
+	github.com/samber/lo v1.51.0
 	github.com/samber/slog-datadog/v2 v2.8.0
-	github.com/samber/slog-multi v1.0.3
+	github.com/samber/slog-multi v1.4.1
 	github.com/samber/slog-otel v0.1.0
 	github.com/segmentio/go-hll v1.0.1
 	github.com/spf13/cast v1.9.2
@@ -117,7 +117,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/samber/slog-common v0.17.0 // indirect
+	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.25.4 // indirect
 	github.com/tidwall/btree v1.4.2 // indirect
 	github.com/tidwall/gjson v1.14.3 // indirect
