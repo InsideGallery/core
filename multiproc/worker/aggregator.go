@@ -23,7 +23,7 @@ func GetGoroutinesCount(variables, maxGoroutines int) int {
 	return res
 }
 
-type Aggregator struct {
+type Aggregator[K any] struct {
 	mu  sync.RWMutex
 	ctx context.Context
 
@@ -32,25 +32,25 @@ type Aggregator struct {
 	cancel   context.CancelFunc
 	closed   bool
 
-	items     *utils.SafeList[any]
-	processor func([]any) error
+	items     *utils.SafeList[K]
+	processor func([]K) error
 }
 
-func NewAggregator(ctx context.Context, count int, ticker time.Duration, processor func([]any) error) *Aggregator {
+func NewAggregator[K any](ctx context.Context, count int, ticker time.Duration, processor func([]K) error) *Aggregator[K] {
 	ctx, cancel := context.WithCancel(ctx)
 
-	return &Aggregator{
+	return &Aggregator[K]{
 		ctx:      ctx,
 		cancel:   cancel,
 		maxCount: count,
 		ticker:   ticker,
 
-		items:     utils.NewSafeList[any](),
+		items:     utils.NewSafeList[K](),
 		processor: processor,
 	}
 }
 
-func (w *Aggregator) Add(req any) {
+func (w *Aggregator[K]) Add(req any) {
 	w.mu.RLock() // This is special mutex, which should not block us on read
 	defer w.mu.RUnlock()
 
@@ -61,7 +61,7 @@ func (w *Aggregator) Add(req any) {
 	w.items.Add(req)
 }
 
-func (w *Aggregator) Process() error {
+func (w *Aggregator[K]) Process() error {
 	list := w.items.Reset()
 
 	if len(list) == 0 || w.processor == nil {
@@ -71,15 +71,15 @@ func (w *Aggregator) Process() error {
 	return w.processor(list)
 }
 
-func (w *Aggregator) Count() int {
+func (w *Aggregator[K]) Count() int {
 	return w.items.Count()
 }
 
-func (w *Aggregator) Close() {
+func (w *Aggregator[K]) Close() {
 	w.cancel()
 }
 
-func (w *Aggregator) Flusher() error {
+func (w *Aggregator[K]) Flusher() error {
 	tck := time.NewTicker(w.ticker)
 	counterCheck := time.NewTicker(DefaultCounterCheck)
 

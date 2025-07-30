@@ -2,10 +2,11 @@ package utils
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"github.com/sirbu/golang-common/hash/crc16"
 	"math/big"
+	mrand "math/rand/v2"
 	"strings"
 	"time"
 	"unsafe"
@@ -148,17 +149,26 @@ func SplitByChunks(s string, chunkSize int) []string {
 	return chunks
 }
 
-func GenerateEntityHash(entity []byte) (string, error) {
-	h := sha256.New()
+const letterBytes = "abcdefghijklmnopqrstuvwxyz"
 
-	_, err := h.Write(entity)
-	if err != nil {
-		return "", err
+func RandStringBytes(n int) string {
+	if n <= 0 {
+		return ""
 	}
 
-	src := h.Sum(nil)
-	dst := make([]byte, hex.EncodedLen(len(src)))
-	hex.Encode(dst, src)
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[mrand.IntN(len(letterBytes))]
+	}
+	return string(b)
+}
 
-	return string(dst), nil
+func HashName(name string) string {
+	name = strings.ToLower(name)
+	val := crc16.Checksum(crc16.X25, []byte(name))
+
+	r := make([]byte, 2) //nolint:mnd
+	binary.BigEndian.PutUint16(r, val)
+
+	return name[:1] + hex.EncodeToString(r)
 }

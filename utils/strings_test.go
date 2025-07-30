@@ -1,9 +1,8 @@
 package utils
 
 import (
-	"testing"
-
 	"github.com/InsideGallery/core/testutils"
+	"testing"
 )
 
 func TestSplitByChunks(t *testing.T) {
@@ -17,6 +16,42 @@ func TestGetTinyID(t *testing.T) {
 	shortID2, err := GetTinyID()
 	testutils.Equal(t, err, nil)
 	testutils.NotEqual(t, shortID, shortID2)
+}
+
+func TestRandStringBytes(t *testing.T) {
+	val := RandStringBytes(1)
+	testutils.Equal(t, len(val), 1)
+}
+
+func TestHashName(t *testing.T) {
+	testcases := []struct {
+		name   string
+		input  string
+		result string
+	}{
+		{
+			name:   "test",
+			input:  "test",
+			result: "t0788",
+		},
+		{
+			name:   "weavers",
+			input:  "weavers",
+			result: "wcca2",
+		},
+		{
+			name:   "InsideGallery",
+			input:  "InsideGallery",
+			result: "i1bde",
+		},
+	}
+
+	for _, tst := range testcases {
+		t.Run(tst.name, func(t *testing.T) {
+			val := HashName(tst.input)
+			testutils.Equal(t, val, tst.result)
+		})
+	}
 }
 
 func TestByteSliceToString(t *testing.T) {

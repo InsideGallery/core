@@ -51,6 +51,7 @@ require (
 	github.com/samber/slog-multi v1.0.3
 	github.com/samber/slog-otel v0.1.0
 	github.com/segmentio/go-hll v1.0.1
+	github.com/sirbu/golang-common v0.0.0-20170403140351-21d4febd4bca
 	github.com/spf13/cast v1.6.0
 	github.com/stretchr/testify v1.9.0
 	github.com/twmb/murmur3 v1.1.8
