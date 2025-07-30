@@ -50,7 +50,7 @@ func NewAggregator[K any](ctx context.Context, count int, ticker time.Duration, 
 	}
 }
 
-func (w *Aggregator[K]) Add(req any) {
+func (w *Aggregator[K]) Add(req K) {
 	w.mu.RLock() // This is special mutex, which should not block us on read
 	defer w.mu.RUnlock()
 
