@@ -25,7 +25,7 @@ require (
 require (
 	dario.cat/mergo v1.0.1
 	github.com/AlekSi/pointer v1.2.0
-	github.com/DataDog/datadog-api-client-go/v2 v2.33.0
+	github.com/DataDog/datadog-api-client-go/v2 v2.43.0
 	github.com/aerospike/aerospike-client-go/v7 v7.2.1
 	github.com/agoda-com/opentelemetry-go/otelslog v0.1.1
 	github.com/agoda-com/opentelemetry-logs-go v0.5.0
