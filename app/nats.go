@@ -58,14 +58,6 @@ func NATSMain(ctx context.Context, initSubscriptions InitSubscriptions) {
 		)...,
 	)
 
-	if initSubscriptions != nil {
-		err = initSubscriptions(ctx, met, m, natsConnection)
-		if err != nil {
-			slog.Default().Error("Error init subscriptions", "err", err)
-			return
-		}
-	}
-
 	var appStopped int32
 
 	shutdown := func() {
@@ -97,6 +89,14 @@ func NATSMain(ctx context.Context, initSubscriptions InitSubscriptions) {
 		return nil
 	})
 	defer profiler.Monitor(ctx)()
+
+	if initSubscriptions != nil {
+		err = initSubscriptions(ctx, met, m, natsConnection)
+		if err != nil {
+			slog.Default().Error("Error init subscriptions", "err", err)
+			return
+		}
+	}
 
 	if err = natsConnection.Wait(); err != nil {
 		slog.Default().Error("Error run nats handler", "err", err)

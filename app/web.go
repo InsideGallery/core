@@ -40,14 +40,6 @@ func WebMain(ctx context.Context, port string, serverName string, initRouter Ini
 
 	app := webserver.NewFiberApp(serverName)
 
-	if initRouter != nil {
-		err = initRouter(ctx, app, met)
-		if err != nil {
-			slog.Default().Error("Error init routers", "err", err)
-			return
-		}
-	}
-
 	var appStopped int32
 	app.Hooks().OnShutdown(func() error {
 		atomic.StoreInt32(&appStopped, 1)
@@ -78,6 +70,14 @@ func WebMain(ctx context.Context, port string, serverName string, initRouter Ini
 		return nil
 	})
 	defer profiler.Monitor(ctx)()
+
+	if initRouter != nil {
+		err = initRouter(ctx, app, met)
+		if err != nil {
+			slog.Default().Error("Error init routers", "err", err)
+			return
+		}
+	}
 
 	err = app.Listen(port)
 	if err != nil {
