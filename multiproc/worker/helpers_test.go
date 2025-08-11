@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"log/slog"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -11,6 +12,8 @@ import (
 )
 
 func TestFunctionWithTimeout(t *testing.T) {
+	goroutineNumBefore := runtime.NumGoroutine()
+
 	fn := FunctionWithTimeout(time.Millisecond, func(ctx context.Context) error {
 		t := time.NewTicker(time.Millisecond)
 		for {
@@ -24,6 +27,10 @@ func TestFunctionWithTimeout(t *testing.T) {
 		}
 	})
 	testutils.Equal(t, fn(context.Background()), ErrFunctionTimeout)
+
+	time.Sleep(time.Millisecond) // Wait for func result sent to the buffered channel
+	goroutineNumAfter := runtime.NumGoroutine()
+	testutils.Equal(t, goroutineNumAfter, goroutineNumBefore)
 
 	fn = FunctionWithTimeout(time.Second, func(ctx context.Context) error {
 		t := time.NewTimer(time.Millisecond)

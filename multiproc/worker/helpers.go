@@ -22,7 +22,7 @@ func FunctionWithTimeout(
 		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
-		ch := make(chan error)
+		ch := make(chan error, 1)
 		go func() {
 			ch <- fn(ctx)
 		}()
