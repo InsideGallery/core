@@ -84,5 +84,7 @@ func (p *Pool) execute(fn ExecuteFunc) error {
 // Wait wait for all functions
 func (p *Pool) Wait() error {
 	p.wg.Wait()
+
+	defer p.Close()
 	return p.getErr()
 }
