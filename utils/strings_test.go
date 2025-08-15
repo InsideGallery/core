@@ -32,17 +32,17 @@ func TestHashName(t *testing.T) {
 		{
 			name:   "test",
 			input:  "test",
-			result: "t0788",
+			result: "t9b06",
 		},
 		{
 			name:   "weavers",
 			input:  "weavers",
-			result: "wcca2",
+			result: "w0709",
 		},
 		{
 			name:   "InsideGallery",
 			input:  "InsideGallery",
-			result: "i1bde",
+			result: "i53a5",
 		},
 	}
 

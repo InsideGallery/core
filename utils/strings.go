@@ -165,7 +165,7 @@ func RandStringBytes(n int) string {
 
 func HashName(name string) string {
 	name = strings.ToLower(name)
-	val := crc16.Checksum(crc16.X25, []byte(name))
+	val := crc16.Checksum(crc16.XModem, []byte(name))
 
 	r := make([]byte, 2) //nolint:mnd
 	binary.BigEndian.PutUint16(r, val)
