@@ -1,6 +1,7 @@
 package semver
 
 import (
+	"encoding/hex"
 	"math"
 	"math/big"
 	"strconv"
@@ -41,7 +42,12 @@ func (v *SemVersion) build() error {
 		v.version[7] = maxValue
 	}
 
-	parts, err := v.getCoreParts(version[:prPosition])
+	coreEnd := prPosition
+	if coreEnd > buildPosition {
+		coreEnd = buildPosition
+	}
+
+	parts, err := v.getCoreParts(version[:coreEnd])
 	if err != nil {
 		return err
 	}
@@ -132,7 +138,7 @@ func (v *SemVersion) getNumVersion(version string, from, to int) uint16 {
 	return uint16(val) // nolint gosec
 }
 
-func (v *SemVersion) Num() (*big.Int, error) {
+func (v *SemVersion) Bytes() ([]byte, error) {
 	e := dataconv.NewBinaryEncoder()
 
 	for _, val := range v.version {
@@ -142,8 +148,26 @@ func (v *SemVersion) Num() (*big.Int, error) {
 		}
 	}
 
+	return e.Bytes(), nil
+}
+
+func (v *SemVersion) Hex() (string, error) {
+	b, err := v.Bytes()
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(b), nil
+}
+
+func (v *SemVersion) Num() (*big.Int, error) {
+	b, err := v.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
 	num := big.NewInt(0)
-	num.SetBytes(e.Bytes())
+	num.SetBytes(b)
 
 	return num, nil
 }
