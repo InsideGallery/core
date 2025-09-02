@@ -1,6 +1,9 @@
 package middlewares
 
 import (
+	"crypto/sha256"
+	"golang.org/x/crypto/hkdf"
+	"io"
 	"net/http"
 
 	"github.com/go-jose/go-jose/v3"
@@ -89,4 +92,14 @@ func EncryptResponse(recipient jose.Recipient, payload []byte) (string, error) {
 	}
 
 	return jweObject.CompactSerialize()
+}
+
+func GetSessionKey(masterSecret []byte, nonce []byte) ([]byte, error) {
+	kdf := hkdf.New(sha256.New, masterSecret, nonce, nil)
+
+	sessionKey := make([]byte, 32)
+
+	_, err := io.ReadFull(kdf, sessionKey)
+
+	return sessionKey, err
 }

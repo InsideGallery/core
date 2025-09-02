@@ -13,10 +13,13 @@ import (
 )
 
 func TestJWEAES(t *testing.T) {
-	sharedSecretKeyRaw, err := aes.NewAES(32)
+	masterKey, err := aes.NewAES(32)
 	testutils.Equal(t, err, nil)
 
-	sharedSecretKey, err := sharedSecretKeyRaw.ToBinary()
+	rawMasterKey, err := masterKey.ToBinary()
+	testutils.Equal(t, err, nil)
+
+	sharedSecretKey, err := GetSessionKey(rawMasterKey, []byte("key"))
 	testutils.Equal(t, err, nil)
 
 	requestStr := "hello world!"
