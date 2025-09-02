@@ -2,9 +2,10 @@ package middlewares
 
 import (
 	"crypto/sha256"
-	"golang.org/x/crypto/hkdf"
 	"io"
 	"net/http"
+
+	"golang.org/x/crypto/hkdf"
 
 	"github.com/go-jose/go-jose/v3"
 	"github.com/gofiber/fiber/v2"
@@ -22,14 +23,14 @@ func GetAESRecipient(sharedSecretKey []byte) jose.Recipient {
 }
 
 type JWE struct {
-	decryptionKey []byte
-	recipient     jose.Recipient
+	decryptionKeyGetter func() ([]byte, error)
+	recipient           jose.Recipient
 }
 
-func NewJWE(decryptionKey []byte, recipient jose.Recipient) *JWE {
+func NewJWE(decryptionKeyGetter func() ([]byte, error), recipient jose.Recipient) *JWE {
 	return &JWE{
-		decryptionKey: decryptionKey,
-		recipient:     recipient,
+		decryptionKeyGetter: decryptionKeyGetter,
+		recipient:           recipient,
 	}
 }
 
@@ -40,6 +41,11 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
+	decryptionKey, err := j.decryptionKeyGetter()
+	if err != nil {
+		return err
+	}
+
 	// 2. Парсимо JWE
 	jweObject, err := jose.ParseEncrypted(jweString)
 	if err != nil {
@@ -47,7 +53,7 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 	}
 
 	// 3. Розшифровуємо за допомогою приватного ключа сервера
-	decryptedPayload, err := jweObject.Decrypt(j.decryptionKey)
+	decryptedPayload, err := jweObject.Decrypt(decryptionKey)
 	if err != nil {
 		return err
 	}
