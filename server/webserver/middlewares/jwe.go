@@ -14,15 +14,19 @@ const (
 	HeaderJOSE = "application/jose"
 )
 
-type JWE struct {
-	privateKey []byte
-	publicKey  []byte
+func GetAESRecipient(sharedSecretKey []byte) jose.Recipient {
+	return jose.Recipient{Algorithm: jose.DIRECT, Key: sharedSecretKey}
 }
 
-func NewJWE(privateKey, publicKey []byte) *JWE {
+type JWE struct {
+	decryptionKey []byte
+	recipient     jose.Recipient
+}
+
+func NewJWE(decryptionKey []byte, recipient jose.Recipient) *JWE {
 	return &JWE{
-		privateKey: privateKey,
-		publicKey:  publicKey,
+		decryptionKey: decryptionKey,
+		recipient:     recipient,
 	}
 }
 
@@ -40,7 +44,7 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 	}
 
 	// 3. Розшифровуємо за допомогою приватного ключа сервера
-	decryptedPayload, err := jweObject.Decrypt(j.privateKey)
+	decryptedPayload, err := jweObject.Decrypt(j.decryptionKey)
 	if err != nil {
 		return err
 	}
@@ -54,7 +58,7 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 
 	resp, ok := c.Locals(ResponseValueKey).([]byte)
 	if ok && len(resp) != 0 {
-		result, err := EncryptResponse(j.publicKey, resp)
+		result, err := EncryptResponse(j.recipient, resp)
 		if err != nil {
 			return err
 		}
@@ -69,10 +73,10 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 	return nil
 }
 
-func EncryptResponse(publicKey, payload []byte) (string, error) {
+func EncryptResponse(recipient jose.Recipient, payload []byte) (string, error) {
 	encrypter, err := jose.NewEncrypter(
 		jose.A256GCM,
-		jose.Recipient{Algorithm: jose.RSA_OAEP, Key: publicKey},
+		recipient,
 		nil,
 	)
 	if err != nil {
