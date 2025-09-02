@@ -28,7 +28,7 @@ func TestJWEAES(t *testing.T) {
 	raw, err := EncryptResponse(GetAESRecipient(sharedSecretKey), []byte(requestStr))
 	testutils.Equal(t, err, nil)
 
-	j := NewJWE(func() ([]byte, error) {
+	j := NewJWE(func(_ *fiber.Ctx) ([]byte, error) {
 		return GetSessionKey(rawMasterKey, []byte("key"))
 	}, GetAESRecipient(sharedSecretKey))
 

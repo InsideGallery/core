@@ -23,11 +23,11 @@ func GetAESRecipient(sharedSecretKey []byte) jose.Recipient {
 }
 
 type JWE struct {
-	decryptionKeyGetter func() ([]byte, error)
+	decryptionKeyGetter func(c *fiber.Ctx) ([]byte, error)
 	recipient           jose.Recipient
 }
 
-func NewJWE(decryptionKeyGetter func() ([]byte, error), recipient jose.Recipient) *JWE {
+func NewJWE(decryptionKeyGetter func(c *fiber.Ctx) ([]byte, error), recipient jose.Recipient) *JWE {
 	return &JWE{
 		decryptionKeyGetter: decryptionKeyGetter,
 		recipient:           recipient,
@@ -41,7 +41,7 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
-	decryptionKey, err := j.decryptionKeyGetter()
+	decryptionKey, err := j.decryptionKeyGetter(c)
 	if err != nil {
 		return err
 	}
