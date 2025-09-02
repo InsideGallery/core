@@ -25,12 +25,12 @@ func TestJWEAES(t *testing.T) {
 	requestStr := "hello world!"
 	responseStr := "good, thanks!"
 
-	raw, err := EncryptResponse(GetAESRecipient(sharedSecretKey), []byte(requestStr))
+	raw, err := EncryptResponse(sharedSecretKey, []byte(requestStr))
 	testutils.Equal(t, err, nil)
 
 	j := NewJWE(func(_ *fiber.Ctx) ([]byte, error) {
 		return GetSessionKey(rawMasterKey, []byte("key"))
-	}, GetAESRecipient(sharedSecretKey))
+	})
 
 	app := fiber.New()
 	app.Use(j.DecryptMiddleware)

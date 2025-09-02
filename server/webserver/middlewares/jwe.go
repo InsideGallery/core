@@ -18,19 +18,13 @@ const (
 	HeaderJOSE = "application/jose"
 )
 
-func GetAESRecipient(sharedSecretKey []byte) jose.Recipient {
-	return jose.Recipient{Algorithm: jose.DIRECT, Key: sharedSecretKey}
-}
-
 type JWE struct {
 	decryptionKeyGetter func(c *fiber.Ctx) ([]byte, error)
-	recipient           jose.Recipient
 }
 
-func NewJWE(decryptionKeyGetter func(c *fiber.Ctx) ([]byte, error), recipient jose.Recipient) *JWE {
+func NewJWE(decryptionKeyGetter func(c *fiber.Ctx) ([]byte, error)) *JWE {
 	return &JWE{
 		decryptionKeyGetter: decryptionKeyGetter,
-		recipient:           recipient,
 	}
 }
 
@@ -67,7 +61,7 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 
 	resp, ok := c.Locals(ResponseValueKey).([]byte)
 	if ok && len(resp) != 0 {
-		result, err := EncryptResponse(j.recipient, resp)
+		result, err := EncryptResponse(decryptionKey, resp)
 		if err != nil {
 			return err
 		}
@@ -82,10 +76,10 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 	return nil
 }
 
-func EncryptResponse(recipient jose.Recipient, payload []byte) (string, error) {
+func EncryptResponse(sesKey, payload []byte) (string, error) {
 	encrypter, err := jose.NewEncrypter(
 		jose.A256GCM,
-		recipient,
+		jose.Recipient{Algorithm: jose.DIRECT, Key: sesKey},
 		nil,
 	)
 	if err != nil {
