@@ -68,6 +68,7 @@ type CountingFilter struct {
 // NewCounting creates an optimized counting bloom filter.
 func NewCounting(n int, p float64) *CountingFilter {
 	m, k := estimates(uint32(n), p)
+
 	return &CountingFilter{
 		filter:   newFilter(m, k),
 		counters: make([]byte, m),
@@ -82,6 +83,7 @@ func (f *CountingFilter) Test(data []byte) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -131,7 +133,7 @@ func (f *CountingFilter) ToBytes() ([]byte, error) {
 
 	err = enc.Encode(f.counters)
 	if err != nil {
-		return nil, fmt.Errorf("encode k param: %w", err)
+		return nil, fmt.Errorf("encode counters param: %w", err)
 	}
 
 	return enc.Bytes(), nil
@@ -163,7 +165,7 @@ func NewCountingFromBytes(data []byte) (*CountingFilter, error) {
 
 	err = dec.Decode(&res.counters)
 	if err != nil {
-		return nil, fmt.Errorf("decode raw bitset param: %w", err)
+		return nil, fmt.Errorf("decode counters param: %w", err)
 	}
 
 	return res, nil
