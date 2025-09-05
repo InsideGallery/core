@@ -6,7 +6,7 @@ package bitset
 
 import (
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/InsideGallery/core/testutils"
@@ -52,12 +52,15 @@ func TestBitsetIsClear32(t *testing.T) {
 func TestExtendOnBoundary32(t *testing.T) {
 	v := New32(32)
 	v.Set(32)
+
 	if found := v.Test(31); found {
 		t.Error("31 shouldn't have been found")
 	}
+
 	if found := v.Test(32); !found {
 		t.Error("32 set and then not found")
 	}
+
 	if found := v.Test(33); found {
 		t.Error("33 shouldn't have been found")
 	}
@@ -67,6 +70,7 @@ func TestExpand32(t *testing.T) {
 	v := New32(0)
 	for i := uint32(1000); i > 0; i-- {
 		v.Set(i)
+
 		if found := v.Test(i); !found {
 			t.Errorf("%d set and then not found", i)
 		}
@@ -76,6 +80,7 @@ func TestExpand32(t *testing.T) {
 func TestBitsetAndGet32(t *testing.T) {
 	v := New32(1000)
 	v.Set(100)
+
 	if v.Test(100) != true {
 		t.Errorf("Bit %d is clear, and it shouldn't be.", 100)
 	}
@@ -86,17 +91,18 @@ func TestChain32(t *testing.T) {
 	b.Set(100)
 	b.Set(99)
 	b.Clear(99)
+
 	if b.Test(100) != true {
 		t.Errorf("Bit %d is clear, and it shouldn't be.", 100)
 	}
 }
 
-func TestOutOfBoundsLong32(t *testing.T) {
+func TestOutOfBoundsLong32(_ *testing.T) {
 	v := New32(64)
 	v.Set(1000)
 }
 
-func TestOutOfBoundsClose32(t *testing.T) {
+func TestOutOfBoundsClose32(_ *testing.T) {
 	v := New32(65)
 	v.Set(66)
 }
@@ -105,15 +111,20 @@ func TestCount32(t *testing.T) {
 	tot := uint32(64*4 + 11) // just some multi unit64 number
 	v := New32(tot)
 	checkLast := true
+
 	for i := uint32(0); i < tot; i++ {
 		sz := v.Count()
 		if sz != i {
 			t.Errorf("Count reported as %d, but it should be %d", sz, i)
+
 			checkLast = false
+
 			break
 		}
+
 		v.Set(i)
 	}
+
 	if checkLast {
 		sz := v.Count()
 		if sz != tot {
@@ -125,6 +136,7 @@ func TestCount32(t *testing.T) {
 // test setting every 3rd bit, just in case something odd is happening
 func TestCountB32(t *testing.T) {
 	tot := uint32(64*4 + 11) // just some multi unit64 number
+
 	v := New32(tot)
 	for i := uint32(0); i < tot; i += 3 {
 		sz := v.Count()
@@ -132,6 +144,7 @@ func TestCountB32(t *testing.T) {
 			t.Errorf("Count reported as %d, but it should be %d", sz, i)
 			break
 		}
+
 		v.Set(i)
 	}
 }
@@ -140,19 +153,25 @@ func TestEqual32(t *testing.T) {
 	a := New32(100)
 	b := New32(99)
 	c := New32(100)
+
 	if a.Equal(b) {
 		t.Error("Sets of different sizes should be not be equal")
 	}
+
 	if !a.Equal(c) {
 		t.Error("Two empty sets of the same size should be equal")
 	}
+
 	a.Set(99)
 	c.Set(0)
+
 	if a.Equal(c) {
 		t.Error("Two sets with differences should not be equal")
 	}
+
 	c.Set(99)
 	a.Set(0)
+
 	if !a.Equal(c) {
 		t.Error("Two sets with the same bits set should be equal")
 	}
@@ -161,18 +180,23 @@ func TestEqual32(t *testing.T) {
 func TestUnion32(t *testing.T) {
 	a := New32(100)
 	b := New32(200)
+
 	for i := uint32(1); i < 100; i += 2 {
 		a.Set(i)
 		b.Set(i - 1)
 	}
+
 	for i := uint32(100); i < 200; i++ {
 		b.Set(i)
 	}
+
 	c := a.Union(b)
 	d := b.Union(a)
+
 	if c.Count() != 200 {
 		t.Errorf("Union should have 200 bits set, but had %d", c.Count())
 	}
+
 	if !c.Equal(d) {
 		t.Errorf("Union should be symmetric")
 	}
@@ -181,19 +205,24 @@ func TestUnion32(t *testing.T) {
 func TestIntersection32(t *testing.T) {
 	a := New32(100)
 	b := New32(200)
+
 	for i := uint32(1); i < 100; i += 2 {
 		a.Set(i)
 		b.Set(i - 1)
 		b.Set(i)
 	}
+
 	for i := uint32(100); i < 200; i++ {
 		b.Set(i)
 	}
+
 	c := a.Intersection(b)
 	d := b.Intersection(a)
+
 	if c.Count() != 50 {
 		t.Errorf("Intersection should have 50 bits set, but had %d", c.Count())
 	}
+
 	if !c.Equal(d) {
 		t.Errorf("Intersection should be symmetric")
 	}
@@ -202,21 +231,27 @@ func TestIntersection32(t *testing.T) {
 func TestDifference32(t *testing.T) {
 	a := New32(100)
 	b := New32(200)
+
 	for i := uint32(1); i < 100; i += 2 {
 		a.Set(i)
 		b.Set(i - 1)
 	}
+
 	for i := uint32(100); i < 200; i++ {
 		b.Set(i)
 	}
+
 	c := a.Difference(b)
 	d := b.Difference(a)
+
 	if c.Count() != 50 {
 		t.Errorf("a-b Difference should have 50 bits set, but had %d", c.Count())
 	}
+
 	if d.Count() != 150 {
 		t.Errorf("b-a Difference should have 150 bits set, but had %d", c.Count())
 	}
+
 	if c.Equal(d) {
 		t.Errorf("Difference, here, should not be symmetric")
 	}
@@ -225,22 +260,28 @@ func TestDifference32(t *testing.T) {
 func TestSymmetricDifference32(t *testing.T) {
 	a := New32(100)
 	b := New32(200)
+
 	for i := uint32(1); i < 100; i += 2 {
 		a.Set(i)     // 01010101010 ... 0000000
 		b.Set(i - 1) // 11111111111111111000000
 		b.Set(i)
 	}
+
 	for i := uint32(100); i < 200; i++ {
 		b.Set(i)
 	}
+
 	c := a.SymmetricDifference(b)
 	d := b.SymmetricDifference(a)
+
 	if c.Count() != 150 {
 		t.Errorf("a^b Difference should have 150 bits set, but had %d", c.Count())
 	}
+
 	if d.Count() != 150 {
 		t.Errorf("b^a Difference should have 150 bits set, but had %d", c.Count())
 	}
+
 	if !c.Equal(d) {
 		t.Errorf("SymmetricDifference should be symmetric")
 	}
@@ -248,14 +289,17 @@ func TestSymmetricDifference32(t *testing.T) {
 
 func TestComplement32(t *testing.T) {
 	a := New32(50)
+
 	b := a.Complement()
 	if b.Count() != 50 {
 		t.Errorf("Complement failed, size should be 50, but was %d", b.Count())
 	}
+
 	a = New32(50)
 	a.Set(10)
 	a.Set(20)
 	a.Set(42)
+
 	b = a.Complement()
 	if b.Count() != 47 {
 		t.Errorf("Complement failed, size should be 47, but was %d", b.Count())
@@ -264,30 +308,37 @@ func TestComplement32(t *testing.T) {
 
 func BenchmarkSet32(b *testing.B) {
 	b.StopTimer()
-	r := rand.New(rand.NewSource(0))
-	sz := int32(100000)
-	s := New32(uint32(sz))
+
+	sz := uint32(100000)
+	s := New32(sz)
+
 	b.StartTimer()
+
 	for i := 0; i < b.N; i++ {
-		s.Set(uint32(r.Int31n(sz)))
+		s.Set(rand.Uint32N(sz)) // nolint:gosec
 	}
 }
 
 func BenchmarkGetTest32(b *testing.B) {
 	b.StopTimer()
-	r := rand.New(rand.NewSource(0))
-	sz := int32(100000)
-	s := New32(uint32(sz))
+
+	sz := uint32(100000)
+	s := New32(sz)
+
 	b.StartTimer()
+
 	for i := 0; i < b.N; i++ {
-		s.Test(uint32(r.Int31n(sz)))
+		s.Test(rand.Uint32N(sz)) // nolint:gosec
 	}
 }
 
 func BenchmarkSetExpand32(b *testing.B) {
 	b.StopTimer()
+
 	sz := uint32(100000)
+
 	b.StartTimer()
+
 	for i := 0; i < b.N; i++ {
 		s := New32(0)
 		s.Set(sz)
@@ -299,6 +350,7 @@ func TestDump32(t *testing.T) {
 	for i := uint32(1); i < 100; i += 2 {
 		a.Set(i)
 	}
+
 	testutils.Equal(t, a.Count(), uint32(50))
 
 	raw, err := a.ToBytes()

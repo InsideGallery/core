@@ -78,6 +78,7 @@ func (l *SignalListener) SignalsToSubscribe() OsSignalsList {
 	defer l.mu.Unlock()
 
 	signals := make(OsSignalsList, len(l.callbacks))
+
 	var i int
 
 	for s := range l.callbacks {

@@ -52,8 +52,10 @@ func (s *SortedSet[K, V]) randomLevel() int {
 }
 
 func (s *SortedSet[K, V]) insertNode(key K, value V) *Node[K, V] {
-	var update [skipListMaxLevel]*Node[K, V]
-	var rank [skipListMaxLevel]uint64
+	var (
+		update [skipListMaxLevel]*Node[K, V]
+		rank   [skipListMaxLevel]uint64
+	)
 
 	x := s.header
 
@@ -72,6 +74,7 @@ func (s *SortedSet[K, V]) insertNode(key K, value V) *Node[K, V] {
 			rank[i] += x.level[i].span
 			x = x.level[i].forward
 		}
+
 		update[i] = x
 	}
 
@@ -87,6 +90,7 @@ func (s *SortedSet[K, V]) insertNode(key K, value V) *Node[K, V] {
 			update[i] = s.header
 			update[i].level[i].span = s.length
 		}
+
 		s.level = level
 	}
 
@@ -154,6 +158,7 @@ func (s *SortedSet[K, V]) delete(key K, value V) bool {
 		for x.level[i].forward != nil && s.comparator(x.level[i].forward.key, key) < 0 {
 			x = x.level[i].forward
 		}
+
 		update[i] = x
 	}
 	/* We may have multiple elements with the same key, what we need
@@ -169,8 +174,10 @@ func (s *SortedSet[K, V]) delete(key K, value V) bool {
 }
 
 func NewSortedSet[K comparable, V comparable](c comparator.Comparator) *SortedSet[K, V] {
-	var emptyKey K
-	var emptyValue V
+	var (
+		emptyKey   K
+		emptyValue V
+	)
 
 	sortedSet := &SortedSet[K, V]{
 		level:      1,
@@ -247,6 +254,7 @@ func (s *SortedSet[K, V]) PopMax() *Node[K, V] {
 // Time complexity of this method is : O(log(N))
 func (s *SortedSet[K, V]) Upsert(key K, value V) bool {
 	var newNode *Node[K, V]
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -463,8 +471,11 @@ func (s *SortedSet[K, V]) GetByRankRange(start int, end int, remove bool) []*Nod
 		start, end = end, start
 	}
 
-	var update [skipListMaxLevel]*Node[K, V]
-	var nodes []*Node[K, V]
+	var (
+		update [skipListMaxLevel]*Node[K, V]
+		nodes  []*Node[K, V]
+	)
+
 	traversed := 0
 
 	x := s.header

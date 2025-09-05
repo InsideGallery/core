@@ -50,11 +50,13 @@ func TestWorker(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := NewWorker(ctx, tc.fn)
+
 			go func() {
 				if tc.cancel {
 					w.Cancel()
 				}
 			}()
+
 			err := w.Handle()
 			testutils.Equal(t, err, tc.err)
 		})
@@ -86,16 +88,20 @@ func TestTemporalWorker(t *testing.T) {
 	ctx := context.Background()
 	w := NewWorkersPool[string](ctx)
 
-	var executed atomic.Bool
-	var timeout atomic.Bool
+	var (
+		executed atomic.Bool
+		timeout  atomic.Bool
+	)
 
 	ch := make(chan string, 1)
+
 	w.Execute(func(ctx context.Context) error {
 		return w.TemporalWorker(ctx, 50*time.Millisecond, func() {
 			timeout.Store(true)
 		}, ch, func(_ context.Context, _ string) error {
 			time.Sleep(10 * time.Millisecond)
 			executed.Store(true)
+
 			return nil
 		})
 	})
@@ -129,16 +135,20 @@ func TestTemporalWorkerStops(t *testing.T) {
 	ctx := context.Background()
 	w := NewWorkersPool[string](ctx)
 
-	var executed atomic.Bool
-	var timeout atomic.Bool
+	var (
+		executed atomic.Bool
+		timeout  atomic.Bool
+	)
 
 	ch := make(chan string, 1)
+
 	w.Execute(func(ctx context.Context) error {
 		return w.TemporalWorker(ctx, 50*time.Millisecond, func() {
 			timeout.Store(true)
 		}, ch, func(_ context.Context, _ string) error {
 			time.Sleep(10 * time.Millisecond)
 			executed.Store(true)
+
 			return nil
 		})
 	})

@@ -20,6 +20,7 @@ func PrepareProperties(properties ...interface{}) map[interface{}]interface{} {
 	}
 
 	var k int
+
 	vProperties := map[interface{}]interface{}{}
 
 	for i := 0; i < len(properties); {
@@ -45,6 +46,7 @@ func newResultOp() *ResultOp {
 func (o *ResultOp) setResult(res []*gremlingo.Result) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
+
 	o.result = make([]*gremlingo.Result, len(res))
 	copy(o.result, res)
 }

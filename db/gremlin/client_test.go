@@ -54,6 +54,7 @@ func TestGremlin(t *testing.T) {
 			src = MergeV(src, "test_merge2", "id1", map[interface{}]interface{}{
 				"field": "max",
 			})
+
 			res, err := MergeV(src, "test_merge2", "id2", map[interface{}]interface{}{
 				"field":  "max",
 				"field2": "max2",
@@ -61,6 +62,7 @@ func TestGremlin(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
+
 			slog.Info("MergeV Result", "res", res)
 
 			getter1 := NewLabelVertexGetter("test_merge2", "id1")
@@ -70,20 +72,25 @@ func TestGremlin(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
+
 			id2, v2, err := getter2.Get(cache, source)
 			if err != nil {
 				return nil, err
 			}
+
 			slog.Info("ids", "id1", id1, "id2", id2)
 
 			src = source.GetGraphTraversal()
+
 			res, err = MergeE(src, "test_edge2", "123", v1, v2, map[interface{}]interface{}{
 				"eopt": 123,
 			}).Next()
 			if err != nil {
 				return nil, err
 			}
+
 			slog.Info("MergeE Result", "res", res)
+
 			return nil, nil
 		}),
 		// NewDropVertexOp(NewLabelVertexGetter("airports", "TST")),

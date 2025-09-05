@@ -107,6 +107,7 @@ func (t *TickManager) Run() {
 	for id, h := range tickers {
 		go func(id uint64, h *TickHandler) {
 			defer wg.Done()
+
 			t.run(id, h)
 		}(id, h)
 	}

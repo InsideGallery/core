@@ -106,8 +106,10 @@ func (e *Engine) Exists(name string) bool {
 
 // Execute execute current template and return parsed string
 func (e *Engine) Execute(name string, data interface{}) ([]byte, error) {
-	var err error
-	var tpl bytes.Buffer
+	var (
+		err error
+		tpl bytes.Buffer
+	)
 
 	if t, ok := e.pages[name]; ok {
 		err = t.Execute(&tpl, data)

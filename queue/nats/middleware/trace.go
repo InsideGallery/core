@@ -39,6 +39,7 @@ func (t *Tracer) Call(next subscriber.MsgHandler) subscriber.MsgHandler {
 		ctx = trace.ContextWithRemoteSpanContext(ctx, spanContext)
 
 		var err error
+
 		otel.Default(ctx).TracerWrapper(ctx, TracerName, opr, trace.SpanKindConsumer,
 			func(ctx context.Context, span trace.Span) {
 				natsprop.Inject(ctx, msg)

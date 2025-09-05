@@ -187,6 +187,7 @@ func NormalizeScopes(ctx context.Context, scopes Scopes) (filtered Scopes, err e
 				if !hasScope(filtered, opposite) {
 					filtered = append(filtered, opposite)
 				}
+
 				foundOpposite = true
 			}
 		case AccessTypeWrite:
@@ -198,6 +199,7 @@ func NormalizeScopes(ctx context.Context, scopes Scopes) (filtered Scopes, err e
 				if !hasScope(filtered, opposite) {
 					filtered = append(filtered, opposite)
 				}
+
 				foundOpposite = true
 			}
 		}

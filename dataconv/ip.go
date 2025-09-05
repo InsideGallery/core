@@ -34,6 +34,7 @@ func IPV4ToIPV6(ipv4 string) string { //nolint:revive
 
 func IPV6ToString(ipv6 *big.Int) string { //nolint:revive
 	var zeroes string
+
 	rawip := ipv6.String()
 
 	size := len(rawip)

@@ -26,8 +26,10 @@ func (t *ExampleTicker) Tick(ctx context.Context) {
 
 func TestTicker(_ *testing.T) {
 	m := NewTickManager()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
+
 	m.Add(NewTickHandler(ctx, 10*time.Millisecond, &ExampleTicker{}))
 	m.Add(NewTickHandler(ctx, 10*time.Millisecond, &ExampleTicker{}))
 	m.Add(NewTickHandler(ctx, 10*time.Millisecond, &ExampleTicker{}))

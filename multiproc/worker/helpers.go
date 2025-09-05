@@ -23,6 +23,7 @@ func FunctionWithTimeout(
 		defer cancel()
 
 		ch := make(chan error, 1)
+
 		go func() {
 			ch <- fn(ctx)
 		}()
@@ -64,6 +65,7 @@ func RunSyncMultipleWorkers(ctx context.Context, goroutines int, fn func(ctx con
 	for i := 0; i < goroutines; i++ {
 		go func() {
 			defer wg.Done()
+
 			fn(ctx)
 		}()
 	}
@@ -79,12 +81,14 @@ func RunAsyncMultipleWorkers(
 	fn func(context.Context, chan<- interface{}),
 ) <-chan interface{} {
 	ch := make(chan interface{}, buffer)
+
 	var wg sync.WaitGroup
 	wg.Add(goroutines)
 
 	for i := 0; i < goroutines; i++ {
 		go func() {
 			defer wg.Done()
+
 			fn(ctx, ch)
 		}()
 	}

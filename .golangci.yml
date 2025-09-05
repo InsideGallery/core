@@ -24,7 +24,7 @@ linters:
     - unconvert
     - unused
     - whitespace
-    - wsl
+    - wsl_v5
   settings:
     forbidigo:
       forbid:
@@ -66,10 +66,7 @@ linters:
       strict-append: false
       allow-assign-and-call: true
       allow-assign-and-anything: true
-      allow-multiline-assign: true
       force-case-trailing-whitespace: 0
-      allow-trailing-comment: true
-      allow-separated-leading-comment: true
       allow-cuddle-declarations: true
       allow-cuddle-with-calls:
         - Lock
@@ -81,6 +78,10 @@ linters:
       error-variable-names:
         - err
       force-short-decl-cuddling: false
+    gosec:
+      excludes:
+        - G109
+        - G115
   exclusions:
     generated: lax
     presets:
@@ -97,6 +98,9 @@ linters:
           - gosec
         path: utils/strings.go
         text: 'G115: integer overflow conversion uint64 -> int64'
+      - linters:
+          - revive
+        text: 'var-naming: avoid meaningless package names'
       - linters:
           - gosec
         path: dataconv/binary.go

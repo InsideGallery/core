@@ -33,6 +33,7 @@ func CreateMeasures() *Metrics {
 	if err != nil {
 		slog.Default().Error("Error getting config of metrics", "err", err)
 	}
+
 	m := otel.GetMeterProvider().Meter(cfg.Namespace)
 
 	counters := make(map[string]metric.Int64Counter)
@@ -75,6 +76,7 @@ func NewMetrics(m *Metrics) *SubMetrics {
 func (t *SubMetrics) Call(next subscriber.MsgHandler) subscriber.MsgHandler {
 	return func(ctx context.Context, msg *nats.Msg) error {
 		var err error
+
 		defer func(start time.Time) {
 			if ctx.Err() != nil {
 				err = ctx.Err()

@@ -131,6 +131,7 @@ func (s *Redis) DeleteByID(id string) error {
 	}
 
 	var errs []error
+
 	groups := res.Val()
 
 	for _, group := range groups {

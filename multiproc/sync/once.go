@@ -33,5 +33,6 @@ func (o *Once) Do(f func() error) error {
 func (o *Once) Reset() {
 	o.m.Lock()
 	defer o.m.Unlock()
+
 	o.done = 0
 }

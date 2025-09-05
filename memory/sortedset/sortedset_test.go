@@ -15,6 +15,7 @@ func TestTimeQueue(t *testing.T) {
 	for i := -1000; i <= 10000; i++ {
 		set.Upsert(time.Now().Add(time.Duration(i)*time.Minute), i)
 	}
+
 	set.Upsert(time.Now().Add(time.Minute), "test4")
 	set.Upsert(time.Now().Add(time.Second), "test3")
 	set.Upsert(time.Now().Add(-time.Minute), "test1")
@@ -49,7 +50,9 @@ func TestDump(t *testing.T) {
 		for i, v := range values {
 			rValues[i] = v
 		}
+
 		rKey, err := time.Parse(time.RFC3339, key)
+
 		return rKey, rValues, err
 	}, dump)
 	testutils.Equal(t, err, nil)
@@ -76,21 +79,25 @@ var resultList []*Node[time.Time, any]
 
 func BenchmarkUpsert(b *testing.B) {
 	s := NewSortedSet[time.Time, any](comparator.TimeComparator)
+
 	for i := 0; i < b.N; i++ {
 		j := i
 		if j%2 == 0 {
 			j *= -1
 		}
+
 		s.Upsert(time.Now().Add(time.Duration(j)*time.Minute), i)
 	}
 }
 
 func BenchmarkGetUntilKey(b *testing.B) {
 	b.StopTimer()
+
 	s := NewSortedSet[time.Time, any](comparator.TimeComparator)
 	for i := -1000; i <= 10000; i++ {
 		s.Upsert(time.Now().Add(time.Duration(i)*time.Minute), i)
 	}
+
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -100,10 +107,12 @@ func BenchmarkGetUntilKey(b *testing.B) {
 
 func BenchmarkTop(b *testing.B) {
 	b.StopTimer()
+
 	s := NewSortedSet[time.Time, any](comparator.TimeComparator)
 	for i := -1000; i <= 10000; i++ {
 		s.Upsert(time.Now().Add(time.Duration(i)*time.Minute), i)
 	}
+
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -113,10 +122,12 @@ func BenchmarkTop(b *testing.B) {
 
 func BenchmarkTopWithRemove(b *testing.B) {
 	b.StopTimer()
+
 	s := NewSortedSet[time.Time, any](comparator.TimeComparator)
 	for i := -1000; i <= 10000; i++ {
 		s.Upsert(time.Now().Add(time.Duration(i)*time.Minute), i)
 	}
+
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {

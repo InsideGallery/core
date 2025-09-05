@@ -13,7 +13,9 @@ var (
 // Set global client
 func Set(r *Connection) {
 	mu.Lock()
+
 	client = r
+
 	mu.Unlock()
 }
 

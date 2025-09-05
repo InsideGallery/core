@@ -5,10 +5,9 @@ import (
 	"io"
 	"net/http"
 
-	"golang.org/x/crypto/hkdf"
-
 	"github.com/go-jose/go-jose/v3"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/crypto/hkdf"
 )
 
 const (
@@ -70,6 +69,7 @@ func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
 		c.Set(fiber.HeaderContentType, HeaderJOSE)
 
 		_, err = c.WriteString(result)
+
 		return err
 	}
 
@@ -97,7 +97,7 @@ func EncryptResponse(sesKey, payload []byte) (string, error) {
 func GetSessionKey(masterSecret []byte, nonce []byte) ([]byte, error) {
 	kdf := hkdf.New(sha256.New, masterSecret, nonce, nil)
 
-	sessionKey := make([]byte, 32)
+	sessionKey := make([]byte, 32) //nolint:mnd
 
 	_, err := io.ReadFull(kdf, sessionKey)
 

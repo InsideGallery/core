@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/InsideGallery/core/testutils"
 	"testing"
+
+	"github.com/InsideGallery/core/testutils"
 )
 
 func TestSplitByChunks(t *testing.T) {
@@ -66,6 +67,7 @@ func TestByteSliceToString(t *testing.T) {
 
 	for k, c := range testcases {
 		c := c
+
 		t.Run(k, func(t *testing.T) {
 			str := ByteSliceToString(c.bytes)
 			testutils.Equal(t, str, c.out)
@@ -85,6 +87,7 @@ func TestByteSliceToStringNative(t *testing.T) {
 
 	for k, c := range testcases {
 		c := c
+
 		t.Run(k, func(t *testing.T) {
 			str := ByteSliceToString(c.bytes)
 			testutils.Equal(t, str, c.out)
@@ -137,6 +140,7 @@ func TestBetween(t *testing.T) {
 
 	for name, test := range testcases {
 		test := test
+
 		t.Run(name, func(t *testing.T) {
 			result := Between(test.data, test.keys...)
 			testutils.Equal(t, test.result, result)

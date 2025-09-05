@@ -36,9 +36,11 @@ func NewNeuralNetwork(g *gorgonia.ExprGraph, layers []Layer) (*NeuralNetwork, er
 		return nil, ErrEmptyLayers
 	}
 
-	var weights []*gorgonia.Node
-	var activations []string
-	var dropouts []float64
+	var (
+		weights     []*gorgonia.Node
+		activations []string
+		dropouts    []float64
+	)
 
 	for i, layer := range layers {
 		name := strings.Join([]string{"w", strconv.Itoa(i)}, "")
@@ -94,6 +96,7 @@ func (m *NeuralNetwork) Forward(x *gorgonia.Node) (err error) {
 				return err
 			}
 		}
+
 		d := m.dropouts[i]
 
 		layer, err = gorgonia.Dropout(layer, d)
@@ -101,6 +104,7 @@ func (m *NeuralNetwork) Forward(x *gorgonia.Node) (err error) {
 			return err
 		}
 	}
+
 	m.out = layer
 	gorgonia.Read(m.out, &m.predVal)
 
@@ -116,6 +120,7 @@ func (m *NeuralNetwork) Learn(y *gorgonia.Node) error {
 	if err != nil {
 		return err
 	}
+
 	cost := gorgonia.Must(gorgonia.Mean(losses))
 	cost = gorgonia.Must(gorgonia.Neg(cost))
 

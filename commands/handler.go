@@ -64,6 +64,7 @@ func (e *EventManager) Subscribe(event string, handler EventHandler) uint64 {
 	if _, ok := e.subscribers[event]; !ok {
 		e.subscribers[event] = make(map[uint64]EventHandler)
 	}
+
 	id := store.NextID()
 	e.subscribers[event][id] = handler
 
@@ -94,6 +95,7 @@ func (e *EventManager) GetHandlers(event string) []EventHandler {
 	}
 
 	var i int
+
 	handlers := make([]EventHandler, len(e.subscribers[event]))
 
 	for _, handler := range e.subscribers[event] {
@@ -118,6 +120,7 @@ func (e *EventManager) Call(ctx context.Context, event string) {
 	}
 
 	handler := make(chan EventHandler)
+
 	go func() {
 		for _, s := range handlers {
 			handler <- s

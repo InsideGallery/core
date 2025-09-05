@@ -17,6 +17,7 @@ func TestPoolExecuteSameError(t *testing.T) {
 			slog.Default().Error("recover", "rval", rval)
 		}
 	}()
+
 	ctx := context.Background()
 	err := errors.New("test error")
 	pool := NewPool(ctx, RecoverWrapper)
@@ -42,6 +43,7 @@ func TestPoolExecuteNoError(t *testing.T) {
 			slog.Default().Error("recover", "rval", rval)
 		}
 	}()
+
 	ctx := context.Background()
 	pool := NewPool(ctx, RecoverWrapper)
 
@@ -63,7 +65,9 @@ func TestPool(t *testing.T) {
 	err := errors.New("test")
 	err2 := errors.New("test2")
 	err3 := errors.New("test3")
+
 	var c int32
+
 	ctx := context.Background()
 	p := NewPool(ctx)
 	p.Execute(func(context.Context) error {
@@ -81,6 +85,7 @@ func TestPool(t *testing.T) {
 		return err2
 	})
 	resErr := p.Wait()
+
 	testutils.Equal(t, atomic.LoadInt32(&c), int32(2))
 	testutils.Equal(t, errors.Is(resErr, err), true)
 	testutils.Equal(t, errors.Is(resErr, err2), true)
@@ -92,6 +97,7 @@ func TestPoolCloseContext(t *testing.T) {
 	cancel()
 
 	var c int32
+
 	p := NewPool(ctx)
 	p.Execute(func(context.Context) error {
 		atomic.AddInt32(&c, 1)
@@ -103,6 +109,7 @@ func TestPoolCloseContext(t *testing.T) {
 	})
 
 	err := p.Wait()
+
 	testutils.Equal(t, atomic.LoadInt32(&c), int32(2))
 	testutils.Equal(t, err, nil)
 }

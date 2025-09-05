@@ -30,7 +30,9 @@ func TestDelayExecute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := NewDelay(ctx, tt.delay)
+
 			var num int64
+
 			testutils.Equal(t, d.Add(func() error {
 				atomic.AddInt64(&num, 1)
 				return nil

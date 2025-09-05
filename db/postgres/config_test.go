@@ -36,6 +36,7 @@ func TestGetConnectionConfigFromEnv(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.prepare(t)
+
 			got, err := GetConnectionConfigFromEnv()
 			testutils.Equal(t, err, tt.wantErr)
 			testutils.Equal(t, tt.want, got)

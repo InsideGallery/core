@@ -62,8 +62,10 @@ func CountHLL(client Operator, namespace, set string, by []string, union bool) (
 		return 0, nil
 	}
 
-	var record *as.Record
-	var err as.Error
+	var (
+		record *as.Record
+		err    as.Error
+	)
 
 	if union {
 		record, err = client.Operate(nil, lastKey, as.HLLGetUnionCountOp(aero.HLLBin, hlls))

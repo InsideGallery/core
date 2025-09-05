@@ -47,6 +47,7 @@ func TestSortStructs(t *testing.T) {
 
 	byID := func(a, b interface{}) int {
 		c1 := a.(User)
+
 		c2 := b.(User)
 		switch {
 		case c1.id > c2.id:
@@ -80,7 +81,9 @@ func TestSortRandom(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		ints = append(ints, rand.Int()) //nolint:gosec
 	}
+
 	Sort(ints, comparator.IntComparator)
+
 	for i := 1; i < len(ints); i++ {
 		if ints[i-1].(int) > ints[i].(int) {
 			t.Errorf("Not sorted!")
@@ -90,10 +93,12 @@ func TestSortRandom(t *testing.T) {
 
 func BenchmarkGoSortRandom(b *testing.B) {
 	b.StopTimer()
+
 	ints := []interface{}{}
 	for i := 0; i < 100000; i++ {
 		ints = append(ints, rand.Int()) //nolint:gosec
 	}
+
 	b.StartTimer()
 	Sort(ints, comparator.IntComparator)
 	b.StopTimer()

@@ -237,6 +237,7 @@ func (tree *Tree[K, V]) middle() int {
 // search searches only within the single node among its entries
 func (tree *Tree[K, V]) search(node *Node[K, V], key any) (index int, found bool) {
 	low, high := 0, len(node.Entries)-1
+
 	var mid int
 
 	for low <= high {
@@ -273,6 +274,7 @@ func (tree *Tree[K, V]) searchRecursively(startNode *Node[K, V], key any) (node 
 		if tree.isLeaf(node) {
 			return nil, -1, false
 		}
+
 		node = node.Children[index]
 	}
 }
@@ -391,6 +393,7 @@ func (tree *Tree[K, V]) left(node *Node[K, V]) *Node[K, V] {
 	if tree.Empty() {
 		return nil
 	}
+
 	current := node
 
 	for {
@@ -413,6 +416,7 @@ func (tree *Tree[K, V]) right(node *Node[K, V]) *Node[K, V] {
 		if tree.isLeaf(current) {
 			return current
 		}
+
 		current = current.Children[len(current.Children)-1]
 	}
 }

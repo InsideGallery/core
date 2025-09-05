@@ -20,15 +20,18 @@ func TestDB(t *testing.T) {
 	ts := &Test{
 		Name: name,
 	}
+
 	err = w.Set("key1", ts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ts = new(Test)
+
 	err = w.Get("key1", ts)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	testutils.Equal(t, ts.Name, name)
 }

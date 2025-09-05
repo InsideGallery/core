@@ -16,6 +16,7 @@ func RoundWithPrecision(value float64, precision float64) float64 {
 	if ApproximatelyEqual(precision, 0) {
 		precision = DefaultPrecision
 	}
+
 	precision = 1 / precision
 
 	return math.Round(value*precision) / precision
@@ -72,6 +73,7 @@ func BigIntToHighAndLow(x *big.Int) (uint64, uint64) {
 func HighAndLowToBigInt(h, l uint64) *big.Int {
 	sh := make([]byte, 8) //nolint:mnd
 	binary.BigEndian.PutUint64(sh, l)
+
 	sl := make([]byte, 8) //nolint:mnd
 	binary.BigEndian.PutUint64(sl, h)
 

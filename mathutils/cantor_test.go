@@ -7,8 +7,10 @@ import (
 )
 
 func TestCantor(t *testing.T) {
-	var ev1 uint64 = 2
-	var ev2 uint64 = 1
+	var (
+		ev1 uint64 = 2
+		ev2 uint64 = 1
+	)
 
 	v := CantorPair(ev1, ev2)
 	testutils.Equal(t, v, uint64(7))

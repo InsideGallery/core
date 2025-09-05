@@ -2,12 +2,12 @@ package bloom
 
 import (
 	"fmt"
-	"github.com/InsideGallery/core/dataconv"
 	"hash"
 	"hash/crc64"
 	"hash/fnv"
 	"math"
 
+	"github.com/InsideGallery/core/dataconv"
 	"github.com/InsideGallery/core/memory/bitset"
 )
 
@@ -31,6 +31,7 @@ func (f *filter64) bits(data []byte) []uint64 {
 	for i := uint64(0); i < f.k; i++ {
 		is[i] = (a + b*i) % f.m
 	}
+
 	return is
 }
 
@@ -45,9 +46,10 @@ func newFilter64(m, k uint64) *filter64 {
 
 func estimates64(n uint64, p float64) (uint64, uint64) {
 	nf := float64(n)
-	log2 := math.Log(2)
-	m := -1 * nf * math.Log(p) / math.Pow(log2, 2)
+	log2 := math.Log(2) // nolint:mnd
+	m := -1 * nf * math.Log(p) / log2 * log2
 	k := math.Ceil(log2 * m / nf)
+
 	return uint64(m), uint64(k)
 }
 
@@ -66,6 +68,7 @@ func (f *Filter64) Test(data []byte) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -89,6 +92,7 @@ func New64(n int64, p float64) *Filter64 {
 		newFilter64(m, k),
 		bitset.New64(m),
 	}
+
 	return f
 }
 
@@ -110,6 +114,7 @@ func (f *CountingFilter64) Test(data []byte) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -117,13 +122,17 @@ func (f *CountingFilter64) Test(data []byte) bool {
 func (f *CountingFilter64) Add(data []byte) {
 	for _, v := range f.bits(data) {
 		done := false
+
 		for _, ov := range f.b {
 			if !ov.Test(v) {
 				done = true
+
 				ov.Set(v)
+
 				break
 			}
 		}
+
 		if !done {
 			nb := bitset.New64(f.b[0].Len())
 			f.b = append(f.b, nb)
@@ -136,6 +145,7 @@ func (f *CountingFilter64) Add(data []byte) {
 // to the filter, or future results will be inconsistent.
 func (f *CountingFilter64) Remove(data []byte) {
 	last := len(f.b) - 1
+
 	for _, v := range f.bits(data) {
 		for oi := last; oi >= 0; oi-- {
 			ov := f.b[oi]
@@ -162,6 +172,7 @@ func NewCounting64(n int64, p float64) *CountingFilter64 {
 		newFilter64(m, k),
 		[]*bitset.Bitset64{bitset.New64(m)},
 	}
+
 	return f
 }
 
@@ -178,19 +189,23 @@ type LayeredFilter64 struct {
 // filter. The result cannot be falsely negative.
 func (f *LayeredFilter64) Test(data []byte) (int, bool) {
 	is := f.bits(data)
+
 	for i := len(f.b) - 1; i >= 0; i-- {
 		v := f.b[i]
 		last := len(is) - 1
+
 		for oi, ov := range is {
 			if !v.Test(ov) {
 				break
 			}
+
 			if oi == last {
 				// Every test was positive at this layer
 				return i + 1, true
 			}
 		}
 	}
+
 	return 0, false
 }
 
@@ -198,10 +213,12 @@ func (f *LayeredFilter64) Test(data []byte) (int, bool) {
 // was added, e.g. 1 for the first layer.
 func (f *LayeredFilter64) Add(data []byte) int {
 	is := f.bits(data)
+
 	var (
 		i int
 		v *bitset.Bitset64
 	)
+
 	for i, v = range f.b {
 		here := false
 		for _, ov := range is {
@@ -209,19 +226,24 @@ func (f *LayeredFilter64) Add(data []byte) int {
 				v.Set(ov)
 			} else if !v.Test(ov) {
 				here = true
+
 				v.Set(ov)
 			}
 		}
+
 		if here {
 			return i + 1
 		}
 	}
+
 	nb := bitset.New64(f.b[0].Len())
 	f.b = append(f.b, nb)
+
 	for _, v := range is {
 		nb.Set(v)
 	}
-	return i + 2
+
+	return i + 2 // nolint:mnd
 }
 
 // Resets the filter.
@@ -240,6 +262,7 @@ func NewLayered64(n int64, p float64) *LayeredFilter64 {
 		newFilter64(m, k),
 		[]*bitset.Bitset64{bitset.New64(m)},
 	}
+
 	return f
 }
 
@@ -247,12 +270,12 @@ func NewLayered64(n int64, p float64) *LayeredFilter64 {
 func (f *CountingFilter64) ToBytes() ([]byte, error) {
 	enc := dataconv.NewBinaryEncoder()
 
-	err := enc.Encode(f.filter64.m)
+	err := enc.Encode(f.m)
 	if err != nil {
 		return nil, fmt.Errorf("encode m param: %w", err)
 	}
 
-	err = enc.Encode(f.filter64.k)
+	err = enc.Encode(f.k)
 	if err != nil {
 		return nil, fmt.Errorf("encode k param: %w", err)
 	}
@@ -291,6 +314,7 @@ func NewCounting64FromBytes(data []byte) (*CountingFilter64, error) {
 			oh: crc64.New(crc64.MakeTable(crc64.ECMA)),
 		},
 	}
+
 	var size int
 
 	err := dec.Decode(&res.m)

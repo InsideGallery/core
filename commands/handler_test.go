@@ -10,6 +10,7 @@ import (
 
 func TestHandler(t *testing.T) {
 	var calls uint32
+
 	ev := EventHandlerFunc(func(context.Context) {
 		atomic.AddUint32(&calls, 1)
 	})
@@ -39,8 +40,10 @@ func BenchmarkHandler(b *testing.B) {
 	eventManager.Subscribe("event1", EventHandlerFunc(func(context.Context) {}))
 	eventManager.Subscribe("event1", EventHandlerFunc(func(context.Context) {}))
 	eventManager.Subscribe("event2", EventHandlerFunc(func(context.Context) {}))
+
 	for i := 0; i < b.N; i++ {
 		eventManager.Call(context.Background(), "event1")
 	}
+
 	eventManager.Unsubscribe("event1", 2)
 }

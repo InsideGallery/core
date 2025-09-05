@@ -19,7 +19,9 @@ import (
 
 func TestTrace(t *testing.T) {
 	ctx := context.Background()
+
 	fastlog.SetupDefaultLog(middlewares.NewGDPRMiddleware())
+
 	defer otel.Default(ctx).Shutdown()
 
 	sc := trace.NewSpanContext(trace.SpanContextConfig{

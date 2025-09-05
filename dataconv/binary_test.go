@@ -17,7 +17,9 @@ func TestEncodeString(t *testing.T) {
 	testutils.Equal(t, data, []byte{0, 0, 0, 12, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33})
 
 	d := NewBinaryDecoder(data)
+
 	var result string
+
 	err := d.Decode(&result)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, result, str)
@@ -35,31 +37,45 @@ func TestEncodeUint(t *testing.T) {
 	data := b.Bytes()
 
 	d := NewBinaryDecoder(data)
+
 	var tuint8 uint8
+
 	err := d.Decode(&tuint8)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, tuint8, uint8(1))
+
 	var tuint16 uint16
+
 	err = d.Decode(&tuint16)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, tuint16, uint16(1245))
+
 	var tuint32 uint32
+
 	err = d.Decode(&tuint32)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, tuint32, uint32(1245678))
+
 	var tuint64 uint64
+
 	err = d.Decode(&tuint64)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, tuint64, uint64(124567891011))
+
 	var tbytes []byte
+
 	err = d.Decode(&tbytes)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, tbytes, []byte("test"))
+
 	var tfloat64 float64
+
 	err = d.Decode(&tfloat64)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, tfloat64, float64(12.56))
+
 	var tfloat32 float32
+
 	err = d.Decode(&tfloat32)
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, tfloat32, float32(3.14))
@@ -81,26 +97,32 @@ var (
 
 func BenchmarkBinaryAppend(b *testing.B) {
 	t := []byte{124, 123, 212, 34, 12, 21, 1, 45, 76}
+
 	l := make([]byte, 0, len(t))
 	for i := 0; i < b.N; i++ {
 		l = append(l, t...)
 	}
+
 	s = l
 }
 
 func BenchmarkBinaryCopy(b *testing.B) {
 	t := []byte{124, 123, 212, 34, 12, 21, 1, 45, 76}
+
 	l := make([]byte, len(t))
 	for i := 0; i < b.N; i++ {
 		copy(l, t)
 	}
+
 	s = l
 }
 
 func BenchmarkBinaryDecoder(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b := NewBinaryDecoder([]byte{0, 12, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33})
+
 		var str string
+
 		_ = b.Decode(&str)
 		localStr = str
 	}

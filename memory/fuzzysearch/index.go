@@ -42,6 +42,7 @@ func (idx Index) Add(docs ...Document) {
 				// Don't add same ID twice.
 				continue
 			}
+
 			idx[token] = append(ids, doc.ID)
 		}
 	}
@@ -94,6 +95,7 @@ func Intersection(a []int, b []int) []int {
 	}
 
 	r := make([]int, 0, maxLen)
+
 	var i, j int
 
 	for i < len(a) && j < len(b) {

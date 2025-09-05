@@ -45,6 +45,7 @@ func (p *Pool) Close() {
 func (p *Pool) addErr(err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
 	p.errs = append(p.errs, err)
 }
 
@@ -86,5 +87,6 @@ func (p *Pool) Wait() error {
 	p.wg.Wait()
 
 	defer p.Close()
+
 	return p.getErr()
 }

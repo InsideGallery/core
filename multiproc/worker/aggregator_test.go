@@ -50,6 +50,7 @@ func TestAggregator(t *testing.T) {
 		primID := primitive.NewObjectID()
 
 		var counter int32
+
 		go func() {
 			for i := 0; i < 4; i++ {
 				atomic.AddInt32(&counter, 1)

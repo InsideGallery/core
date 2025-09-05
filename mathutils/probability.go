@@ -15,8 +15,10 @@ func WeightIndex(prob map[interface{}]uint64) interface{} {
 	indexes := map[int]interface{}{}
 	probabilities := map[interface{}]uint64{}
 
-	var count int
-	var sumWeights uint64
+	var (
+		count      int
+		sumWeights uint64
+	)
 
 	for key, v := range prob {
 		sumWeights += v

@@ -64,8 +64,10 @@ func (v *SemVersion) build() {
 }
 
 func (v *SemVersion) getCoreParts(version string) []uint16 {
-	var parts []uint16
-	var last int
+	var (
+		parts []uint16
+		last  int
+	)
 
 	for i, c := range version {
 		if core.Contains(c) {
@@ -82,8 +84,10 @@ func (v *SemVersion) getCoreParts(version string) []uint16 {
 }
 
 func (v *SemVersion) getReleaseParts(version string) []uint16 {
-	var parts []uint16
-	var last int
+	var (
+		parts []uint16
+		last  int
+	)
 
 	for i, c := range version {
 		if core.Contains(c) {

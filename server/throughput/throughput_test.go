@@ -9,10 +9,12 @@ import (
 
 func TestThroughput(t *testing.T) {
 	storage := NewMemoryStorage()
+
 	th := New(context.Background(), storage)
 	go th.Loop()
 
 	var statuses []bool
+
 	for i := 0; i < int(Tier0RPM+1); i++ {
 		res := th.Validate("test")
 		statuses = append(statuses, res)
@@ -27,6 +29,7 @@ var statusesL []bool
 
 func BenchmarkThroughput(b *testing.B) {
 	storage := NewMemoryStorage()
+
 	th := New(context.Background(), storage)
 	go th.Loop()
 

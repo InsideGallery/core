@@ -58,6 +58,7 @@ func IsPrivateAddress(address string) (bool, error) {
 // IPFromRequest return ip from request
 func IPFromRequest(c *fiber.Ctx) (net.IP, error) {
 	var err error
+
 	xRealIP := c.Get("X-Real-Ip")
 	xForwardedFor := c.Get("X-Forwarded-For")
 

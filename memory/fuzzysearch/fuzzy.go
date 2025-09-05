@@ -74,6 +74,7 @@ Outer:
 				continue Outer
 			}
 		}
+
 		return false
 	}
 
@@ -160,8 +161,10 @@ Outer:
 				target = target[i+utf8.RuneLen(r2):]
 				continue Outer
 			}
+
 			runeDiff++
 		}
+
 		return -1
 	}
 
@@ -248,6 +251,7 @@ type unicodeFoldTransformer struct{}
 
 func (unicodeFoldTransformer) Transform(dst, src []byte, _ bool) (nDst, nSrc int, err error) {
 	runes := bytes.Runes(src)
+
 	var lowerRunes []rune
 
 	for _, r := range runes {

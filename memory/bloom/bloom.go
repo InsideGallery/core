@@ -24,9 +24,11 @@ func (f *filter) bits(data []byte) []uint32 {
 	a := binary.BigEndian.Uint32(d[4:8])
 	b := binary.BigEndian.Uint32(d[0:4])
 	is := make([]uint32, f.k)
+
 	for i := uint32(0); i < f.k; i++ {
 		is[i] = (a + b*i) % f.m
 	}
+
 	return is
 }
 
@@ -40,16 +42,22 @@ func newFilter(m, k uint32) *filter {
 
 func estimates(n uint32, p float64) (uint32, uint32) {
 	nf := float64(n)
-	log2 := math.Log(2)
-	m := -1 * nf * math.Log(p) / math.Pow(log2, 2)
+	log2 := math.Log(2) // nolint:mnd
+	m := -1 * nf * math.Log(p) / log2 * log2
 	k := math.Ceil(log2 * m / nf)
 
-	words := m + 31>>5
+	words := m + 31>>5 // nolint:mnd
 	if words >= math.MaxInt32 {
-		panic(fmt.Sprintf("A 32-bit bloom filter with n %d and p %f requires a 32-bit bitset with a slice of %f words, but slices cannot contain more than %d elements. Please use the equivalent 64-bit bloom filter, e.g. New64(), instead.", n, p, words, math.MaxInt32-1))
+		panic(fmt.Sprintf("A 32-bit bloom filter with n %d and p %f requires a "+
+			"32-bit bitset with a slice of %f words, but slices cannot contain more than "+
+			"%d elements. Please use the equivalent 64-bit bloom filter, e.g. New64(), "+
+			"instead.", n, p, words, math.MaxInt32-1))
 	} else if m > math.MaxUint32 {
-		panic(fmt.Sprintf("A 32-bit bloom filter with n %d and p %f requires a 32-bit bitset with %f bits, but this number overflows an uint32. Please use the equivalent 64-bit bloom filter, e.g. New64(), instead.", n, p, m))
+		panic(fmt.Sprintf("A 32-bit bloom filter with n %d and p %f requires a "+
+			"32-bit bitset with %f bits, but this number overflows an uint32. Please use "+
+			"the equivalent 64-bit bloom filter, e.g. New64(), instead.", n, p, m))
 	}
+
 	return uint32(m), uint32(k)
 }
 
@@ -68,6 +76,7 @@ func (f *Filter) Test(data []byte) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -91,6 +100,7 @@ func New(n int, p float64) *Filter {
 		newFilter(m, k),
 		bitset.New32(m),
 	}
+
 	return f
 }
 
@@ -112,6 +122,7 @@ func (f *CountingFilter) Test(data []byte) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -119,13 +130,17 @@ func (f *CountingFilter) Test(data []byte) bool {
 func (f *CountingFilter) Add(data []byte) {
 	for _, v := range f.bits(data) {
 		done := false
+
 		for _, ov := range f.b {
 			if !ov.Test(v) {
 				done = true
+
 				ov.Set(v)
+
 				break
 			}
 		}
+
 		if !done {
 			nb := bitset.New32(f.b[0].Len())
 			f.b = append(f.b, nb)
@@ -138,6 +153,7 @@ func (f *CountingFilter) Add(data []byte) {
 // to the filter, or future results will be inconsistent.
 func (f *CountingFilter) Remove(data []byte) {
 	last := len(f.b) - 1
+
 	for _, v := range f.bits(data) {
 		for oi := last; oi >= 0; oi-- {
 			ov := f.b[oi]
@@ -164,6 +180,7 @@ func NewCounting(n int, p float64) *CountingFilter {
 		newFilter(m, k),
 		[]*bitset.Bitset32{bitset.New32(m)},
 	}
+
 	return f
 }
 
@@ -180,19 +197,23 @@ type LayeredFilter struct {
 // filter. The result cannot be falsely negative.
 func (f *LayeredFilter) Test(data []byte) (int, bool) {
 	is := f.bits(data)
+
 	for i := len(f.b) - 1; i >= 0; i-- {
 		v := f.b[i]
 		last := len(is) - 1
+
 		for oi, ov := range is {
 			if !v.Test(ov) {
 				break
 			}
+
 			if oi == last {
 				// Every test was positive at this layer
 				return i + 1, true
 			}
 		}
 	}
+
 	return 0, false
 }
 
@@ -200,10 +221,12 @@ func (f *LayeredFilter) Test(data []byte) (int, bool) {
 // was added, e.g. 1 for the first layer.
 func (f *LayeredFilter) Add(data []byte) int {
 	is := f.bits(data)
+
 	var (
 		i int
 		v *bitset.Bitset32
 	)
+
 	for i, v = range f.b {
 		here := false
 		for _, ov := range is {
@@ -211,19 +234,24 @@ func (f *LayeredFilter) Add(data []byte) int {
 				v.Set(ov)
 			} else if !v.Test(ov) {
 				here = true
+
 				v.Set(ov)
 			}
 		}
+
 		if here {
 			return i + 1
 		}
 	}
+
 	nb := bitset.New32(f.b[0].Len())
 	f.b = append(f.b, nb)
+
 	for _, v := range is {
 		nb.Set(v)
 	}
-	return i + 2
+
+	return i + 2 // nolint:mnd
 }
 
 // Resets the filter.
@@ -242,6 +270,7 @@ func NewLayered(n int, p float64) *LayeredFilter {
 		newFilter(m, k),
 		[]*bitset.Bitset32{bitset.New32(m)},
 	}
+
 	return f
 }
 
@@ -249,12 +278,12 @@ func NewLayered(n int, p float64) *LayeredFilter {
 func (f *CountingFilter) ToBytes() ([]byte, error) {
 	enc := dataconv.NewBinaryEncoder()
 
-	err := enc.Encode(f.filter.m)
+	err := enc.Encode(f.m)
 	if err != nil {
 		return nil, fmt.Errorf("encode m param: %w", err)
 	}
 
-	err = enc.Encode(f.filter.k)
+	err = enc.Encode(f.k)
 	if err != nil {
 		return nil, fmt.Errorf("encode k param: %w", err)
 	}
@@ -292,6 +321,7 @@ func NewCountingFromBytes(data []byte) (*CountingFilter, error) {
 			h: fnv.New64(),
 		},
 	}
+
 	var size int
 
 	err := dec.Decode(&res.m)

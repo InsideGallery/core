@@ -19,7 +19,9 @@ var (
 // Set postgres client
 func Set(r *sqlx.DB) {
 	mu.Lock()
+
 	client = r
+
 	mu.Unlock()
 }
 

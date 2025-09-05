@@ -92,6 +92,7 @@ func (w *WorkersPool[K]) Execute(fn func(ctx context.Context) error) {
 
 		if err := worker.Handle(); err != nil {
 			w.Stop()
+
 			w.chErr <- err
 		}
 	}()

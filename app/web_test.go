@@ -13,12 +13,14 @@ import (
 
 func TestWeb(t *testing.T) {
 	t.Skip() // test for validate how apps works
+
 	ctx := context.Background()
 	WebMain(ctx, ":8090", "Test Server", nil)
 }
 
 func TestNATS(t *testing.T) {
 	t.Skip() // test for validate how apps works
+
 	ctx := context.Background()
 	NATSMain(ctx, func(_ context.Context, _ *metrics.OTLPMetric, _ *middleware.Middleware, _ *subscriber.Subscriber) error {
 		panic("test")

@@ -23,6 +23,7 @@ func init() {
 func Set(name string, r *aero.Client) {
 	mu.Lock()
 	defer mu.Unlock()
+
 	connection[name] = r
 }
 

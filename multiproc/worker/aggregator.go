@@ -36,7 +36,9 @@ type Aggregator[K any] struct {
 	processor func([]K) error
 }
 
-func NewAggregator[K any](ctx context.Context, count int, ticker time.Duration, processor func([]K) error) *Aggregator[K] {
+func NewAggregator[K any](
+	ctx context.Context, count int, ticker time.Duration, processor func([]K) error,
+) *Aggregator[K] {
 	ctx, cancel := context.WithCancel(ctx)
 
 	return &Aggregator[K]{

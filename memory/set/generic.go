@@ -49,6 +49,7 @@ func (set GenericDataSet[K]) IsEmpty() bool {
 // ToSlice return slice of entities
 func (set GenericDataSet[K]) ToSlice() []K {
 	s := make([]K, set.Count())
+
 	var i int
 
 	for k := range set {

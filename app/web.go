@@ -41,6 +41,7 @@ func WebMain(ctx context.Context, port string, serverName string, initRouter Ini
 	app := webserver.NewFiberApp(serverName)
 
 	var appStopped int32
+
 	app.Hooks().OnShutdown(func() error {
 		atomic.StoreInt32(&appStopped, 1)
 		return nil

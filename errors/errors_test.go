@@ -58,6 +58,7 @@ func TestMultipleError(t *testing.T) {
 	werr2 = Wrap(werr2, err3)
 	werr3 := Wrap(err2, err3)
 	werr4 := Wrap(err4, err5)
+
 	testutils.Equal(t, werr.Error(), "test error 1: test error 2: test error 3")
 	testutils.Equal(t, nativeErrors.Unwrap(werr).Error(), "test error 1: test error 2")
 	testutils.Equal(t, nativeErrors.Is(werr, werr2), true)

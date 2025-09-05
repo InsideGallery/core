@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/InsideGallery/core/pki/aes"
-	"github.com/InsideGallery/core/testutils"
 	"github.com/go-jose/go-jose/v3"
 	"github.com/gofiber/fiber/v2"
+
+	"github.com/InsideGallery/core/pki/aes"
+	"github.com/InsideGallery/core/testutils"
 )
 
 func TestJWEAES(t *testing.T) {
@@ -39,6 +40,7 @@ func TestJWEAES(t *testing.T) {
 		testutils.Equal(t, string(data), requestStr)
 
 		ctx.Locals(ResponseValueKey, []byte("good, thanks!"))
+
 		return nil
 	})
 

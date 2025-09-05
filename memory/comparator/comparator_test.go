@@ -19,6 +19,7 @@ func TestIntComparator(t *testing.T) {
 
 	for _, test := range tests {
 		actual := IntComparator(test[0], test[1])
+
 		expected := test[2]
 		if actual != expected {
 			t.Errorf("Got %v expected %v", actual, expected)
@@ -41,6 +42,7 @@ func TestStringComparator(t *testing.T) {
 
 	for _, test := range tests {
 		actual := StringComparator(test[0], test[1])
+
 		expected := test[2]
 		if actual != expected {
 			t.Errorf("Got %v expected %v", actual, expected)
@@ -60,6 +62,7 @@ func TestTimeComparator(t *testing.T) {
 
 	for _, test := range tests {
 		actual := TimeComparator(test[0], test[1])
+
 		expected := test[2]
 		if actual != expected {
 			t.Errorf("Got %v expected %v", actual, expected)
@@ -75,6 +78,7 @@ func TestCustomComparator(t *testing.T) {
 
 	byID := func(a, b interface{}) int {
 		c1 := a.(Custom)
+
 		c2 := b.(Custom)
 		switch {
 		case c1.id > c2.id:

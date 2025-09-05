@@ -15,6 +15,7 @@ func Recover(next http.Handler) http.Handler {
 				http.Error(w, "Panic during the request", http.StatusInternalServerError)
 			}
 		}()
+
 		next.ServeHTTP(w, r)
 	})
 }

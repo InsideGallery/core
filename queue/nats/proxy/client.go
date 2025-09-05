@@ -24,6 +24,7 @@ type Client struct {
 func (c *Client) setLastPing() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	c.lastPing = time.Now()
 }
 

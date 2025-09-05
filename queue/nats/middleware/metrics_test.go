@@ -17,9 +17,12 @@ import (
 
 func TestMetrics(t *testing.T) {
 	ctx := context.Background()
+
 	fastlog.SetupDefaultLog()
+
 	m, err := metrics.Default(ctx)
 	testutils.Equal(t, err, nil)
+
 	defer m.Shutdown()
 	defer otel.Default(ctx).Shutdown()
 

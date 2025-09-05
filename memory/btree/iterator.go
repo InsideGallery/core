@@ -38,6 +38,7 @@ func (iterator *Iterator[K, V]) Next() bool {
 		if left == nil {
 			goto end
 		}
+
 		iterator.node = left
 		iterator.entry = left.Entries[0]
 

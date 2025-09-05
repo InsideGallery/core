@@ -41,6 +41,7 @@ func (e *BaseEntity) SetID(id uint64) {
 	if id > lid {
 		store.SetLatestID(id)
 	}
+
 	e.id = id
 }
 

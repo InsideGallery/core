@@ -14,15 +14,19 @@ func TestListener(t *testing.T) {
 	ch := make(chan Message, 100)
 	writer := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
 	var finish sync.WaitGroup
 	finish.Add(1)
+
 	go func() {
 		defer finish.Done()
+
 		err := Run(ch, writer, req)
 		testutils.Equal(t, err, nil)
 	}()
 
 	ch <- NewMessage("message", "some text", "some more text")
+
 	close(ch)
 	finish.Wait()
 

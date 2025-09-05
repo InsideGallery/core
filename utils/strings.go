@@ -4,13 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/sirbu/golang-common/hash/crc16"
 	"math/big"
 	mrand "math/rand/v2"
 	"strings"
 	"time"
 	"unsafe"
 
+	"github.com/sirbu/golang-common/hash/crc16"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -105,6 +105,7 @@ func SafeGet[T any](ptr *T, defaultValue T) T {
 
 func MaskField(str string, keepUnmaskedFront int, keepUnmaskedEnd int) string {
 	var result strings.Builder
+
 	size := len(str)
 	defaultResult := strings.Repeat("*", size)
 
@@ -158,8 +159,9 @@ func RandStringBytes(n int) string {
 
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[mrand.IntN(len(letterBytes))]
+		b[i] = letterBytes[mrand.IntN(len(letterBytes))] // nolint:gosec
 	}
+
 	return string(b)
 }
 

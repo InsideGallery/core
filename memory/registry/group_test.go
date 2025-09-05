@@ -32,12 +32,14 @@ func TestGroup(t *testing.T) {
 
 	for _, item := range result {
 		var exists bool
+
 		e := item.(*MockEntity)
 		for _, i := range data {
 			if i == e {
 				exists = true
 			}
 		}
+
 		if !exists {
 			t.Fatalf("Not found expected object: %+v", e)
 		}
@@ -58,6 +60,7 @@ func TestGroup(t *testing.T) {
 	}
 
 	r.TruncateGroup(KeyTemporary)
+
 	result = r.GetValues(KeyTemporary)
 	if len(result) != 0 {
 		t.Fatalf("Unexpected objects count: %d", len(result))
@@ -68,6 +71,7 @@ func TestGroup(t *testing.T) {
 	})
 	for e := range res {
 		var exists bool
+
 		entity := e.(*MockEntity)
 		for _, i := range data {
 			if i == entity {

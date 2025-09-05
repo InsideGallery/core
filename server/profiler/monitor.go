@@ -59,6 +59,7 @@ func Monitor(ctx context.Context) func() {
 		err := ExecuteHealthCheck()
 		if err != nil {
 			slog.Default().Error("Error get status of service", "err", err)
+
 			msg["online"] = false
 			msg["error"] = err.Error()
 

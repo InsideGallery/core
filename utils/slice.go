@@ -16,6 +16,7 @@ func BatchSlice[K any](size int, result []K) <-chan []K {
 
 		for i := 0; i < parts; i++ {
 			begin = size * i
+
 			end = begin + size
 			ch <- result[begin:end]
 		}

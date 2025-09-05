@@ -24,6 +24,7 @@ func TestTrace(t *testing.T) {
 	ctx = trace.ContextWithRemoteSpanContext(ctx, sc)
 
 	msg := new(nats.Msg)
+
 	t.Run("inject", func(t *testing.T) {
 		Inject(ctx, msg, WithPropagators(prop))
 		assert.Len(t, msg.Header, 1)

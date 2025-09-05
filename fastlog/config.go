@@ -43,14 +43,17 @@ func GetConfigFromEnv() (*Config, error) {
 }
 
 func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
-	var outputs []slog.Handler
-	var errs []error
+	var (
+		outputs []slog.Handler
+		errs    []error
+	)
 
 	for _, out := range c.Outputs {
 		parts := strings.Split(out, Separator)
 		if len(parts) != typeParts {
 			continue
 		}
+
 		kind := parts[0]
 		format := parts[1]
 
@@ -62,6 +65,7 @@ func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
 		if o == nil {
 			continue
 		}
+
 		outputs = append(outputs, o)
 	}
 
@@ -70,6 +74,7 @@ func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
 		if err != nil {
 			return nil, errors.Combine(append(errs, err)...)
 		}
+
 		outputs = append(outputs, h)
 	}
 

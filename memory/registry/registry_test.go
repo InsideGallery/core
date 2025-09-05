@@ -89,6 +89,7 @@ func TestRegistry(t *testing.T) {
 
 	for name, test := range testcases {
 		test := test
+
 		t.Run(name, func(t *testing.T) {
 			err := r.Add(test.key, test.id, test.data)
 			testutils.Equal(t, err, test.setErr)
@@ -104,14 +105,17 @@ func TestConstructDestroy(t *testing.T) {
 	d := &MockEntity{
 		id: r.NextID(),
 	}
+
 	err := r.Add(KeyTemporary, d.id, d)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	err = r.Add(KeyTemporary, d.id, d) // UPDATE
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	err = r.Remove(KeyTemporary, d.id)
 	if err != nil {
 		t.Fatal(err)
@@ -129,11 +133,13 @@ func TestAsyncGetNextID(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(5)
+
 	for i := 0; i < 5; i++ {
 		go func() {
 			for range generate {
 				r.NextID()
 			}
+
 			wg.Done()
 		}()
 	}
@@ -141,6 +147,7 @@ func TestAsyncGetNextID(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		generate <- struct{}{}
 	}
+
 	close(generate)
 	wg.Wait()
 
@@ -155,8 +162,10 @@ func TestAsyncRegistry(t *testing.T) {
 	writer := make(chan *MockEntity, 100)
 
 	gorutines := 100
+
 	var wg sync.WaitGroup
 	wg.Add(gorutines)
+
 	for i := 0; i < gorutines; i++ {
 		go func() {
 			for entity := range writer {
@@ -165,6 +174,7 @@ func TestAsyncRegistry(t *testing.T) {
 					panic(err)
 				}
 			}
+
 			wg.Done()
 		}()
 	}
@@ -175,6 +185,7 @@ func TestAsyncRegistry(t *testing.T) {
 		}
 		writer <- e
 	}
+
 	close(writer)
 	wg.Wait()
 
@@ -186,14 +197,17 @@ func TestAsyncRegistry(t *testing.T) {
 	e := r.SearchOne(KeyTemporary, func(_ interface{}, id interface{}, _ interface{}) bool {
 		return id.(uint64) == 1
 	})
+
 	entity, ok := e.(*MockEntity)
 	if !ok {
 		t.Fatalf("Unexpected type: %+v", e)
 	}
+
 	result := strings.Join(entity.log, "\n")
 	if result != "calling construct" {
 		t.Fatalf("Unexpected result: %s", result)
 	}
+
 	if entity.GetID() != 1 {
 		t.Fatalf("Unexpected id: %d", entity.GetID())
 	}
@@ -213,14 +227,19 @@ var data interface{}
 
 func BenchmarkGetString(b *testing.B) {
 	b.StopTimer()
+
 	r := NewRegistry[string, uint64, any]()
+
 	err := r.Add(KeyTemporary, 1, "simple text insert benchmark")
 	if err != nil {
 		b.Fatal(err)
 	}
+
 	b.StartTimer()
+
 	for i := 0; i < b.N; i++ {
 		var err error
+
 		data, err = r.Get(KeyTemporary, 1)
 		if err != nil {
 			b.Fatal(err)
@@ -230,14 +249,19 @@ func BenchmarkGetString(b *testing.B) {
 
 func BenchmarkGetEntity(b *testing.B) {
 	b.StopTimer()
+
 	r := NewRegistry[string, uint64, any]()
+
 	err := r.Add(KeyTemporary, 1, &MockEntity{})
 	if err != nil {
 		b.Fatal(err)
 	}
+
 	b.StartTimer()
+
 	for i := 0; i < b.N; i++ {
 		var err error
+
 		data, err = r.Get(KeyTemporary, 1)
 		if err != nil {
 			b.Fatal(err)
@@ -249,6 +273,7 @@ func BenchmarkSetString(b *testing.B) {
 	r := NewRegistry[string, uint64, any]()
 	for i := 0; i < b.N; i++ {
 		id := r.NextID()
+
 		err := r.Add(KeyTemporary, id, "simple text insert benchmark")
 		if err != nil {
 			b.Fatal(err)
@@ -260,6 +285,7 @@ func BenchmarkSetEntity(b *testing.B) {
 	r := NewRegistry[string, uint64, any]()
 	for i := 0; i < b.N; i++ {
 		id := r.NextID()
+
 		err := r.Add(KeyTemporary, id, &MockEntity{})
 		if err != nil {
 			b.Fatal(err)
@@ -271,10 +297,12 @@ func BenchmarkSetDeleteString(b *testing.B) {
 	r := NewRegistry[string, uint64, any]()
 	for i := 0; i < b.N; i++ {
 		id := r.NextID()
+
 		err := r.Add(KeyTemporary, id, "simple text insert benchmark")
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		err = r.Remove(KeyTemporary, id)
 		if err != nil {
 			b.Fatal(err)
@@ -286,6 +314,7 @@ func BenchmarkSetDeleteEntity(b *testing.B) {
 	r := NewRegistry[string, uint64, any]()
 	for i := 0; i < b.N; i++ {
 		id := r.NextID()
+
 		err := r.Add(KeyTemporary, id, &MockEntity{})
 		if err != nil {
 			b.Fatal(err)

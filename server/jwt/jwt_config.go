@@ -33,6 +33,7 @@ func (c Config) GetPrivateKey() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		c.PrivateKey = string(data)
 	}
 
@@ -45,6 +46,7 @@ func (c Config) GetPublicKey() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		c.PublicKey = string(data)
 	}
 

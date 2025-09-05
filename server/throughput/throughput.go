@@ -95,6 +95,7 @@ func (t *Throughput) Middleware(parameter string) func(next fiber.Handler) fiber
 	return func(next fiber.Handler) fiber.Handler {
 		return func(c *fiber.Ctx) error {
 			st := time.Now()
+
 			defer func() {
 				latency := time.Since(st)
 				if latency > time.Second {

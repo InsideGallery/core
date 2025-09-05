@@ -37,6 +37,7 @@ func (r *Registry[G, I, V]) SetLatestID(id uint64) {
 
 func (r *Registry[G, I, V]) GetGroup(key G) (group *Group[I, V]) {
 	var exists bool
+
 	r.mu.RLock()
 	group, exists = r.groups[key]
 	r.mu.RUnlock()
@@ -58,6 +59,7 @@ func (r *Registry[G, I, V]) GetGroups(keys ...G) (groups []*Group[I, V]) {
 
 func (r *Registry[G, I, V]) AsyncIterator(keys ...G) chan V {
 	result := make(chan V, bufferSize)
+
 	var wg sync.WaitGroup
 	wg.Add(len(keys))
 
@@ -125,6 +127,7 @@ func (r *Registry[G, I, V]) initGroup(key G) (group *Group[I, V]) {
 func (r *Registry[G, I, V]) DeleteGroup(key G) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	delete(r.groups, key)
 }
 
@@ -138,6 +141,7 @@ func (r *Registry[G, I, V]) AddIndex(id uint64, key I) {
 func (r *Registry[G, I, V]) GetIndex(id uint64) I {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	i := r.indexes[id]
 
 	return i
@@ -167,6 +171,7 @@ func (r *Registry[G, I, V]) Remove(key G, id I) error {
 
 func (r *Registry[G, I, V]) RemoveIDEverywhere(id I) error {
 	var errs []error
+
 	groups := r.GetGroups(r.GetKeys()...)
 
 	for _, group := range groups {

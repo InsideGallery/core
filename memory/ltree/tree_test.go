@@ -12,6 +12,7 @@ import (
 
 func TestTree(t *testing.T) {
 	tr := NewTreeLayer[string, any]()
+
 	err := tr.Add(
 		NewEntry[string, any]("test", "max", []string{}, false),                // 0
 		NewEntry[string, any]("abc2", "max", []string{"test"}, false),          // 1
@@ -67,6 +68,7 @@ func TestTreeDeepCircuitDependencies(t *testing.T) {
 
 func TestTreeBreak(t *testing.T) {
 	tr := NewTreeLayer[string, any]()
+
 	err := tr.Add(
 		NewEntry[string, any]("test", "max", []string{}, false),                // 0
 		NewEntry[string, any]("abc2", "max", []string{"test"}, false),          // 1
@@ -81,9 +83,11 @@ func TestTreeBreak(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.TODO())
+
 	go func() {
 		cancel()
 	}()
+
 	tr.Execute(ctx, func(_ context.Context, _ string, _ any) {
 		time.Sleep(10 * time.Millisecond)
 	})
@@ -126,18 +130,22 @@ func BenchmarkTree(b *testing.B) {
 
 func BenchmarkTree4by100(b *testing.B) {
 	b.StopTimer()
+
 	tr := NewTreeLayer[string, any]()
 
 	var entries []Executor[string, any]
 	for i := 0; i < 100; i++ {
 		entries = append(entries, NewEntry[string, any]("r"+strconv.Itoa(i), "max", []string{}, true))
 	}
+
 	for i := 0; i < 100; i++ {
 		entries = append(entries, NewEntry[string, any]("lvl1"+strconv.Itoa(i), "max", []string{"r" + strconv.Itoa(i)}, false))
 	}
+
 	for i := 0; i < 100; i++ {
 		entries = append(entries, NewEntry[string, any]("lvl2"+strconv.Itoa(i), "max", []string{"lvl1" + strconv.Itoa(i)}, false))
 	}
+
 	for i := 0; i < 100; i++ {
 		entries = append(entries, NewEntry[string, any]("lvl3"+strconv.Itoa(i), "max", []string{"lvl2" + strconv.Itoa(i)}, false))
 	}

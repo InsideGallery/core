@@ -34,6 +34,7 @@ type Point struct {
 // NewPoint return new point
 func NewPoint(s ...float64) Point {
 	var x, y, z float64
+
 	l := len(s)
 
 	switch l {

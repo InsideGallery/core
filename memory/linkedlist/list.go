@@ -54,6 +54,7 @@ func (l *List[V]) insert(e, at *Element[V]) *Element[V] {
 	} else {
 		id = l.NextID()
 	}
+
 	e.id = id
 
 	// Remove previous value
@@ -92,6 +93,7 @@ func (l *List[V]) move(e, at *Element[V]) {
 	if e == at {
 		return
 	}
+
 	e.prev.next = e.next
 	e.next.prev = e.prev
 

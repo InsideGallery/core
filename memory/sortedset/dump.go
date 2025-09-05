@@ -18,6 +18,7 @@ func (s *SortedSet[K, V]) Dump(makeDump func(key K, value V) (string, string, er
 		if err != nil {
 			return "", err
 		}
+
 		data[strKey] = append(data[strKey], strValue)
 	}
 

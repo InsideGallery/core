@@ -16,9 +16,11 @@ var (
 
 func init() {
 	t := time.NewTicker(time.Minute)
+
 	go func() {
 		for range t.C {
 			mu.RLock()
+
 			if count == 0 {
 				mu.RUnlock()
 				continue
@@ -44,6 +46,7 @@ func Timing(next fiber.Handler) fiber.Handler {
 		go func() {
 			mu.Lock()
 			defer mu.Unlock()
+
 			dur += time.Since(st)
 			count++
 		}()
