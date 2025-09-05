@@ -123,8 +123,8 @@ func EncodeBytes(v []byte, buffer *bytes.Buffer) {
 // EncodeString encode string
 func EncodeString(v string, buffer *bytes.Buffer) {
 	rawString := []byte(v)
-	data := make([]byte, 2) //nolint:mnd
-	binary.BigEndian.PutUint16(data, uint16(len(rawString)))
+	data := make([]byte, 4) //nolint:mnd
+	binary.BigEndian.PutUint32(data, uint32(len(rawString)))
 	buffer.Write(data)
 	buffer.Write(rawString)
 }
@@ -273,7 +273,7 @@ func DecodeBytes(buffer *bytes.Buffer) []byte {
 
 // DecodeString decode to string
 func DecodeString(buffer *bytes.Buffer) string {
-	l := binary.BigEndian.Uint16(buffer.Next(2)) //nolint:mnd
+	l := binary.BigEndian.Uint32(buffer.Next(4)) //nolint:mnd
 	return utils.ByteSliceToString(buffer.Next(int(l)))
 }
 
