@@ -14,7 +14,7 @@ func TestEncodeString(t *testing.T) {
 	b := NewBinaryEncoder()
 	testutils.Equal(t, b.Encode(str), nil)
 	data := b.Bytes()
-	testutils.Equal(t, data, []byte{0, 12, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33})
+	testutils.Equal(t, data, []byte{0, 0, 0, 12, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33})
 
 	d := NewBinaryDecoder(data)
 	var result string
