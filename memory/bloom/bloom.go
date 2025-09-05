@@ -92,7 +92,7 @@ func (f *CountingFilter) Test(data []byte) bool {
 func (f *CountingFilter) Add(data []byte) {
 	for _, i := range f.bits(data) {
 		// Prevent overflow
-		if f.counters[i] < 255 {
+		if f.counters[i] < 255 { // nolint:mnd
 			f.counters[i]++
 		}
 	}
