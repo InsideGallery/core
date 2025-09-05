@@ -8,7 +8,6 @@ import (
 	"math"
 
 	"github.com/InsideGallery/core/dataconv"
-	"github.com/InsideGallery/core/memory/bitset"
 )
 
 type filter struct {
@@ -43,7 +42,7 @@ func newFilter(m, k uint32) *filter {
 func estimates(n uint32, p float64) (uint32, uint32) {
 	nf := float64(n)
 	log2 := math.Log(2) // nolint:mnd
-	m := -1 * nf * math.Log(p) / log2 * log2
+	m := -1 * nf * math.Log(p) / (log2 * log2)
 	k := math.Ceil(log2 * m / nf)
 
 	words := m + 31>>5 // nolint:mnd
@@ -61,217 +60,59 @@ func estimates(n uint32, p float64) (uint32, uint32) {
 	return uint32(m), uint32(k)
 }
 
-// A standard bloom filter using the 64-bit FNV-1a hash function.
-type Filter struct {
-	*filter
-	b *bitset.Bitset32
-}
-
-// Check whether data was previously added to the filter. Returns true if
-// yes, with a false positive chance near the ratio specified upon creation
-// of the filter. The result cannot be falsely negative.
-func (f *Filter) Test(data []byte) bool {
-	for _, i := range f.bits(data) {
-		if !f.b.Test(i) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// Add data to the filter.
-func (f *Filter) Add(data []byte) {
-	for _, i := range f.bits(data) {
-		f.b.Set(i)
-	}
-}
-
-// Resets the filter.
-func (f *Filter) Reset() {
-	f.b.Reset()
-}
-
-// Create a bloom filter with an expected n number of items, and an acceptable
-// false positive rate of p, e.g. 0.01.
-func New(n int, p float64) *Filter {
-	m, k := estimates(uint32(n), p)
-	f := &Filter{
-		newFilter(m, k),
-		bitset.New32(m),
-	}
-
-	return f
-}
-
-// A counting bloom filter using the 64-bit FNV-1a hash function. Supports
-// removing items from the filter.
 type CountingFilter struct {
 	*filter
-	b []*bitset.Bitset32
+	counters []byte
 }
 
-// Checks whether data was previously added to the filter. Returns true if
-// yes, with a false positive chance near the ratio specified upon creation
-// of the filter. The result cannot cannot be falsely negative (unless one
-// has removed an item that wasn't actually added to the filter previously.)
+// NewCounting creates an optimized counting bloom filter.
+func NewCounting(n int, p float64) *CountingFilter {
+	m, k := estimates(uint32(n), p)
+	return &CountingFilter{
+		filter:   newFilter(m, k),
+		counters: make([]byte, m),
+	}
+}
+
+// Test checks if an item is likely in the set.
+// It returns true if the item might be in the filter, false if it is definitely not.
 func (f *CountingFilter) Test(data []byte) bool {
-	b := f.b[0]
-	for _, v := range f.bits(data) {
-		if !b.Test(v) {
+	for _, i := range f.bits(data) {
+		if f.counters[i] == 0 {
 			return false
 		}
 	}
-
 	return true
 }
 
-// Adds data to the filter.
+// Add inserts data into the filter by incrementing its counters.
+// It protects against counter overflow (stopping at 255).
 func (f *CountingFilter) Add(data []byte) {
-	for _, v := range f.bits(data) {
-		done := false
-
-		for _, ov := range f.b {
-			if !ov.Test(v) {
-				done = true
-
-				ov.Set(v)
-
-				break
-			}
-		}
-
-		if !done {
-			nb := bitset.New32(f.b[0].Len())
-			f.b = append(f.b, nb)
-			nb.Set(v)
+	for _, i := range f.bits(data) {
+		// Prevent overflow
+		if f.counters[i] < 255 {
+			f.counters[i]++
 		}
 	}
 }
 
-// Removes data from the filter. This exact data must have been previously added
-// to the filter, or future results will be inconsistent.
+// Remove deletes data from the filter by decrementing its counters.
+// It protects against counter underflow (stopping at 0).
 func (f *CountingFilter) Remove(data []byte) {
-	last := len(f.b) - 1
-
-	for _, v := range f.bits(data) {
-		for oi := last; oi >= 0; oi-- {
-			ov := f.b[oi]
-			if ov.Test(v) {
-				ov.Clear(v)
-				break
-			}
+	for _, i := range f.bits(data) {
+		// Prevent underflow
+		if f.counters[i] > 0 {
+			f.counters[i]--
 		}
 	}
 }
 
-// Resets the filter.
+// Reset clears all counters in the filter.
 func (f *CountingFilter) Reset() {
-	f.b = f.b[:1]
-	f.b[0].Reset()
-}
-
-// Create a counting bloom filter with an expected n number of items, and an
-// acceptable false positive rate of p. Counting bloom filters support
-// the removal of items from the filter.
-func NewCounting(n int, p float64) *CountingFilter {
-	m, k := estimates(uint32(n), p)
-	f := &CountingFilter{
-		newFilter(m, k),
-		[]*bitset.Bitset32{bitset.New32(m)},
+	// More efficient than re-allocating memory
+	for i := range f.counters {
+		f.counters[i] = 0
 	}
-
-	return f
-}
-
-// A layered bloom filter using the 64-bit FNV-1a hash function.
-type LayeredFilter struct {
-	*filter
-	b []*bitset.Bitset32
-}
-
-// Checks whether data was previously added to the filter. Returns the number of
-// the last layer where the data was added, e.g. 1 for the first layer, and a
-// boolean indicating whether the data was added to the filter at all. The check
-// has a false positive chance near the ratio specified upon creation of the
-// filter. The result cannot be falsely negative.
-func (f *LayeredFilter) Test(data []byte) (int, bool) {
-	is := f.bits(data)
-
-	for i := len(f.b) - 1; i >= 0; i-- {
-		v := f.b[i]
-		last := len(is) - 1
-
-		for oi, ov := range is {
-			if !v.Test(ov) {
-				break
-			}
-
-			if oi == last {
-				// Every test was positive at this layer
-				return i + 1, true
-			}
-		}
-	}
-
-	return 0, false
-}
-
-// Adds data to the filter. Returns the number of the layer where the data
-// was added, e.g. 1 for the first layer.
-func (f *LayeredFilter) Add(data []byte) int {
-	is := f.bits(data)
-
-	var (
-		i int
-		v *bitset.Bitset32
-	)
-
-	for i, v = range f.b {
-		here := false
-		for _, ov := range is {
-			if here {
-				v.Set(ov)
-			} else if !v.Test(ov) {
-				here = true
-
-				v.Set(ov)
-			}
-		}
-
-		if here {
-			return i + 1
-		}
-	}
-
-	nb := bitset.New32(f.b[0].Len())
-	f.b = append(f.b, nb)
-
-	for _, v := range is {
-		nb.Set(v)
-	}
-
-	return i + 2 // nolint:mnd
-}
-
-// Resets the filter.
-func (f *LayeredFilter) Reset() {
-	f.b = f.b[:1]
-	f.b[0].Reset()
-}
-
-// Create a layered bloom filter with an expected n number of items, and an
-// acceptable false positive rate of p. Layered bloom filters can be used
-// to keep track of a certain, arbitrary count of items, e.g. to check if some
-// given data was added to the filter 10 times or less.
-func NewLayered(n int, p float64) *LayeredFilter {
-	m, k := estimates(uint32(n), p)
-	f := &LayeredFilter{
-		newFilter(m, k),
-		[]*bitset.Bitset32{bitset.New32(m)},
-	}
-
-	return f
 }
 
 // ToBytes serializes the CountingFilter to a byte slice.
@@ -288,21 +129,9 @@ func (f *CountingFilter) ToBytes() ([]byte, error) {
 		return nil, fmt.Errorf("encode k param: %w", err)
 	}
 
-	err = enc.Encode(len(f.b))
+	err = enc.Encode(f.counters)
 	if err != nil {
-		return nil, fmt.Errorf("encode size param: %w", err)
-	}
-
-	for _, v := range f.b {
-		res, err := v.ToBytes()
-		if err != nil {
-			return nil, fmt.Errorf("get raw bitset param: %w", err)
-		}
-
-		err = enc.Encode(res)
-		if err != nil {
-			return nil, fmt.Errorf("encode raw bitset param: %w", err)
-		}
+		return nil, fmt.Errorf("encode k param: %w", err)
 	}
 
 	return enc.Bytes(), nil
@@ -322,8 +151,6 @@ func NewCountingFromBytes(data []byte) (*CountingFilter, error) {
 		},
 	}
 
-	var size int
-
 	err := dec.Decode(&res.m)
 	if err != nil {
 		return nil, fmt.Errorf("decode m param: %w", err)
@@ -334,25 +161,9 @@ func NewCountingFromBytes(data []byte) (*CountingFilter, error) {
 		return nil, fmt.Errorf("decode k param: %w", err)
 	}
 
-	err = dec.Decode(&size)
+	err = dec.Decode(&res.counters)
 	if err != nil {
-		return nil, fmt.Errorf("decode size param: %w", err)
-	}
-
-	for i := 0; i < size; i++ {
-		var raw []byte
-
-		err = dec.Decode(&raw)
-		if err != nil {
-			return nil, fmt.Errorf("decode raw bitset param: %w", err)
-		}
-
-		b32, err := bitset.NewFromBytes32(raw)
-		if err != nil {
-			return nil, fmt.Errorf("decode create new bitset param: %w", err)
-		}
-
-		res.b = append(res.b, b32)
+		return nil, fmt.Errorf("decode raw bitset param: %w", err)
 	}
 
 	return res, nil
