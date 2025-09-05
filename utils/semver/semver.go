@@ -16,15 +16,17 @@ type SemVersion struct {
 	version [8]uint16
 }
 
-func New(version string) (*SemVersion, error) {
+func New(version string) *SemVersion {
 	v := &SemVersion{
 		raw: version,
 	}
 
-	return v, v.build()
+	v.build()
+
+	return v
 }
 
-func (v *SemVersion) build() error {
+func (v *SemVersion) build() {
 	version := v.raw
 	if version[0] == 'v' {
 		version = version[1:]
@@ -47,19 +49,11 @@ func (v *SemVersion) build() error {
 		coreEnd = buildPosition
 	}
 
-	parts, err := v.getCoreParts(version[:coreEnd])
-	if err != nil {
-		return err
-	}
-
+	parts := v.getCoreParts(version[:coreEnd])
 	copy(v.version[:3], parts)
 
 	if prPosition+1 < buildPosition {
-		parts, err = v.getReleaseParts(version[prPosition+1 : buildPosition])
-		if err != nil {
-			return err
-		}
-
+		parts = v.getReleaseParts(version[prPosition+1 : buildPosition])
 		copy(v.version[3:7], parts)
 	} else {
 		v.version[3] = maxValue
@@ -67,11 +61,9 @@ func (v *SemVersion) build() error {
 		v.version[5] = maxValue
 		v.version[6] = maxValue
 	}
-
-	return nil
 }
 
-func (v *SemVersion) getCoreParts(version string) ([]uint16, error) {
+func (v *SemVersion) getCoreParts(version string) []uint16 {
 	var parts []uint16
 	var last int
 
@@ -86,10 +78,10 @@ func (v *SemVersion) getCoreParts(version string) ([]uint16, error) {
 	val := v.getNumVersion(version, last, len(version))
 	parts = append(parts, val)
 
-	return parts, nil
+	return parts
 }
 
-func (v *SemVersion) getReleaseParts(version string) ([]uint16, error) {
+func (v *SemVersion) getReleaseParts(version string) []uint16 {
 	var parts []uint16
 	var last int
 
@@ -112,13 +104,13 @@ func (v *SemVersion) getReleaseParts(version string) ([]uint16, error) {
 	num, exist := prOrder[version[last:]]
 	if exist {
 		parts = append(parts, num)
-		return parts, nil
+		return parts
 	}
 
 	val := v.getNumVersion(version, last, len(version))
 	parts = append(parts, val)
 
-	return parts, nil
+	return parts
 }
 
 func (v *SemVersion) getNumVersion(version string, from, to int) uint16 {

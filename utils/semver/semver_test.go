@@ -107,14 +107,17 @@ func TestSemver(t *testing.T) {
 			version2: "1.0.0+21AF26D3----117B344092BD",
 			expected: -1,
 		},
+		{
+			version1: "v2.9",
+			version2: "v3",
+			expected: -1,
+		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.version1+" < "+tc.version2, func(t *testing.T) {
-			v1, err := New(tc.version1)
-			testutils.Equal(t, err, nil)
-			v2, err := New(tc.version2)
-			testutils.Equal(t, err, nil)
+			v1 := New(tc.version1)
+			v2 := New(tc.version2)
 
 			bv1, err := v1.Num()
 			testutils.Equal(t, err, nil)
@@ -220,14 +223,31 @@ func TestHex(t *testing.T) {
 			version: "v1.0.0+1",
 			expect:  "000100000000ffffffffffffffffffff",
 		},
+		{
+			version: "3",
+			expect:  "000300000000ffffffffffffffff0000",
+		},
+		{
+			version: "v3",
+			expect:  "000300000000ffffffffffffffff0000",
+		},
+		{
+			version: "v3-1",
+			expect:  "00030000000000010000000000000000",
+		},
+		{
+			version: "v3-2",
+			expect:  "00030000000000020000000000000000",
+		},
+		{
+			version: "v3-rc",
+			expect:  "000300000000fffe0000000000000000",
+		},
 	}
 
-	for i, tc := range testcases {
-		i++
-
+	for _, tc := range testcases {
 		t.Run(tc.version, func(t *testing.T) {
-			vs, err := New(tc.version)
-			testutils.Equal(t, err, nil)
+			vs := New(tc.version)
 
 			h, err := vs.Hex()
 			testutils.Equal(t, err, nil)
