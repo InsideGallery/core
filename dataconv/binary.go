@@ -114,8 +114,8 @@ func EncodeInt8(v int8, buffer *bytes.Buffer) {
 
 // EncodeBytes encode bytes
 func EncodeBytes(v []byte, buffer *bytes.Buffer) {
-	data := make([]byte, 2) //nolint:mnd
-	binary.BigEndian.PutUint16(data, uint16(len(v)))
+	data := make([]byte, 4) //nolint:mnd
+	binary.BigEndian.PutUint32(data, uint32(len(v)))
 	buffer.Write(data)
 	buffer.Write(v)
 }
@@ -267,7 +267,7 @@ func DecodeInt8(buffer *bytes.Buffer) int8 {
 
 // DecodeBytes decode to bytes
 func DecodeBytes(buffer *bytes.Buffer) []byte {
-	l := binary.BigEndian.Uint16(buffer.Next(2)) //nolint:mnd
+	l := binary.BigEndian.Uint32(buffer.Next(4)) //nolint:mnd
 	return buffer.Next(int(l))
 }
 
