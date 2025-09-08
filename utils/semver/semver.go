@@ -2,6 +2,7 @@ package semver
 
 import (
 	"encoding/hex"
+	"errors"
 	"math"
 	"math/big"
 	"strconv"
@@ -12,22 +13,33 @@ import (
 )
 
 type SemVersion struct {
-	raw     string
-	version [8]uint16
+	original string
+	version  [8]uint16
+	raw      []byte // raw converted version into bytes
 }
 
-func New(version string) *SemVersion {
+func New(version string) (*SemVersion, error) {
 	v := &SemVersion{
-		raw: version,
+		original: version,
 	}
 
-	v.build()
+	err := v.build()
+	if err != nil {
+		return nil, errors.Join(ErrBuildSemver, err)
+	}
 
-	return v
+	b, err := v.Bytes()
+	if err != nil {
+		return nil, errors.Join(ErrGetRawBytes, err)
+	}
+
+	v.raw = b
+
+	return v, nil
 }
 
-func (v *SemVersion) build() {
-	version := v.raw
+func (v *SemVersion) build() error {
+	version := v.original
 	if version[0] == 'v' {
 		version = version[1:]
 	}
@@ -49,11 +61,19 @@ func (v *SemVersion) build() {
 		coreEnd = buildPosition
 	}
 
-	parts := v.getCoreParts(version[:coreEnd])
+	parts, err := v.getCoreParts(version[:coreEnd])
+	if err != nil {
+		return err
+	}
+
 	copy(v.version[:3], parts)
 
 	if prPosition+1 < buildPosition {
-		parts = v.getReleaseParts(version[prPosition+1 : buildPosition])
+		parts, err = v.getReleaseParts(version[prPosition+1 : buildPosition])
+		if err != nil {
+			return err
+		}
+
 		copy(v.version[3:7], parts)
 	} else {
 		v.version[3] = maxValue
@@ -61,33 +81,39 @@ func (v *SemVersion) build() {
 		v.version[5] = maxValue
 		v.version[6] = maxValue
 	}
+
+	return nil
 }
 
-func (v *SemVersion) getCoreParts(version string) []uint16 {
-	var (
-		parts []uint16
-		last  int
-	)
+func (v *SemVersion) getCoreParts(version string) ([]uint16, error) {
+	var parts []uint16
+	var last int
 
 	for i, c := range version {
 		if core.Contains(c) {
-			val := v.getNumVersion(version, last, i)
+			val, err := v.getNumVersion(version, last, i)
+			if err != nil {
+				return nil, err
+			}
+
 			parts = append(parts, val)
 			last = i + 1
 		}
 	}
 
-	val := v.getNumVersion(version, last, len(version))
+	val, err := v.getNumVersion(version, last, len(version))
+	if err != nil {
+		return nil, err
+	}
+
 	parts = append(parts, val)
 
-	return parts
+	return parts, nil
 }
 
-func (v *SemVersion) getReleaseParts(version string) []uint16 {
-	var (
-		parts []uint16
-		last  int
-	)
+func (v *SemVersion) getReleaseParts(version string) ([]uint16, error) {
+	var parts []uint16
+	var last int
 
 	for i, c := range version {
 		if core.Contains(c) {
@@ -99,7 +125,11 @@ func (v *SemVersion) getReleaseParts(version string) []uint16 {
 				continue
 			}
 
-			val := v.getNumVersion(version, last, i)
+			val, err := v.getNumVersion(version, last, i)
+			if err != nil {
+				return nil, err
+			}
+
 			parts = append(parts, val)
 			last = i + 1
 		}
@@ -108,30 +138,34 @@ func (v *SemVersion) getReleaseParts(version string) []uint16 {
 	num, exist := prOrder[version[last:]]
 	if exist {
 		parts = append(parts, num)
-		return parts
+		return parts, nil
 	}
 
-	val := v.getNumVersion(version, last, len(version))
+	val, err := v.getNumVersion(version, last, len(version))
+	if err != nil {
+		return nil, err
+	}
+
 	parts = append(parts, val)
 
-	return parts
+	return parts, nil
 }
 
-func (v *SemVersion) getNumVersion(version string, from, to int) uint16 {
+func (v *SemVersion) getNumVersion(version string, from, to int) (uint16, error) {
 	if from == -1 || to == -1 {
-		return 0
+		return 0, nil
 	}
 
 	if version[from:to] == "" {
-		return 0
+		return 0, nil
 	}
 
 	val, err := strconv.ParseUint(version[from:to], base, bitSize)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 
-	return uint16(val) // nolint gosec
+	return uint16(val), nil // nolint gosec
 }
 
 func (v *SemVersion) Bytes() ([]byte, error) {
@@ -147,25 +181,15 @@ func (v *SemVersion) Bytes() ([]byte, error) {
 	return e.Bytes(), nil
 }
 
-func (v *SemVersion) Hex() (string, error) {
-	b, err := v.Bytes()
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(b), nil
+func (v *SemVersion) Hex() string {
+	return hex.EncodeToString(v.raw)
 }
 
-func (v *SemVersion) Num() (*big.Int, error) {
-	b, err := v.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
+func (v *SemVersion) Num() *big.Int {
 	num := big.NewInt(0)
-	num.SetBytes(b)
+	num.SetBytes(v.raw)
 
-	return num, nil
+	return num
 }
 
 const (

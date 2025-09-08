@@ -1,10 +1,37 @@
 package semver
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
+
+func ExampleSemVersion_Num() {
+	vs3, err := New("3")
+	if err != nil {
+		// that means we are not able to parse version, for example
+	}
+
+	vs2, err := New("2")
+	if err != nil {
+		// that means we are not able to parse version, for example
+	}
+
+	fmt.Println(vs3.Num().Cmp(vs2.Num()))
+	// Output: 1
+}
+
+func ExampleSemVersion_Hex() {
+	vs3, err := New("3")
+	if err != nil {
+		// that means we are not able to parse version
+	}
+
+	fmt.Println(vs3.Hex())
+	// Output: 000300000000ffffffffffffffff0000
+}
 
 func TestSemver(t *testing.T) {
 	testcases := []struct {
@@ -116,16 +143,16 @@ func TestSemver(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.version1+" < "+tc.version2, func(t *testing.T) {
-			v1 := New(tc.version1)
-			v2 := New(tc.version2)
+			v1, err := New(tc.version1)
+			assert.Equal(t, err, nil)
 
-			bv1, err := v1.Num()
-			testutils.Equal(t, err, nil)
+			v2, err := New(tc.version2)
+			assert.Equal(t, err, nil)
 
-			bv2, err := v2.Num()
-			testutils.Equal(t, err, nil)
+			bv1 := v1.Num()
+			bv2 := v2.Num()
 
-			testutils.Equal(t, bv1.Cmp(bv2), tc.expected)
+			assert.Equal(t, bv1.Cmp(bv2), tc.expected)
 		})
 	}
 }
@@ -134,6 +161,7 @@ func TestHex(t *testing.T) {
 	testcases := []struct {
 		version string
 		expect  string
+		err     error
 	}{
 		{
 			version: "0.0.0",
@@ -243,16 +271,26 @@ func TestHex(t *testing.T) {
 			version: "v3-rc",
 			expect:  "000300000000fffe0000000000000000",
 		},
+		{
+			version: "test",
+			expect:  "000300000000fffe0000000000000000",
+			err:     ErrBuildSemver,
+		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.version, func(t *testing.T) {
-			vs := New(tc.version)
+			vs, err := New(tc.version)
+			if tc.err != nil {
+				assert.Equal(t, errors.Is(err, tc.err), true)
+				return
+			}
 
-			h, err := vs.Hex()
-			testutils.Equal(t, err, nil)
+			assert.Equal(t, err, nil)
 
-			testutils.Equal(t, h, tc.expect)
+			h := vs.Hex()
+
+			assert.Equal(t, h, tc.expect)
 		})
 	}
 }
