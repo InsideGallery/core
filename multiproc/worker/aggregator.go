@@ -10,10 +10,10 @@ import (
 	"github.com/InsideGallery/core/memory/utils"
 )
 
-// DefaultCounterCheck is the interval to check item count before triggering a flush.
-const DefaultCounterCheck = 10 * time.Millisecond
+const (
+	DefaultCounterCheck = 10 * time.Millisecond
+)
 
-// GetGoroutinesCount returns the number of goroutines to use, capped by maxGoroutines and at least 1.
 func GetGoroutinesCount(variables, maxGoroutines int) int {
 	res := slices.Min([]int{variables, maxGoroutines})
 	if res <= 0 {
@@ -23,8 +23,7 @@ func GetGoroutinesCount(variables, maxGoroutines int) int {
 	return res
 }
 
-// Aggregator batches items and invokes a processor when count or time thresholds are reached.
-type Aggregator struct {
+type Aggregator[K any] struct {
 	mu  sync.RWMutex
 	ctx context.Context
 
@@ -32,28 +31,30 @@ type Aggregator struct {
 	maxCount int
 	cancel   context.CancelFunc
 	closed   bool
+	counter  chan struct{}
 
-	items     *utils.SafeList[any]
-	processor func([]any) error
+	items     *utils.SafeList[K]
+	processor func([]K) error
 }
 
-// NewAggregator creates an Aggregator that flushes batches of items based on max count or ticker interval.
-func NewAggregator(ctx context.Context, count int, ticker time.Duration, processor func([]any) error) *Aggregator {
+func NewAggregator[K any](
+	ctx context.Context, count int, ticker time.Duration, processor func([]K) error,
+) *Aggregator[K] {
 	ctx, cancel := context.WithCancel(ctx)
 
-	return &Aggregator{
+	return &Aggregator[K]{
 		ctx:      ctx,
 		cancel:   cancel,
 		maxCount: count,
 		ticker:   ticker,
 
-		items:     utils.NewSafeList[any](),
+		items:     utils.NewSafeList[K](),
 		processor: processor,
+		counter:   make(chan struct{}),
 	}
 }
 
-// Add inserts an item into the aggregator batch if not closed.
-func (w *Aggregator) Add(req any) {
+func (w *Aggregator[K]) Add(req K) {
 	w.mu.RLock() // This is special mutex, which should not block us on read
 	defer w.mu.RUnlock()
 
@@ -62,10 +63,13 @@ func (w *Aggregator) Add(req any) {
 	}
 
 	w.items.Add(req)
+
+	if w.items.Count() >= w.maxCount {
+		w.counter <- struct{}{}
+	}
 }
 
-// Process flushes current items by calling the processor; returns any error encountered.
-func (w *Aggregator) Process() error {
+func (w *Aggregator[K]) Process() error {
 	list := w.items.Reset()
 
 	if len(list) == 0 || w.processor == nil {
@@ -75,20 +79,16 @@ func (w *Aggregator) Process() error {
 	return w.processor(list)
 }
 
-// Count returns the number of items currently buffered.
-func (w *Aggregator) Count() int {
+func (w *Aggregator[K]) Count() int {
 	return w.items.Count()
 }
 
-// Close cancels the aggregator context, stopping further flushes.
-func (w *Aggregator) Close() {
+func (w *Aggregator[K]) Close() {
 	w.cancel()
 }
 
-// Flusher runs a loop to flush items periodically or when count exceeds maxCount, exiting on context cancellation.
-func (w *Aggregator) Flusher() error {
+func (w *Aggregator[K]) Flusher() error {
 	tck := time.NewTicker(w.ticker)
-	counterCheck := time.NewTicker(DefaultCounterCheck)
 
 	for {
 		select {
@@ -100,17 +100,18 @@ func (w *Aggregator) Flusher() error {
 
 			return err
 		case <-tck.C:
+			slog.Debug("Flush by ticker")
+
 			err := w.Process()
 			if err != nil {
 				slog.Default().Error("Error during flush by ticker", "err", err)
 			}
-		case <-counterCheck.C:
-			count := w.items.Count()
-			if count > w.maxCount {
-				err := w.Process()
-				if err != nil {
-					slog.Default().Error("Error during default flush by ticker", "err", err)
-				}
+		case <-w.counter:
+			slog.Debug("Flush by counter")
+
+			err := w.Process()
+			if err != nil {
+				slog.Default().Error("Error during default flush by ticker", "err", err)
 			}
 		}
 	}
