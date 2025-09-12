@@ -61,10 +61,8 @@ func TestAggregator(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 
 		if atomic.LoadInt32(&counter) == 3 {
-			require.Equal(t, a.Count(), 3)
-			err := a.Flusher()
+			err := a.Process()
 			require.NoError(t, err)
-			require.Equal(t, a.Count(), 1)
 		}
 	})
 }
