@@ -3,50 +3,46 @@ package worker
 import (
 	"context"
 	"log/slog"
-	"slices"
 	"sync"
 	"time"
 
 	"github.com/InsideGallery/core/memory/utils"
 )
 
-const (
-	DefaultCounterCheck = 10 * time.Millisecond
-)
-
-func GetGoroutinesCount(variables, maxGoroutines int) int {
-	res := slices.Min([]int{variables, maxGoroutines})
-	if res <= 0 {
-		return 1
-	}
-
-	return res
-}
-
 type Aggregator[K any] struct {
 	mu  sync.RWMutex
 	ctx context.Context
 
-	ticker   time.Duration
-	maxCount int
-	cancel   context.CancelFunc
-	closed   bool
-	counter  chan struct{}
+	ticker     time.Duration
+	maxCount   int
+	goroutines int
+	cancel     context.CancelFunc
+	closed     bool
+	counter    chan struct{}
 
 	items     *utils.SafeList[K]
 	processor func([]K) error
 }
 
 func NewAggregator[K any](
-	ctx context.Context, count int, ticker time.Duration, processor func([]K) error,
+	ctx context.Context, goroutines, count int, ticker time.Duration, processor func([]K) error,
 ) *Aggregator[K] {
+	if goroutines <= 0 {
+		goroutines = 1
+	}
+
+	if count <= 0 {
+		goroutines = 1
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 
 	return &Aggregator[K]{
-		ctx:      ctx,
-		cancel:   cancel,
-		maxCount: count,
-		ticker:   ticker,
+		ctx:        ctx,
+		cancel:     cancel,
+		maxCount:   count,
+		goroutines: goroutines,
+		ticker:     ticker,
 
 		items:     utils.NewSafeList[K](),
 		processor: processor,
@@ -90,29 +86,45 @@ func (w *Aggregator[K]) Close() {
 func (w *Aggregator[K]) Flusher() error {
 	tck := time.NewTicker(w.ticker)
 
-	for {
-		select {
-		case <-w.ctx.Done():
-			w.mu.Lock()
-			w.closed = true
-			err := w.Process()
-			w.mu.Unlock()
+	var resultErr error
 
-			return err
-		case <-tck.C:
-			slog.Debug("Flush by ticker")
+	RunSyncMultipleWorkers(w.ctx, w.goroutines, func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				w.mu.Lock()
+				w.closed = true
 
-			err := w.Process()
-			if err != nil {
-				slog.Default().Error("Error during flush by ticker", "err", err)
-			}
-		case <-w.counter:
-			slog.Debug("Flush by counter")
+				err := w.Process()
+				if err != nil {
+					slog.Default().Error("Error during flush by context", "err", err)
+					resultErr = err
 
-			err := w.Process()
-			if err != nil {
-				slog.Default().Error("Error during default flush by ticker", "err", err)
+					w.mu.Unlock()
+
+					return
+				}
+
+				w.mu.Unlock()
+
+				return
+			case <-tck.C:
+				slog.Debug("Flush by ticker")
+
+				err := w.Process()
+				if err != nil {
+					slog.Default().Error("Error during flush by ticker", "err", err)
+				}
+			case <-w.counter:
+				slog.Debug("Flush by counter")
+
+				err := w.Process()
+				if err != nil {
+					slog.Default().Error("Error during default flush by ticker", "err", err)
+				}
 			}
 		}
-	}
+	})
+
+	return resultErr
 }

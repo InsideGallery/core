@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ import (
 
 func TestAggregator(t *testing.T) {
 	t.Run("add values to aggregator", func(t *testing.T) {
-		a := NewAggregator(context.TODO(), 100, time.Second, func(_ []any) error {
+		a := NewAggregator(context.TODO(), 1, 100, time.Second, func(_ []any) error {
 			return nil
 		})
 		primID := primitive.NewObjectID()
@@ -23,7 +24,7 @@ func TestAggregator(t *testing.T) {
 	t.Run("add to aggregator multiple times", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.TODO())
 
-		a := NewAggregator(ctx, 100, time.Second, func(_ []any) error {
+		a := NewAggregator(ctx, 1, 100, time.Second, func(_ []any) error {
 			return nil
 		})
 		primID := primitive.NewObjectID()
@@ -44,7 +45,7 @@ func TestAggregator(t *testing.T) {
 	})
 
 	t.Run("test lock", func(t *testing.T) {
-		a := NewAggregator(context.TODO(), 3, time.Second, func(_ []any) error {
+		a := NewAggregator(context.TODO(), 1, 3, time.Second, func(_ []any) error {
 			return nil
 		})
 		primID := primitive.NewObjectID()
@@ -64,5 +65,23 @@ func TestAggregator(t *testing.T) {
 			err := a.Process()
 			require.NoError(t, err)
 		}
+	})
+
+	t.Run("error processing", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.TODO())
+
+		expectedErr := errors.New("mock error")
+		a := NewAggregator(ctx, 2, 100, time.Second, func(_ []any) error {
+			return expectedErr
+		})
+
+		primID := primitive.NewObjectID()
+		a.Add(primID)
+		require.Equal(t, a.Count(), 1)
+
+		cancel()
+
+		err := a.Flusher()
+		require.Equal(t, expectedErr, err)
 	})
 }
