@@ -9,6 +9,8 @@ import (
 	"github.com/InsideGallery/core/memory/utils"
 )
 
+const waitTimeout = 10 * time.Millisecond
+
 type Aggregator[K any] struct {
 	mu  sync.RWMutex
 	ctx context.Context
@@ -81,6 +83,13 @@ func (w *Aggregator[K]) Count() int {
 
 func (w *Aggregator[K]) Close() {
 	w.cancel()
+}
+
+func (w *Aggregator[K]) Wait() {
+	for w.Count() != 0 {
+		time.Sleep(waitTimeout)
+	}
+	return
 }
 
 func (w *Aggregator[K]) Flusher() error {
