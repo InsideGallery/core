@@ -85,13 +85,6 @@ func (w *Aggregator[K]) Close() {
 	w.cancel()
 }
 
-func (w *Aggregator[K]) Wait() {
-	for w.Count() != 0 {
-		time.Sleep(waitTimeout)
-	}
-	return
-}
-
 func (w *Aggregator[K]) Flusher() error {
 	tck := time.NewTicker(w.ticker)
 
