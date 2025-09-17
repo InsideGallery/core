@@ -25,7 +25,7 @@ func TestWaiter(t *testing.T) {
 			maxCountPerBatch, // Flush after 10 items
 			10*time.Second,   // Use a long ticker to ensure flushing is by count
 			func(items []int) error {
-				processedCount.Add(uint32(len(items)))
+				processedCount.Add(uint32(len(items))) // nolint:gosec
 				return nil
 			},
 		)
@@ -62,7 +62,7 @@ func TestWaiter(t *testing.T) {
 			maxCountPerBatch,
 			10*time.Second,
 			func(items []int) error {
-				processedCount.Add(uint32(len(items)))
+				processedCount.Add(uint32(len(items))) // nolint:gosec
 				return nil
 			},
 		)

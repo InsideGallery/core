@@ -89,8 +89,6 @@ func (w *Aggregator[K]) Wait() {
 	for w.Count() != 0 {
 		w.cond.Wait()
 	}
-
-	return
 }
 
 func (w *Aggregator[K]) Count() int {
