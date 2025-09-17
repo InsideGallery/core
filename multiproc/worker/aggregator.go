@@ -9,11 +9,10 @@ import (
 	"github.com/InsideGallery/core/memory/utils"
 )
 
-const waitTimeout = 10 * time.Millisecond
-
 type Aggregator[K any] struct {
-	mu  sync.RWMutex
-	ctx context.Context
+	mu   sync.RWMutex
+	ctx  context.Context
+	cond *sync.Cond
 
 	ticker     time.Duration
 	maxCount   int
@@ -39,7 +38,7 @@ func NewAggregator[K any](
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	return &Aggregator[K]{
+	ag := &Aggregator[K]{
 		ctx:        ctx,
 		cancel:     cancel,
 		maxCount:   count,
@@ -50,10 +49,14 @@ func NewAggregator[K any](
 		processor: processor,
 		counter:   make(chan struct{}),
 	}
+
+	ag.cond = sync.NewCond(&ag.mu)
+
+	return ag
 }
 
 func (w *Aggregator[K]) Add(req K) {
-	w.mu.RLock() // This is special mutex, which should not block us on read
+	w.mu.RLock()
 	defer w.mu.RUnlock()
 
 	if w.closed {
@@ -68,6 +71,8 @@ func (w *Aggregator[K]) Add(req K) {
 }
 
 func (w *Aggregator[K]) Process() error {
+	defer w.cond.Broadcast()
+
 	list := w.items.Reset()
 
 	if len(list) == 0 || w.processor == nil {
@@ -75,6 +80,17 @@ func (w *Aggregator[K]) Process() error {
 	}
 
 	return w.processor(list)
+}
+
+func (w *Aggregator[K]) Wait() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	for w.Count() != 0 {
+		w.cond.Wait()
+	}
+
+	return
 }
 
 func (w *Aggregator[K]) Count() int {
@@ -96,18 +112,14 @@ func (w *Aggregator[K]) Flusher() error {
 			case <-ctx.Done():
 				w.mu.Lock()
 				w.closed = true
+				w.mu.Unlock()
 
 				err := w.Process()
 				if err != nil {
 					slog.Default().Error("Error during flush by context", "err", err)
 					resultErr = err
-
-					w.mu.Unlock()
-
 					return
 				}
-
-				w.mu.Unlock()
 
 				return
 			case <-tck.C:
