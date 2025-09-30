@@ -10,6 +10,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/mfonda/simhash"
 	"github.com/sirbu/golang-common/hash/crc16"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -18,6 +19,14 @@ const (
 	EmailTagStart = "+"
 	EmailAt       = "@"
 )
+
+func SimHash(data []byte) uint64 {
+	return simhash.Simhash(simhash.NewWordFeatureSet(data))
+}
+
+func SimHashCompare(val1, val2 uint64) uint8 {
+	return simhash.Compare(val1, val2)
+}
 
 func EmailUserName(email string) string {
 	res := strings.Index(email, EmailAt)

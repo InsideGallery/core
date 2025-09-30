@@ -2,6 +2,7 @@ package fuzzysearch
 
 import (
 	"fmt"
+	"github.com/InsideGallery/core/testutils"
 	"sort"
 	"strings"
 	"testing"
@@ -169,6 +170,25 @@ func TestRankMatch(t *testing.T) {
 			t.Errorf("expected ranking %d, got %d for %s in %s",
 				val.rank, rank, val.source, val.target)
 		}
+	}
+}
+
+func TestStringTransform(t *testing.T) {
+	testcases := []struct {
+		source string
+		target string
+		rank   int
+	}{
+		{source: "limó", target: "limo"},
+		{source: "ёлка", target: "елка"},
+		{source: "イカ", target: "イカ"},
+		{source: "zazz", target: "zazz"},
+	}
+
+	for _, val := range testcases {
+		t.Run(val.source, func(t *testing.T) {
+			testutils.Equal(t, StringTransform(val.source, NormalizedFoldTransformer()), val.target)
+		})
 	}
 }
 

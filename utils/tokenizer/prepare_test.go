@@ -3,6 +3,7 @@ package tokenizer
 import (
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"testing"
 	"unicode/utf8"
@@ -27,6 +28,26 @@ func TestGetTokenizer(t *testing.T) {
 
 	tokens = len(en.Tokens)
 	testutils.Equal(t, tokens, 2)
+
+	en, err = p.EncodeSingle("maxim")
+	testutils.Equal(t, err, nil)
+
+	tokens = len(en.Tokens)
+	testutils.Equal(t, tokens, 1)
+
+	en, err = p.EncodeSingle("maksym")
+	testutils.Equal(t, err, nil)
+
+	tokens = len(en.Tokens)
+	testutils.Equal(t, tokens, 3)
+	fmt.Println(en.Tokens)
+
+	en, err = p.EncodeSingle("maksim")
+	testutils.Equal(t, err, nil)
+
+	tokens = len(en.Tokens)
+	testutils.Equal(t, tokens, 3)
+	fmt.Println(en.Tokens)
 }
 
 func TestEmails(t *testing.T) {

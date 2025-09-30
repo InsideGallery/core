@@ -1,10 +1,65 @@
 package utils
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/InsideGallery/core/testutils"
 )
+
+const hexConst = 16
+
+func TestSimHash(t *testing.T) {
+	testcases := []struct {
+		name    string
+		input   []byte
+		input2  []byte
+		output  uint64
+		compare uint8
+	}{
+		{
+			input:   []byte{},
+			output:  18446744073709551615,
+			input2:  []byte{},
+			compare: 0,
+		},
+		{
+			input:   []byte("maksym"),
+			output:  14821570039076993787,
+			input2:  []byte("maksim"),
+			compare: 10,
+		},
+		{
+			input:   []byte("maxim"),
+			output:  10372533624760212183,
+			input2:  []byte("maksym"),
+			compare: 20,
+		},
+		{
+			input:   []byte("test string"),
+			output:  11326553056929120239,
+			input2:  []byte("another string"),
+			compare: 19,
+		},
+		{
+			input:   []byte("token 1"),
+			output:  13791147330743171070,
+			input2:  []byte("token 2"),
+			compare: 2,
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(string(test.input)+" vs "+string(test.input2), func(t *testing.T) {
+			val := SimHash(test.input)
+			testutils.Equal(t,
+				strconv.FormatUint(val, hexConst),
+				strconv.FormatUint(test.output, hexConst),
+			)
+			testutils.Equal(t, SimHashCompare(SimHash(test.input), SimHash(test.input2)), test.compare)
+		})
+	}
+}
 
 func TestSplitBetweenTokens(t *testing.T) {
 	testcases := []struct {
