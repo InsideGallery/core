@@ -14,6 +14,79 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+const (
+	EmailTagStart = "+"
+	EmailAt       = "@"
+)
+
+func EmailUserName(email string) string {
+	res := strings.Index(email, EmailAt)
+	if res <= -1 {
+		return email
+	}
+
+	return email[:res]
+}
+
+func EmailDomain(email string) string {
+	res := strings.Index(email, EmailAt)
+	if res <= -1 {
+		return email
+	}
+
+	res += len(EmailAt)
+
+	return email[res:]
+}
+
+func SanitizeEmail(email string) string {
+	return strings.Join(SplitBetweenTokens(strings.ToLower(email), EmailTagStart, EmailAt), EmailAt)
+}
+
+// SplitBetweenTokens take string and one or two tokens, and cut everything between two tokens, or between two copies of first token
+func SplitBetweenTokens(data string, keys ...string) []string {
+	if data == "" {
+		return []string{}
+	}
+
+	var key1, key2 string
+
+	switch {
+	case len(keys) == 1: //nolint:mnd
+		key1 = keys[0]
+		key2 = keys[0]
+	case len(keys) >= 2: //nolint:mnd
+		key1 = keys[0]
+		key2 = keys[1]
+	default:
+		return []string{data}
+	}
+
+	if key1 == "" || key2 == "" {
+		return []string{data}
+	}
+
+	s := strings.Index(data, key1)
+	if s <= -1 {
+		return []string{data}
+	}
+
+	part1 := data[0:s]
+
+	s += len(key1)
+
+	e := strings.Index(data[s:], key2)
+	if e <= -1 {
+		return []string{part1}
+	}
+
+	e += len(key2)
+
+	part2 := data[s+e:]
+
+	return []string{part1, part2}
+}
+
 // ByteSliceToString cast given bytes to string, without allocation memory
 func ByteSliceToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b)) //nolint
