@@ -58,6 +58,10 @@ func (v *SemVersion) build() error {
 		buildPosition = len(version)
 	}
 
+	if prPosition > buildPosition {
+		prPosition = len(version)
+	}
+
 	coreEnd := prPosition
 	if coreEnd > buildPosition {
 		coreEnd = buildPosition
@@ -70,7 +74,7 @@ func (v *SemVersion) build() error {
 
 	copy(v.version[:3], parts)
 
-	if prPosition > 0 && prPosition < len(version) && prPosition+1 >= len(version) {
+	if prPosition > 0 && prPosition < len(version) && prPosition+1 >= buildPosition {
 		return ErrInvalidPreReleaseDelimiter
 	}
 
