@@ -26,12 +26,17 @@ require (
 	dario.cat/mergo v1.0.1
 	github.com/AlekSi/pointer v1.2.0
 	github.com/DataDog/datadog-api-client-go/v2 v2.44.0
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/aerospike/aerospike-client-go/v7 v7.2.1
 	github.com/agoda-com/opentelemetry-go/otelslog v0.1.1
 	github.com/agoda-com/opentelemetry-logs-go v0.5.0
 	github.com/apache/tinkerpop/gremlin-go/v3 v3.7.2
 	github.com/caarlos0/env/v10 v10.0.0
+	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da
+	github.com/dgryski/go-minhash v0.0.0-20190315135803-ad340ca03076
+	github.com/dgryski/go-spooky v0.0.0-20170606183049-ed3d087f40e2
 	github.com/elastic/go-elasticsearch/v8 v8.16.0
+	github.com/go-faster/xor v1.0.0
 	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/go-slog/otelslog v0.1.0
@@ -42,6 +47,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/mailru/easyjson v0.7.7
+	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/nats-io/nkeys v0.4.7
 	github.com/neo4j/neo4j-go-driver/v5 v5.20.0
 	github.com/redis/go-redis/v9 v9.5.5
@@ -54,6 +60,7 @@ require (
 	github.com/spf13/cast v1.6.0
 	github.com/stretchr/testify v1.10.0
 	github.com/sugarme/tokenizer v0.3.0
+	github.com/tink-crypto/tink-go/v2 v2.5.0
 	github.com/twmb/murmur3 v1.1.8
 	go.opentelemetry.io/contrib/instrumentation/host v0.52.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
@@ -83,6 +90,7 @@ require (
 	github.com/chewxy/hm v1.0.0 // indirect
 	github.com/chewxy/math32 v1.10.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgryski/go-metro v0.0.0-20250106013310-edb8663e5e33 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.6.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
@@ -111,7 +119,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
-	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/montanaflynn/stats v0.6.6 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
@@ -153,7 +160,7 @@ require (
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorgonia.org/cu v0.9.4 // indirect
 	gorgonia.org/dawson v1.2.0 // indirect

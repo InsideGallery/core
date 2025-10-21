@@ -12,10 +12,13 @@ import (
 )
 
 func TestWaiter(t *testing.T) {
-	const totalItemsToAdd = 23
-	const maxCountPerBatch = 10
+	const (
+		totalItemsToAdd  = 23
+		maxCountPerBatch = 10
+	)
 
 	// This sub-test demonstrates the failure when we don't wait.
+
 	t.Run("Fails Without Close and Wait", func(t *testing.T) {
 		var processedCount atomic.Uint32
 

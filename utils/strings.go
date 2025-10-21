@@ -8,11 +8,13 @@ import (
 	mrand "math/rand/v2"
 	"strings"
 	"time"
+	"unicode"
 	"unsafe"
 
 	"github.com/mfonda/simhash"
 	"github.com/sirbu/golang-common/hash/crc16"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/text/unicode/norm"
 )
 
 const (
@@ -50,6 +52,22 @@ func EmailDomain(email string) string {
 
 func SanitizeEmail(email string) string {
 	return strings.Join(SplitBetweenTokens(strings.ToLower(email), EmailTagStart, EmailAt), EmailAt)
+}
+
+func NFDLowerString(str string) string {
+	return strings.ToLower(norm.NFD.String(strings.TrimSpace(str)))
+}
+
+func CommonString(str string) string {
+	var result strings.Builder
+
+	for _, r := range str {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+			result.WriteRune(r)
+		}
+	}
+
+	return result.String()
 }
 
 // SplitBetweenTokens take string and one or two tokens, and cut everything between two tokens, or between two copies of first token

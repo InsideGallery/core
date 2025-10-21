@@ -2,10 +2,11 @@ package fuzzysearch
 
 import (
 	"fmt"
-	"github.com/InsideGallery/core/testutils"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/InsideGallery/core/testutils"
 )
 
 const deBelloGallico = `All Gaul is divided into three parts, one of which the Belgae inhabit,

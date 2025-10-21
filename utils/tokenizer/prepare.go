@@ -17,7 +17,7 @@ var (
 )
 
 func GetTokenizer(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
-	var err error = once.Do(func() error {
+	err := once.Do(func() error {
 		var err error
 
 		if tk == nil {
@@ -39,6 +39,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 	dec := json.NewDecoder(f)
 
 	var config *tokenizer.Config
+
 	err = dec.Decode(&config)
 	if err != nil {
 		return nil, err
@@ -56,6 +57,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating normalizer failed: %w", err)
 	}
+
 	tk.WithNormalizer(n)
 
 	// 3. PreTokenizer
@@ -63,6 +65,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating pre-tokenizer failed: %w", err)
 	}
+
 	tk.WithPreTokenizer(preTok)
 
 	// 4. PostProcessor
@@ -70,6 +73,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating post-processor failed: %w", err)
 	}
+
 	tk.WithPostProcessor(postProcessor)
 
 	// 5. Decoder
@@ -77,6 +81,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating decoder failed: %w", err)
 	}
+
 	tk.WithDecoder(decoder)
 
 	// 6. AddedVocabulary
@@ -84,6 +89,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 	if len(specialAddedTokens) > 0 {
 		tk.AddSpecialTokens(specialAddedTokens)
 	}
+
 	if len(addedTokens) > 0 {
 		tk.AddTokens(addedTokens)
 	}
@@ -94,6 +100,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 		err = fmt.Errorf("creating truncation-params failed: %w", err)
 		return nil, err
 	}
+
 	tk.WithTruncation(truncParams)
 
 	// 8. PaddingParams
@@ -101,6 +108,7 @@ func FromFile(fs fs.FS, file string) (*tokenizer.Tokenizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating padding-params failed: %w", err)
 	}
+
 	tk.WithPadding(paddingParams)
 
 	return tk, nil

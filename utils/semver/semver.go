@@ -44,6 +44,10 @@ func (v *SemVersion) build() error {
 		version = version[1:]
 	}
 
+	if version == "" {
+		return ErrInvalidVersionString
+	}
+
 	prPosition := strings.Index(version, prDelimiter)
 	if prPosition == -1 {
 		prPosition = len(version)
@@ -52,8 +56,6 @@ func (v *SemVersion) build() error {
 	buildPosition := strings.Index(version, buildDelimiter)
 	if buildPosition == -1 {
 		buildPosition = len(version)
-	} else {
-		v.version[7] = maxValue
 	}
 
 	coreEnd := prPosition
@@ -68,26 +70,41 @@ func (v *SemVersion) build() error {
 
 	copy(v.version[:3], parts)
 
+	if prPosition > 0 && prPosition < len(version) && prPosition+1 >= len(version) {
+		return ErrInvalidPreReleaseDelimiter
+	}
+
+	if buildPosition > 0 && buildPosition+1 == len(version) {
+		return ErrInvalidBuildDelimiter
+	}
+
 	if prPosition+1 < buildPosition {
+		if version[prPosition+1:buildPosition] == "0" {
+			return ErrLeadingZero
+		}
+
 		parts, err = v.getReleaseParts(version[prPosition+1 : buildPosition])
 		if err != nil {
 			return err
 		}
 
-		copy(v.version[3:7], parts)
+		copy(v.version[3:8], parts)
 	} else {
 		v.version[3] = maxValue
-		v.version[4] = maxValue
-		v.version[5] = maxValue
-		v.version[6] = maxValue
+		v.version[4] = 0
+		v.version[5] = 0
+		v.version[6] = 0
+		v.version[7] = 0
 	}
 
 	return nil
 }
 
 func (v *SemVersion) getCoreParts(version string) ([]uint16, error) {
-	var parts []uint16
-	var last int
+	var (
+		parts []uint16
+		last  int
+	)
 
 	for i, c := range version {
 		if core.Contains(c) {
@@ -112,8 +129,10 @@ func (v *SemVersion) getCoreParts(version string) ([]uint16, error) {
 }
 
 func (v *SemVersion) getReleaseParts(version string) ([]uint16, error) {
-	var parts []uint16
-	var last int
+	var (
+		parts []uint16
+		last  int
+	)
 
 	for i, c := range version {
 		if core.Contains(c) {
@@ -157,12 +176,18 @@ func (v *SemVersion) getNumVersion(version string, from, to int) (uint16, error)
 	}
 
 	if version[from:to] == "" {
-		return 0, nil
+		return 0, ErrEmptySegment
 	}
 
 	val, err := strconv.ParseUint(version[from:to], base, bitSize)
 	if err != nil {
-		return 0, err
+		for _, v := range version[from:to] {
+			val += uint64(v)
+		}
+	}
+
+	if val > math.MaxUint16 {
+		return 0, ErrVersionIsOverflow
 	}
 
 	return uint16(val), nil // nolint gosec

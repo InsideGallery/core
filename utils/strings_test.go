@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -14,36 +15,48 @@ func TestSimHash(t *testing.T) {
 		name    string
 		input   []byte
 		input2  []byte
-		output  uint64
+		output  string
 		compare uint8
 	}{
 		{
 			input:   []byte{},
-			output:  18446744073709551615,
+			output:  "ffffffffffffffff",
 			input2:  []byte{},
 			compare: 0,
 		},
 		{
 			input:   []byte("maksym"),
-			output:  14821570039076993787,
+			output:  "cdb0cb6c28c1bafb",
 			input2:  []byte("maksim"),
 			compare: 10,
 		},
 		{
 			input:   []byte("maxim"),
-			output:  10372533624760212183,
+			output:  "8ff2a4602ca09ad7",
 			input2:  []byte("maksym"),
 			compare: 20,
 		},
 		{
 			input:   []byte("test string"),
-			output:  11326553056929120239,
+			output:  "9d2ffffe9fdfffef",
 			input2:  []byte("another string"),
 			compare: 19,
 		},
 		{
+			input:   []byte("sim string"),
+			output:  "d9bffdde6b7fd79e",
+			input2:  []byte("sime string"),
+			compare: 15,
+		},
+		{
+			input:   []byte("different string"),
+			output:  "f9efddfe6b77d68e",
+			input2:  []byte("similar number"),
+			compare: 23,
+		},
+		{
 			input:   []byte("token 1"),
-			output:  13791147330743171070,
+			output:  "bf63ff6dbe05f7fe",
 			input2:  []byte("token 2"),
 			compare: 2,
 		},
@@ -52,11 +65,16 @@ func TestSimHash(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(string(test.input)+" vs "+string(test.input2), func(t *testing.T) {
 			val := SimHash(test.input)
+			val2 := SimHash(test.input2)
+
+			fmt.Println(CRC16(strconv.FormatUint(val, hexConst)))
+			fmt.Println(CRC16(strconv.FormatUint(val2, hexConst)))
+
 			testutils.Equal(t,
 				strconv.FormatUint(val, hexConst),
-				strconv.FormatUint(test.output, hexConst),
+				test.output,
 			)
-			testutils.Equal(t, SimHashCompare(SimHash(test.input), SimHash(test.input2)), test.compare)
+			testutils.Equal(t, SimHashCompare(val, val2), test.compare)
 		})
 	}
 }

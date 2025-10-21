@@ -177,6 +177,10 @@ func (t *TreeLayer[K, V]) Execute(ctx context.Context, executor func(ctx context
 							return
 						}
 
+						if n.value.Skip() {
+							continue
+						}
+
 						if executor != nil {
 							executor(ctx, n.value.Key(), n.value.Value())
 						}
@@ -199,6 +203,10 @@ func (t *TreeLayer[K, V]) Execute(ctx context.Context, executor func(ctx context
 						case n, ok := <-asyncCh:
 							if !ok {
 								return
+							}
+
+							if n.value.Skip() {
+								continue
 							}
 
 							if executor != nil {

@@ -1,45 +1,5 @@
 package ltree
 
-import (
-	"errors"
-)
-
-var ErrCircuitDependency = errors.New("circuit dependency")
-
-type Executor[K comparable, V any] interface {
-	Key() K
-	Value() V
-	IsAsync() bool
-	DependsOn() []K
-}
-
-type Entry[K comparable, V any] struct {
-	key     K
-	value   V
-	need    []K  // related nodes
-	isAsync bool // does entity contain blocked operation
-}
-
-func (e *Entry[K, V]) Key() K {
-	return e.key
-}
-
-func (e *Entry[K, V]) Value() V {
-	return e.value
-}
-
-func (e *Entry[K, V]) DependsOn() []K {
-	return e.need
-}
-
-func (e *Entry[K, V]) IsAsync() bool {
-	return e.isAsync
-}
-
-func NewEntry[K comparable, V any](key K, value V, need []K, isAsync bool) *Entry[K, V] {
-	return &Entry[K, V]{key: key, value: value, need: need, isAsync: isAsync}
-}
-
 type Node[K comparable, V any] struct {
 	value    Executor[K, V]
 	parent   []*Node[K, V]

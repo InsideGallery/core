@@ -116,6 +116,7 @@ func (w *Aggregator[K]) Flusher() error {
 				if err != nil {
 					slog.Default().Error("Error during flush by context", "err", err)
 					resultErr = err
+
 					return
 				}
 
