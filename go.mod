@@ -58,7 +58,7 @@ require (
 	github.com/segmentio/go-hll v1.0.1
 	github.com/sirbu/golang-common v0.0.0-20170403140351-21d4febd4bca
 	github.com/spf13/cast v1.6.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/sugarme/tokenizer v0.3.0
 	github.com/tink-crypto/tink-go/v2 v2.5.0
 	github.com/twmb/murmur3 v1.1.8
