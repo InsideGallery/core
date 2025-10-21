@@ -321,27 +321,27 @@ func TestHex(t *testing.T) {
 		},
 		{
 			version: "v65535.65535.65535",
-			expect:  "ffffffffffffffffffffffffffff0000",
+			expect:  "ffffffffffffffff0000000000000000",
 		},
 		{
 			version: "v65535.65535.65535+1",
-			expect:  "ffffffffffffffffffffffffffffffff",
+			expect:  "ffffffffffffffff0000000000000000",
 		},
 		{
 			version: "v1.0.0",
-			expect:  "000100000000ffffffffffffffff0000",
+			expect:  "000100000000ffff0000000000000000",
 		},
 		{
 			version: "v1.0.0+1",
-			expect:  "000100000000ffffffffffffffffffff",
+			expect:  "000100000000ffff0000000000000000",
 		},
 		{
 			version: "3",
-			expect:  "000300000000ffffffffffffffff0000",
+			expect:  "000300000000ffff0000000000000000",
 		},
 		{
 			version: "v3",
-			expect:  "000300000000ffffffffffffffff0000",
+			expect:  "000300000000ffff0000000000000000",
 		},
 		{
 			version: "v3-1",

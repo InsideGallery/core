@@ -108,7 +108,7 @@ func (v *SemVersion) getCoreParts(version string) ([]uint16, error) {
 
 	for i, c := range version {
 		if core.Contains(c) {
-			val, err := v.getNumVersion(version, last, i)
+			val, err := v.getNumVersion(version, last, i, true)
 			if err != nil {
 				return nil, err
 			}
@@ -118,7 +118,7 @@ func (v *SemVersion) getCoreParts(version string) ([]uint16, error) {
 		}
 	}
 
-	val, err := v.getNumVersion(version, last, len(version))
+	val, err := v.getNumVersion(version, last, len(version), true)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (v *SemVersion) getReleaseParts(version string) ([]uint16, error) {
 				continue
 			}
 
-			val, err := v.getNumVersion(version, last, i)
+			val, err := v.getNumVersion(version, last, i, false)
 			if err != nil {
 				return nil, err
 			}
@@ -160,7 +160,7 @@ func (v *SemVersion) getReleaseParts(version string) ([]uint16, error) {
 		return parts, nil
 	}
 
-	val, err := v.getNumVersion(version, last, len(version))
+	val, err := v.getNumVersion(version, last, len(version), false)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (v *SemVersion) getReleaseParts(version string) ([]uint16, error) {
 	return parts, nil
 }
 
-func (v *SemVersion) getNumVersion(version string, from, to int) (uint16, error) {
+func (v *SemVersion) getNumVersion(version string, from, to int, core bool) (uint16, error) {
 	if from == -1 || to == -1 {
 		return 0, nil
 	}
@@ -181,8 +181,12 @@ func (v *SemVersion) getNumVersion(version string, from, to int) (uint16, error)
 
 	val, err := strconv.ParseUint(version[from:to], base, bitSize)
 	if err != nil {
-		for _, v := range version[from:to] {
-			val += uint64(v)
+		if core {
+			return 0, err
+		} else {
+			for _, v := range version[from:to] {
+				val += uint64(v)
+			}
 		}
 	}
 
