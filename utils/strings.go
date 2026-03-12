@@ -13,6 +13,7 @@ import (
 
 	"github.com/mfonda/simhash"
 	"github.com/sirbu/golang-common/hash/crc16"
+	"github.com/twmb/murmur3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/text/unicode/norm"
 )
@@ -21,6 +22,19 @@ const (
 	EmailTagStart = "+"
 	EmailAt       = "@"
 )
+
+func ABTest(data, salt []byte, groups ...uint64) uint64 {
+	var total uint64
+	for _, group := range groups {
+		total += group
+	}
+
+	if total == 0 {
+		return 0
+	}
+
+	return murmur3.Sum64(append(data, salt...)) % total
+}
 
 func SimHash(data []byte) uint64 {
 	return simhash.Simhash(simhash.NewWordFeatureSet(data))
@@ -56,6 +70,10 @@ func SanitizeEmail(email string) string {
 
 func NFDLowerString(str string) string {
 	return strings.ToLower(norm.NFD.String(strings.TrimSpace(str)))
+}
+
+func NFKDLowerString(str string) string {
+	return strings.ToLower(norm.NFKD.String(strings.TrimSpace(str)))
 }
 
 func CommonString(str string) string {

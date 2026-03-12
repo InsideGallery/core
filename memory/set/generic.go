@@ -19,10 +19,26 @@ func (set GenericDataSet[K]) Add(key K) {
 	set[key] = struct{}{}
 }
 
-func (set GenericDataSet[K]) Union(u GenericDataSet[K]) {
+func (set GenericDataSet[K]) Union(u GenericDataSet[K]) GenericDataSet[K] {
+	result := NewGenericDataSet[K](set.ToSlice()...)
+
 	for _, key := range u.ToSlice() {
-		set.Add(key)
+		result.Add(key)
 	}
+
+	return result
+}
+
+func (set GenericDataSet[K]) Intersection(inter GenericDataSet[K]) GenericDataSet[K] {
+	result := NewGenericDataSet[K]()
+
+	for _, key := range inter.ToSlice() {
+		if set.Contains(key) {
+			result.Add(key)
+		}
+	}
+
+	return result
 }
 
 // Delete delete value

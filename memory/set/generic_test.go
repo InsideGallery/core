@@ -4,6 +4,7 @@
 package set
 
 import (
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -188,8 +189,30 @@ func TestGenericDataSet_Union(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.set.Union(tc.u)
-			testutils.Equal(t, tc.set, tc.want)
+			res := tc.set.Union(tc.u)
+			if !reflect.DeepEqual(res, tc.want) {
+				t.Fatalf("Unexpected result %v != %v", tc.set, tc.want)
+			}
 		})
+	}
+}
+
+func TestUnion(t *testing.T) {
+	set1 := NewGenericDataSet("a", "b", "c")
+	set2 := NewGenericDataSet("c", "d", "e")
+
+	result := set1.Union(set2)
+	if !reflect.DeepEqual(result, NewGenericDataSet("a", "b", "c", "d", "e")) {
+		t.Fatalf("Unexpected result %v != %v", result, set1)
+	}
+}
+
+func TestIntersection(t *testing.T) {
+	set1 := NewGenericDataSet("a", "b", "c")
+	set2 := NewGenericDataSet("c", "d", "e")
+
+	result := set1.Intersection(set2)
+	if !reflect.DeepEqual(result, NewGenericDataSet("c")) {
+		t.Fatalf("Unexpected result %v != %v", result, set1)
 	}
 }

@@ -1,5 +1,7 @@
 package utils
 
+import "github.com/InsideGallery/core/memory/set"
+
 func BatchSlice[K any](size int, result []K) <-chan []K {
 	if size <= 0 {
 		size = 1
@@ -27,4 +29,23 @@ func BatchSlice[K any](size int, result []K) <-chan []K {
 	}()
 
 	return ch
+}
+
+func Shingle(text string, k int) set.GenericDataSet[string] {
+	shingleSet := set.NewGenericDataSet[string]()
+
+	if k <= 0 || len(text) == 0 {
+		return shingleSet
+	}
+
+	if len(text) < k {
+		shingleSet.Add(text)
+		return shingleSet
+	}
+
+	for i := 0; i < len(text)-k+1; i++ {
+		shingleSet.Add(text[i : i+k])
+	}
+
+	return shingleSet
 }
