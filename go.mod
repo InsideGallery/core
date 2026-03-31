@@ -39,7 +39,7 @@ require (
 	github.com/go-faster/xor v1.0.0
 	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/go-redsync/redsync/v4 v4.13.0
-	github.com/go-slog/otelslog v0.1.0
+	github.com/go-slog/otelslog v0.3.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/jwt/v4 v4.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -65,13 +65,13 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/host v0.52.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.52.0
-	go.opentelemetry.io/otel v1.28.0
+	go.opentelemetry.io/otel v1.31.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.27.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.27.0
-	go.opentelemetry.io/otel/metric v1.28.0
-	go.opentelemetry.io/otel/sdk v1.27.0
+	go.opentelemetry.io/otel/metric v1.31.0
+	go.opentelemetry.io/otel/sdk v1.31.0
 	go.opentelemetry.io/otel/sdk/metric v1.27.0
-	go.opentelemetry.io/otel/trace v1.28.0
+	go.opentelemetry.io/otel/trace v1.31.0
 	go.uber.org/mock v0.5.0
 	golang.org/x/crypto v0.41.0
 	golang.org/x/text v0.28.0
