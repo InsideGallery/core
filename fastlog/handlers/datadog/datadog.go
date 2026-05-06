@@ -17,9 +17,9 @@ import (
 const OutKind = "datadog"
 
 func init() {
-	handlers.RegisterHandler(OutKind,
-		Handler(context.Background()),
-	)
+	handlers.RegisterHandlerFactory(OutKind, func() slog.Handler {
+		return Handler(context.Background())
+	})
 }
 
 func newDatadogClient(ctx context.Context, endpoint string, apiKey string) (*datadog.APIClient, context.Context) {
@@ -43,13 +43,13 @@ func newDatadogClient(ctx context.Context, endpoint string, apiKey string) (*dat
 func Handler(ctx context.Context) slog.Handler {
 	cfg, err := GetConfigFromEnv()
 	if err != nil {
-		slog.Default().Error("Error get datadog logger provider config", "err", err)
+		slog.Default().Error("get datadog logger provider config", "err", err)
 		return nil
 	}
 
 	hostName, err := os.Hostname()
 	if err != nil {
-		slog.Default().Warn("Error get hostname", "err", err)
+		slog.Default().Warn("get hostname", "err", err)
 	}
 
 	apiClient, ctx := newDatadogClient(ctx, cfg.Endpoint, cfg.APIKey)

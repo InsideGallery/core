@@ -83,17 +83,27 @@ func (c *Client) PongListener(natsHandler *subscriber.Subscriber) error {
 	return nil
 }
 
-func (c *Client) ServiceHealthcheck(checkEvery, maxPingDelay time.Duration, stopFunction func()) {
+func (c *Client) ServiceHealthcheck(ctx context.Context, checkEvery, maxPingDelay time.Duration, stopFunction func()) {
 	ticker := time.NewTicker(checkEvery)
-	for range ticker.C {
-		lp := c.getLastPing()
-		if lp.Add(maxPingDelay).Unix() <= time.Now().Unix() {
-			stopFunction()
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			lp := c.getLastPing()
+			if lp.Add(maxPingDelay).Unix() <= time.Now().Unix() {
+				stopFunction()
+
+				return
+			}
 		}
 	}
 }
 
 func (c *Client) RunAndWait(
+	ctx context.Context,
 	natsHandler *subscriber.Subscriber,
 	checkEvery, maxPingDelay time.Duration,
 	stopFunction func(),
@@ -103,7 +113,7 @@ func (c *Client) RunAndWait(
 		return err
 	}
 
-	c.ServiceHealthcheck(checkEvery, maxPingDelay, stopFunction)
+	c.ServiceHealthcheck(ctx, checkEvery, maxPingDelay, stopFunction)
 
 	return nil
 }

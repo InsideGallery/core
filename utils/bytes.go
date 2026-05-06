@@ -69,8 +69,6 @@ func LSBBitValue(bitIdx int, isSet bool) byte {
 }
 
 func JamCRC32(value []byte) []byte {
-	// var res []byte
-	// basicCRC := binary.LittleEndian.AppendUint32(res, crc32.ChecksumIEEE(value))
 	result := crc32.ChecksumIEEE(value)
 	basicCRC := []byte{
 		GetByteLSB(int64(result), 0),

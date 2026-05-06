@@ -159,7 +159,9 @@ func ParseIP(s string) (net.IP, int, error) {
 	pip := net.ParseIP(s)
 	if pip == nil {
 		return nil, 0, ErrInvalidIPAddress
-	} else if strings.Contains(s, ".") {
+	}
+
+	if strings.Contains(s, ".") {
 		return pip, net.IPv4len, nil
 	}
 

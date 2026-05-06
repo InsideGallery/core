@@ -4,8 +4,8 @@ import (
 	"crypto/rsa"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	jwtware "github.com/gofiber/jwt/v4"
+	jwtware "github.com/gofiber/contrib/v3/jwt"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/InsideGallery/core/server/jwt/model"
@@ -98,9 +98,9 @@ func (j *Service) GetSigningKey() jwtware.SigningKey {
 	}
 }
 
-func DecodeClaims(c *fiber.Ctx) (*Payload, error) {
-	jwtToken, ok := c.Locals(ContextJWTKey).(*jwt.Token)
-	if !ok {
+func DecodeClaims(c fiber.Ctx) (*Payload, error) {
+	jwtToken := jwtware.FromContext(c)
+	if jwtToken == nil {
 		return nil, ErrJWTTokenNotFound
 	}
 

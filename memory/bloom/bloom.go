@@ -39,7 +39,7 @@ func newFilter(m, k uint32) *filter {
 	}
 }
 
-func estimates(n uint32, p float64) (uint32, uint32) {
+func estimates(n uint32, p float64) (uint32, uint32, error) {
 	nf := float64(n)
 	log2 := math.Log(2) // nolint:mnd
 	m := -1 * nf * math.Log(p) / (log2 * log2)
@@ -47,17 +47,20 @@ func estimates(n uint32, p float64) (uint32, uint32) {
 
 	words := m + 31>>5 // nolint:mnd
 	if words >= math.MaxInt32 {
-		panic(fmt.Sprintf("A 32-bit bloom filter with n %d and p %f requires a "+
-			"32-bit bitset with a slice of %f words, but slices cannot contain more than "+
-			"%d elements. Please use the equivalent 64-bit bloom filter, e.g. New64(), "+
-			"instead.", n, p, words, math.MaxInt32-1))
-	} else if m > math.MaxUint32 {
-		panic(fmt.Sprintf("A 32-bit bloom filter with n %d and p %f requires a "+
-			"32-bit bitset with %f bits, but this number overflows an uint32. Please use "+
-			"the equivalent 64-bit bloom filter, e.g. New64(), instead.", n, p, m))
+		return 0, 0, fmt.Errorf(
+			"bloom filter with n %d and p %f requires %f words, exceeding max %d",
+			n, p, words, math.MaxInt32-1,
+		)
 	}
 
-	return uint32(m), uint32(k)
+	if m > math.MaxUint32 {
+		return 0, 0, fmt.Errorf(
+			"bloom filter with n %d and p %f requires %f bits, overflowing uint32",
+			n, p, m,
+		)
+	}
+
+	return uint32(m), uint32(k), nil
 }
 
 type CountingFilter struct {
@@ -66,13 +69,16 @@ type CountingFilter struct {
 }
 
 // NewCounting creates an optimized counting bloom filter.
-func NewCounting(n int, p float64) *CountingFilter {
-	m, k := estimates(uint32(n), p)
+func NewCounting(n int, p float64) (*CountingFilter, error) {
+	m, k, err := estimates(uint32(n), p)
+	if err != nil {
+		return nil, fmt.Errorf("bloom filter estimates: %w", err)
+	}
 
 	return &CountingFilter{
 		filter:   newFilter(m, k),
 		counters: make([]byte, m),
-	}
+	}, nil
 }
 
 // Test checks if an item is likely in the set.

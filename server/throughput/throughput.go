@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/InsideGallery/core/server/instance"
 )
@@ -93,7 +93,7 @@ func (t *Throughput) Loop() {
 
 func (t *Throughput) Middleware(parameter string) func(next fiber.Handler) fiber.Handler {
 	return func(next fiber.Handler) fiber.Handler {
-		return func(c *fiber.Ctx) error {
+		return func(c fiber.Ctx) error {
 			st := time.Now()
 
 			defer func() {

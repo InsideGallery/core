@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/caarlos0/env/v10"
-	"github.com/go-slog/otelslog"
 	slogmulti "github.com/samber/slog-multi"
 
 	"github.com/InsideGallery/core/errors"
@@ -39,7 +38,7 @@ func GetConfigFromEnv() (*Config, error) {
 		return nil, err
 	}
 
-	return c, err
+	return c, nil
 }
 
 func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
@@ -94,5 +93,5 @@ func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
 	orderedMiddlewares = append(orderedMiddlewares, m...)
 
 	return slogmulti.Pipe(orderedMiddlewares...).
-		Handler(otelslog.NewHandler(slogmulti.Fanout(outputs...))), errors.Combine(errs...)
+		Handler(slogmulti.Fanout(outputs...)), errors.Combine(errs...)
 }

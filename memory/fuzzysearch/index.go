@@ -58,7 +58,7 @@ func (idx Index) Remove(docs ...Document) {
 			}
 
 			for i := range ids {
-				if i == doc.ID {
+				if ids[i] == doc.ID {
 					idx[token] = append(idx[token][:i], idx[token][i+1:]...)
 					break
 				}

@@ -320,11 +320,10 @@ func (s *SortedSet[K, V]) GetUntilKey(untilKey K, remove bool) []any {
 // GetByKeyRange get the nodes whose key within the specific range
 // If options is nil, it `searches` in interval [start, end] without any limit by default
 // Time complexity of this method is : O(log(N))
-func (s *SortedSet[K, V]) GetByKeyRange(start K, end K, options *GetByKeyRangeOptions) []*Node[K, V] { //nolint:gocyclo
+func (s *SortedSet[K, V]) GetByKeyRange(start K, end K, options *GetByKeyRangeOptions) []*Node[K, V] {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// prepare parameters
 	limit := maxLimit
 	if options != nil && options.Limit > 0 {
 		limit = options.Limit
@@ -344,97 +343,106 @@ func (s *SortedSet[K, V]) GetByKeyRange(start K, end K, options *GetByKeyRangeOp
 		excludeStart, excludeEnd = excludeEnd, excludeStart
 	}
 
-	var nodes []*Node[K, V]
-
-	// determine if out of range
 	if s.length == 0 {
-		return nodes
+		return nil
 	}
 
-	if reverse { // search from end to start
-		x := s.header
+	if reverse {
+		return s.searchReverse(start, end, excludeStart, excludeEnd, limit, remove)
+	}
 
-		if excludeEnd {
-			for i := s.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					s.comparator(x.level[i].forward.key, end) < 0 {
-					x = x.level[i].forward
-				}
+	return s.searchForward(start, end, excludeStart, excludeEnd, limit, remove)
+}
+
+func (s *SortedSet[K, V]) searchReverse(
+	start, end K, excludeStart, excludeEnd bool, limit int, remove bool,
+) []*Node[K, V] {
+	x := s.header
+
+	if excludeEnd {
+		for i := s.level - 1; i >= 0; i-- {
+			for x.level[i].forward != nil &&
+				s.comparator(x.level[i].forward.key, end) < 0 {
+				x = x.level[i].forward
 			}
-		} else {
-			for i := s.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					s.comparator(x.level[i].forward.key, end) <= 0 {
-					x = x.level[i].forward
-				}
-			}
-		}
-
-		for x != nil && limit > 0 {
-			if excludeStart {
-				if s.comparator(x.key, start) <= 0 {
-					break
-				}
-			} else {
-				if s.comparator(x.key, start) < 0 {
-					break
-				}
-			}
-
-			next := x.backward
-			nodes = append(nodes, x)
-
-			if remove {
-				s.delete(x.Key(), x.Value())
-			}
-
-			limit--
-			x = next
 		}
 	} else {
-		// search from start to end
-		x := s.header
-
-		if excludeStart {
-			for i := s.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					s.comparator(x.level[i].forward.key, start) <= 0 {
-					x = x.level[i].forward
-				}
-			}
-		} else {
-			for i := s.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					s.comparator(x.level[i].forward.key, start) < 0 {
-					x = x.level[i].forward
-				}
+		for i := s.level - 1; i >= 0; i-- {
+			for x.level[i].forward != nil &&
+				s.comparator(x.level[i].forward.key, end) <= 0 {
+				x = x.level[i].forward
 			}
 		}
+	}
 
-		/* Current node is the last with key < or <= start. */
-		x = x.level[0].forward
+	var nodes []*Node[K, V]
 
-		for x != nil && limit > 0 {
-			if excludeEnd {
-				if s.comparator(x.key, end) >= 0 {
-					break
-				}
-			} else {
-				if s.comparator(x.key, end) > 0 {
-					break
-				}
-			}
-
-			next := x.level[0].forward
-			nodes = append(nodes, x)
-
-			if remove {
-				s.delete(x.Key(), x.Value())
-			}
-
-			limit--
-			x = next
+	for x != nil && limit > 0 {
+		if excludeStart && s.comparator(x.key, start) <= 0 {
+			break
 		}
+
+		if !excludeStart && s.comparator(x.key, start) < 0 {
+			break
+		}
+
+		next := x.backward
+		nodes = append(nodes, x)
+
+		if remove {
+			s.delete(x.Key(), x.Value())
+		}
+
+		limit--
+		x = next
+	}
+
+	return nodes
+}
+
+func (s *SortedSet[K, V]) searchForward(
+	start, end K, excludeStart, excludeEnd bool, limit int, remove bool,
+) []*Node[K, V] {
+	x := s.header
+
+	if excludeStart {
+		for i := s.level - 1; i >= 0; i-- {
+			for x.level[i].forward != nil &&
+				s.comparator(x.level[i].forward.key, start) <= 0 {
+				x = x.level[i].forward
+			}
+		}
+	} else {
+		for i := s.level - 1; i >= 0; i-- {
+			for x.level[i].forward != nil &&
+				s.comparator(x.level[i].forward.key, start) < 0 {
+				x = x.level[i].forward
+			}
+		}
+	}
+
+	x = x.level[0].forward
+
+	var nodes []*Node[K, V]
+
+	for x != nil && limit > 0 {
+		if excludeEnd && s.comparator(x.key, end) >= 0 {
+			break
+		}
+
+		if !excludeEnd && s.comparator(x.key, end) > 0 {
+			break
+		}
+
+		next := x.level[0].forward
+		nodes = append(nodes, x)
+
+		if remove {
+			s.delete(x.Key(), x.Value())
+		}
+
+		limit--
+		x = next
 	}
 
 	return nodes

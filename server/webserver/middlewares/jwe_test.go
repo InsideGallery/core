@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-jose/go-jose/v3"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/InsideGallery/core/pki/aes"
 	"github.com/InsideGallery/core/testutils"
@@ -29,13 +29,13 @@ func TestJWEAES(t *testing.T) {
 	raw, err := EncryptResponse(sharedSecretKey, []byte(requestStr))
 	testutils.Equal(t, err, nil)
 
-	j := NewJWE(func(_ *fiber.Ctx) ([]byte, error) {
+	j := NewJWE(func(_ fiber.Ctx) ([]byte, error) {
 		return GetSessionKey(rawMasterKey, []byte("key"))
 	})
 
 	app := fiber.New()
 	app.Use(j.DecryptMiddleware)
-	app.Post("/", func(ctx *fiber.Ctx) error {
+	app.Post("/", func(ctx fiber.Ctx) error {
 		data := ctx.Locals(DecryptValueKey).([]byte)
 		testutils.Equal(t, string(data), requestStr)
 
@@ -45,7 +45,7 @@ func TestJWEAES(t *testing.T) {
 	})
 
 	req, _ := http.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(raw)))
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	testutils.Equal(t, err, nil)
 
 	defer res.Body.Close()

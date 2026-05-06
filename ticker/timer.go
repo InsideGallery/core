@@ -36,12 +36,11 @@ func (e *ExecuteWithDelay) Start(ctx context.Context, h func(ctx context.Context
 
 	go func(ctx context.Context, e *ExecuteWithDelay, h func(ctx context.Context), d time.Duration) {
 		tickTimer := time.NewTimer(d)
+		defer tickTimer.Stop()
 
 		for {
 			select {
 			case <-e.close:
-				e.active.Store(false)
-
 				return
 			case <-tickTimer.C:
 				h(ctx)
@@ -55,7 +54,7 @@ func (e *ExecuteWithDelay) Start(ctx context.Context, h func(ctx context.Context
 
 // Stop stop executing
 func (e *ExecuteWithDelay) Stop() bool {
-	if !e.IsActive() {
+	if !e.active.CompareAndSwap(true, false) {
 		return false
 	}
 

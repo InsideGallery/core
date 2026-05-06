@@ -26,7 +26,9 @@ func Start(ctx context.Context, listener OsListener) {
 		for {
 			select {
 			case <-ctx.Done():
+				signal.Stop(sigs)
 				slog.Default().Warn("Stopping the signal listener")
+
 				return
 			case receivedSignal := <-sigs:
 				listener.ReceiveSignal(receivedSignal)

@@ -33,7 +33,7 @@ func NewAggregator[K any](
 	}
 
 	if count <= 0 {
-		goroutines = 1
+		count = 1
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -101,6 +101,7 @@ func (w *Aggregator[K]) Close() {
 
 func (w *Aggregator[K]) Flusher() error {
 	tck := time.NewTicker(w.ticker)
+	defer tck.Stop()
 
 	var resultErr error
 

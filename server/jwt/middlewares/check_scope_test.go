@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/InsideGallery/core/testutils"
 )
@@ -174,7 +174,7 @@ func Test_parseScope(t *testing.T) {
 			var triggered bool
 
 			webServer := fiber.New()
-			webServer.All(tt.target, func(c *fiber.Ctx) error {
+			webServer.All(tt.target, func(c fiber.Ctx) error {
 				triggered = true
 
 				if got := parseScope(c); got != tt.want {
@@ -192,7 +192,7 @@ func Test_parseScope(t *testing.T) {
 				req = httptest.NewRequest(tt.method, tt.requestURI, nil)
 			}
 
-			resp, err := webServer.Test(req, -1)
+			resp, err := webServer.Test(req, fiber.TestConfig{Timeout: 0})
 			testutils.Equal(t, err, nil)
 			testutils.Equal(t, triggered, true)
 			testutils.Equal(t, resp.StatusCode, tt.wantStatusCode)

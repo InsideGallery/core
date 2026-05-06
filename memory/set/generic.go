@@ -137,10 +137,5 @@ func (set *GenericOrderedDataSet[K]) ToSlice() []K {
 
 // Count return count of elements
 func (set *GenericOrderedDataSet[K]) Count() int {
-	var i int
-	for range set.order {
-		i++
-	}
-
-	return i
+	return len(set.order)
 }

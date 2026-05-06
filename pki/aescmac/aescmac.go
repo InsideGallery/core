@@ -173,7 +173,7 @@ func Sum(key, data []byte) ([]byte, error) {
 	return c.Sum(nil), nil
 }
 
-var invalidXorParamsMessage = "invalid input for xor function - the both arguments must have the same length"
+var ErrXorLengthMismatch = errors.New("xor arguments must have the same length")
 
 const (
 	Msb               = 0b10000000
@@ -183,7 +183,7 @@ const (
 
 func Xor(a, b []byte) []byte {
 	if len(a) != len(b) {
-		panic(invalidXorParamsMessage)
+		return nil
 	}
 
 	result := make([]byte, len(a))
@@ -208,7 +208,8 @@ func ShiftLeft(data []byte) []byte {
 }
 
 func Padding(data []byte) []byte {
-	result := data
+	result := make([]byte, len(data), len(data)+blockSize)
+	copy(result, data)
 	result = append(result, firstPaddingOctet)
 
 	if len(result) < blockSize {

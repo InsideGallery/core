@@ -6,7 +6,7 @@ import (
 
 	_ "github.com/InsideGallery/core/fastlog/handlers/stderr"
 
-	"github.com/InsideGallery/core/fastlog/metrics"
+	"github.com/InsideGallery/core/metrics"
 	"github.com/InsideGallery/core/queue/nats/middleware"
 	"github.com/InsideGallery/core/queue/nats/subscriber"
 )
@@ -22,7 +22,7 @@ func TestNATS(t *testing.T) {
 	t.Skip() // test for validate how apps works
 
 	ctx := context.Background()
-	NATSMain(ctx, func(_ context.Context, _ *metrics.OTLPMetric, _ *middleware.Middleware, _ *subscriber.Subscriber) error {
+	NATSMain(ctx, func(_ context.Context, _ *metrics.Client, _ *middleware.Middleware, _ *subscriber.Subscriber) error {
 		panic("test")
 	})
 }

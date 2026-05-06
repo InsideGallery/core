@@ -18,7 +18,7 @@ func (s MultipleError) Unwrap() error {
 
 // As finds the first error in err's chain that matches target, and if so, sets
 // target to that error value and returns true. Otherwise, it returns false.
-func (s MultipleError) As(target interface{}) bool {
+func (s MultipleError) As(target any) bool {
 	if nativeErrors.As(s.Cause, &target) {
 		return true
 	}
@@ -41,12 +41,12 @@ func Combine(errs ...error) (err error) {
 		return nil
 	}
 
-	if len(errs) > 1 {
-		for _, e := range errs {
-			err = Wrap(err, e)
-		}
-	} else if len(errs) > 0 {
-		err = errs[0]
+	if len(errs) == 1 {
+		return errs[0]
+	}
+
+	for _, e := range errs {
+		err = Wrap(err, e)
 	}
 
 	return err
@@ -87,7 +87,7 @@ func Wrap(cause error, effect error) error {
 }
 
 // Wrapf wrap by format
-func Wrapf(err error, format string, args ...interface{}) error {
+func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}

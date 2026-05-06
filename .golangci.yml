@@ -44,7 +44,6 @@ linters:
         - generic
         - github.com/InsideGallery/core/queue/nats.Pool
         - github.com/InsideGallery/core/db/aerospike.Namespace
-        - github.com/InsideGallery/core/fastlog/metrics.Chart
         - github.com/InsideGallery/core/db/mongodb.Client
         - github.com/InsideGallery/core/queue/nats/client.Logger
         - github.com/InsideGallery/core/utils/phone.Decoder

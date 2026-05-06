@@ -12,9 +12,8 @@ import (
 	"github.com/InsideGallery/core/server/jwt/model"
 	"github.com/InsideGallery/core/testutils"
 
-	"github.com/gofiber/fiber/v2"
-	jwtware "github.com/gofiber/jwt/v4"
-	"github.com/golang-jwt/jwt/v5"
+	jwtware "github.com/gofiber/contrib/v3/jwt"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,8 +42,8 @@ func TestJWT(t *testing.T) {
 	webServer.Use(jwtware.New(jwtware.Config{
 		SigningKey: jwtService.GetSigningKey(),
 	}))
-	webServer.Get("/test", func(c *fiber.Ctx) error {
-		jwtToken := c.Locals("user").(*jwt.Token)
+	webServer.Get("/test", func(c fiber.Ctx) error {
+		jwtToken := jwtware.FromContext(c)
 		assert.True(t, jwtToken.Valid)
 
 		return nil
@@ -53,7 +52,7 @@ func TestJWT(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Add("Authorization", "Bearer "+accessString)
 
-	resp, err := webServer.Test(req, -1)
+	resp, err := webServer.Test(req, fiber.TestConfig{Timeout: 0})
 	testutils.Equal(t, err, nil)
 	testutils.Equal(t, resp.StatusCode, http.StatusOK)
 }

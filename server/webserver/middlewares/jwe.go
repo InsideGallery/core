@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-jose/go-jose/v3"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -18,16 +18,16 @@ const (
 )
 
 type JWE struct {
-	decryptionKeyGetter func(c *fiber.Ctx) ([]byte, error)
+	decryptionKeyGetter func(c fiber.Ctx) ([]byte, error)
 }
 
-func NewJWE(decryptionKeyGetter func(c *fiber.Ctx) ([]byte, error)) *JWE {
+func NewJWE(decryptionKeyGetter func(c fiber.Ctx) ([]byte, error)) *JWE {
 	return &JWE{
 		decryptionKeyGetter: decryptionKeyGetter,
 	}
 }
 
-func (j *JWE) DecryptMiddleware(c *fiber.Ctx) error {
+func (j *JWE) DecryptMiddleware(c fiber.Ctx) error {
 	// 1. Отримуємо тіло запиту (очікуємо рядок JWE)
 	jweString := string(c.Body())
 	if jweString == "" {

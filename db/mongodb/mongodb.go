@@ -38,7 +38,7 @@ func NewMongoClient(config *ConnectionConfig) (*MongoClient, error) {
 	}
 
 	pref, err := readpref.New(mode)
-	if err != nil {
+	if err == nil {
 		cs = cs.SetReadPreference(pref)
 	}
 

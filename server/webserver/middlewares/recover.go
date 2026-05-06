@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func Recover(next http.Handler) http.Handler {
@@ -21,7 +21,7 @@ func Recover(next http.Handler) http.Handler {
 }
 
 func RecoverFiber(next fiber.Handler) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		defer func() {
 			if rval := recover(); rval != nil {
 				slog.Default().Error("Recovered request panic", "rval", rval)

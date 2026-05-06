@@ -43,16 +43,17 @@ func NewRedis(ctx context.Context, key string, conn *redis.Client) *Redis {
 	}
 }
 
-func (s *Redis) LockOrWait() {
+func (s *Redis) LockOrWait() error {
 	var err error
+
 	for i := 0; i < lockAttempts; i++ {
 		err = s.mutex.LockContext(s.ctx)
 		if err == nil {
-			return
+			return nil
 		}
 	}
 
-	slog.Default().Error("Error get lock after many retries", "lockAttempts", lockAttempts, "err", err)
+	return fmt.Errorf("lock failed after %d attempts: %w", lockAttempts, err)
 }
 
 func (s *Redis) TryLock() {
@@ -70,7 +71,10 @@ func (s *Redis) TryUnlock() {
 }
 
 func (s *Redis) Add(group string, id string) error {
-	s.LockOrWait()
+	if err := s.LockOrWait(); err != nil {
+		return fmt.Errorf("add lock: %w", err)
+	}
+
 	defer s.TryUnlock()
 
 	score := float64(time.Now().Unix())
@@ -103,7 +107,10 @@ func (s *Redis) Add(group string, id string) error {
 }
 
 func (s *Redis) Delete(group string, id string) error {
-	s.LockOrWait()
+	if err := s.LockOrWait(); err != nil {
+		return fmt.Errorf("delete lock: %w", err)
+	}
+
 	defer s.TryUnlock()
 
 	err := s.conn.ZRem(s.ctx, DefaultPrefix+s.key, id).Err()
@@ -120,7 +127,10 @@ func (s *Redis) Delete(group string, id string) error {
 }
 
 func (s *Redis) DeleteByID(id string) error {
-	s.LockOrWait()
+	if err := s.LockOrWait(); err != nil {
+		return fmt.Errorf("delete by id lock: %w", err)
+	}
+
 	defer s.TryUnlock()
 
 	res := s.conn.ZRange(s.ctx, DefaultPrefix+id, 0, -1)

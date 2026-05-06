@@ -48,11 +48,9 @@ func (l *List[V]) lazyInit() {
 }
 
 func (l *List[V]) insert(e, at *Element[V]) *Element[V] {
-	var id string
+	id := l.NextID()
 	if entity, ok := l.ValueToAny(e.Value).(Entity); ok {
 		id = entity.ID()
-	} else {
-		id = l.NextID()
 	}
 
 	e.id = id

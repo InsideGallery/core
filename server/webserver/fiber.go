@@ -1,18 +1,14 @@
 package webserver
 
-import (
-	"os"
+import "github.com/gofiber/fiber/v3"
 
-	"github.com/gofiber/fiber/v2"
-)
-
-const ReadBufferSize = 8192
+const ReadBufferSize = 16384
 
 func NewFiberApp(name string) *fiber.App {
 	return fiber.New(fiber.Config{
-		ReadBufferSize:    ReadBufferSize,
-		EnablePrintRoutes: os.Getenv("DEPLOYMENT_ENVIRONMENT") == "",
-		ErrorHandler:      ErrorHandler,
-		AppName:           name,
+		ReadBufferSize: ReadBufferSize,
+		ServerHeader:   name,
+		ErrorHandler:   ErrorHandler,
+		AppName:        name,
 	})
 }

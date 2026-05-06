@@ -33,7 +33,7 @@ func GetConnectionConfigFromEnv() (*ConnectionConfig, error) {
 		return nil, err
 	}
 
-	return c, err
+	return c, nil
 }
 
 func (c *ConnectionConfig) GetDSN() string {

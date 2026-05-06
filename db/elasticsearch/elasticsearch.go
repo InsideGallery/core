@@ -41,12 +41,12 @@ func NewClient() (*Client, error) {
 
 	res, err := es.Info()
 	if err != nil {
-		return nil, fmt.Errorf("error getting responset: %w", err)
+		return nil, fmt.Errorf("error getting response: %w", err)
 	}
 
 	err = res.Body.Close()
 	if err != nil {
-		return nil, fmt.Errorf("error close responset: %w", err)
+		return nil, fmt.Errorf("error closing response: %w", err)
 	}
 
 	// Check response status

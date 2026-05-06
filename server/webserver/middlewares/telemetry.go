@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
@@ -31,6 +31,7 @@ var (
 
 		path = strings.TrimLeft(path, "/")
 		pathParts := strings.Split(path, "/")
+
 		for _, part := range pathParts {
 			b.WriteString("/")
 
@@ -42,6 +43,7 @@ var (
 			} else if reUUID.MatchString(part) {
 				p = ":uuid:"
 			}
+
 			b.WriteString(p)
 		}
 
@@ -79,10 +81,10 @@ func Telemetry() func(next fiber.Handler) fiber.Handler {
 	w := httptest.NewRecorder() // not use so can do like this
 
 	return func(next fiber.Handler) fiber.Handler {
-		return func(c *fiber.Ctx) error {
+		return func(c fiber.Ctx) error {
 			req, err := http.NewRequest(http.MethodGet, "", nil)
 			if err == nil {
-				_ = fasthttpadaptor.ConvertRequest(c.Context(), req, true)
+				_ = fasthttpadaptor.ConvertRequest(c.RequestCtx(), req, true)
 			}
 
 			instance(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -96,9 +98,9 @@ func Telemetry() func(next fiber.Handler) fiber.Handler {
 					slog.Default().Error("Error call next function", "err", err)
 				}
 
-				w.WriteHeader(c.Context().Response.StatusCode())
+				w.WriteHeader(c.Response().StatusCode())
 
-				_, err = w.Write(c.Context().Response.Body())
+				_, err = w.Write(c.Response().Body())
 				if err != nil {
 					slog.Default().Error("Error write response", "err", err)
 				}

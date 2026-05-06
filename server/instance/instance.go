@@ -1,7 +1,8 @@
 package instance
 
 import (
-	"log"
+	"log/slog"
+	"sync"
 
 	"github.com/InsideGallery/core/utils"
 )
@@ -9,15 +10,19 @@ import (
 var (
 	id      = utils.GetUniqueID()
 	shortID string
+	once    sync.Once
 )
 
-func init() {
-	sid, err := utils.GetShortID()
-	if err != nil {
-		log.Fatalf("Error getting short id: %v", err)
-	}
+func initShortID() {
+	once.Do(func() {
+		sid, err := utils.GetShortID()
+		if err != nil {
+			slog.Default().Error("get short instance id", "err", err)
+			return
+		}
 
-	shortID = string(sid)
+		shortID = string(sid)
+	})
 }
 
 // GetInstanceID return current instance id
@@ -27,5 +32,7 @@ func GetInstanceID() string {
 
 // GetShortInstanceID return current short instance id
 func GetShortInstanceID() string {
+	initShortID()
+
 	return shortID
 }

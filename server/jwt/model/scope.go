@@ -59,19 +59,6 @@ func ScopeFrom(scopeName string) (Scope, error) {
 		return Scope{}, err
 	}
 
-	/*
-		    // TODO We have an error when aft_root can not execute search request
-			validAccessType := s.AccessType != ""
-			validService := s.Service != "" || strings.Contains(string(s.AccessType), matchAllSymbol) && s.Service == ""
-
-			if !validAccessType {
-				return Scope{}, errors.New("wrong access type")
-			}
-			if !validService {
-				return Scope{}, errors.New("wrong service")
-			}
-	*/
-
 	return s, nil
 }
 

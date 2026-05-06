@@ -2,4 +2,4 @@ package entity
 
 import "errors"
 
-var ErrAttributeNotFound = errors.New("not found attribute")
+var ErrAttributeNotFound = errors.New("attribute not found")

@@ -2,86 +2,144 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"os"
+	"sync"
 	"sync/atomic"
 	"syscall"
+	"time"
 
-	"github.com/gofiber/fiber/v2"
+	_ "github.com/InsideGallery/core/fastlog/handlers/stderr"       // register default log handler
+	_ "github.com/InsideGallery/core/metrics/processors/prometheus" // register default metrics processor
+
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/InsideGallery/core/fastlog"
-	"github.com/InsideGallery/core/fastlog/handlers/otel"
-	"github.com/InsideGallery/core/fastlog/metrics"
+	"github.com/InsideGallery/core/metrics"
 	"github.com/InsideGallery/core/oslistener"
-	"github.com/InsideGallery/core/server/profiler"
+	"github.com/InsideGallery/core/profiler"
 	"github.com/InsideGallery/core/server/webserver"
+	webmiddlewares "github.com/InsideGallery/core/server/webserver/middlewares"
 )
 
-type InitRouter func(ctx context.Context, app *fiber.App, met *metrics.OTLPMetric) error
+const shutdownTimeout = 10 * time.Second
+
+type InitRouter func(ctx context.Context, app *fiber.App, met *metrics.Client) error
 
 func WebMain(ctx context.Context, port string, serverName string, initRouter InitRouter) {
 	fastlog.SetupDefaultLog()
+	profiler.Started.Store(false)
+	profiler.Ready.Store(false)
 
-	defer otel.Default(ctx).Shutdown()
-	defer profiler.GOPS()()
-	defer func() {
-		if rval := recover(); rval != nil {
-			slog.Default().Error("Recovered request panic", "rval", rval)
-		}
-	}()
+	shutdownMonitor := profiler.Monitor(os.Getenv("MONITOR_ADDR"))
+	defer shutdownMonitor()
+	defer recoverPanic("Recovered request panic")
 
-	met, err := metrics.Default(ctx)
+	metricsClient, closeMetrics, err := newMetricsClient(serverName)
 	if err != nil {
-		slog.Default().Error("Error getting metrics", "err", err)
+		slog.Default().Error("init metrics", "err", err)
+
 		return
 	}
 
-	defer met.Shutdown()
+	var closeMetricsOnce sync.Once
+
+	closeMetricsFunc := func() {
+		closeMetricsOnce.Do(func() {
+			if err := closeMetrics(); err != nil {
+				slog.Default().Error("close metrics", "err", err)
+			}
+		})
+	}
+	defer closeMetricsFunc()
 
 	app := webserver.NewFiberApp(serverName)
-
-	var appStopped int32
-
-	app.Hooks().OnShutdown(func() error {
-		atomic.StoreInt32(&appStopped, 1)
-		return nil
-	})
-
-	shutdown := func() {
-		atomic.StoreInt32(&appStopped, 1)
-
-		err := app.Shutdown()
-		if err != nil {
-			slog.Default().Error("Error stop fiber", "err", err)
-		}
+	if metricsClient != nil {
+		app.Use(webmiddlewares.Metrics(metricsClient))
 	}
 
-	oslistener.Get().Append(syscall.SIGTERM, shutdown)
-	oslistener.Get().Append(syscall.SIGINT, shutdown)
-	oslistener.Get().Append(syscall.SIGQUIT, shutdown)
-	oslistener.Get().Append(syscall.SIGHUP, shutdown)
-
-	oslistener.Start(ctx, oslistener.Get())
+	var appStopped atomic.Bool
 
 	profiler.AddHealthCheck(func() error {
-		if atomic.LoadInt32(&appStopped) == 1 {
-			return fmt.Errorf("app just stopped: %w", profiler.ErrServiceIsOffline)
+		if appStopped.Load() {
+			return fmt.Errorf("app stopped: %w", profiler.ErrServiceIsOffline)
 		}
 
 		return nil
 	})
-	defer profiler.Monitor(ctx)()
 
 	if initRouter != nil {
-		err = initRouter(ctx, app, met)
-		if err != nil {
-			slog.Default().Error("Error init routers", "err", err)
+		if err = initRouter(ctx, app, metricsClient); err != nil {
+			slog.Default().Error("init routers", "err", err)
+
 			return
 		}
 	}
 
-	err = app.Listen(port)
-	if err != nil {
-		slog.Default().Error("Server has been stopped with error", "err", err)
+	profiler.Started.Store(true)
+
+	var shutdownOnce sync.Once
+
+	shutdown := func() {
+		shutdownOnce.Do(func() {
+			appStopped.Store(true)
+			profiler.Ready.Store(false)
+			slog.Default().Info("shutting down web server", "service", serverName)
+
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+			defer cancel()
+
+			if err := app.ShutdownWithContext(shutdownCtx); err != nil && !errors.Is(err, fiber.ErrNotRunning) {
+				slog.Default().Error("stop fiber", "err", err)
+			}
+
+			closeMetricsFunc()
+		})
+	}
+
+	registerShutdown(shutdown)
+	startSignalListener(ctx)
+
+	go func() {
+		<-ctx.Done()
+		shutdown()
+	}()
+
+	err = app.Listen(port, fiber.ListenConfig{
+		GracefulContext:   ctx,
+		ShutdownTimeout:   shutdownTimeout,
+		EnablePrintRoutes: os.Getenv("DEPLOYMENT_ENVIRONMENT") == "",
+		BeforeServeFunc: func(_ *fiber.App) error {
+			profiler.Ready.Store(true)
+
+			return nil
+		},
+	})
+
+	profiler.Ready.Store(false)
+
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Default().Error("server stopped with error", "err", err)
+	}
+}
+
+func registerShutdown(shutdown func()) {
+	listener := oslistener.Get()
+	listener.Append(syscall.SIGTERM, shutdown)
+	listener.Append(syscall.SIGINT, shutdown)
+	listener.Append(syscall.SIGQUIT, shutdown)
+	listener.Append(syscall.SIGHUP, shutdown)
+}
+
+func startSignalListener(ctx context.Context) {
+	oslistener.Start(ctx, oslistener.Get())
+}
+
+func recoverPanic(message string) {
+	if value := recover(); value != nil {
+		slog.Default().Error(message, "value", value)
 	}
 }

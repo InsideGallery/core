@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	coreJWT "github.com/InsideGallery/core/server/jwt"
 	jwtModel "github.com/InsideGallery/core/server/jwt/model"
@@ -24,7 +24,7 @@ func NewScopeMiddleware(ctx context.Context) *ScopeMiddleware {
 	}
 }
 
-func (m *ScopeMiddleware) CheckScope(c *fiber.Ctx) error {
+func (m *ScopeMiddleware) CheckScope(c fiber.Ctx) error {
 	claims, err := coreJWT.DecodeClaims(c)
 	if err != nil {
 		slog.Default().Error("Decode JWT claims", "err", err)
@@ -50,7 +50,7 @@ func (m *ScopeMiddleware) CheckScope(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func parseScope(c *fiber.Ctx) string {
+func parseScope(c fiber.Ctx) string {
 	s := jwtModel.Scope{
 		AccessType: jwtModel.MethodMap[c.Method()],
 	}

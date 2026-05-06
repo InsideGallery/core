@@ -86,17 +86,13 @@ func (s *MemoryStorage) Incr(key string) {
 
 func (s *MemoryStorage) Reset() {
 	for _, v := range s.counter.GetMap() {
-		go func() {
-			v.Store(0)
-		}()
+		v.Store(0)
 	}
 
 	for k, v := range s.date.GetMap() {
-		go func() {
-			if v.Add(Days30).Before(time.Now()) {
-				s.date.Add(k, time.Now())
-				s.counterM.Add(k, &atomic.Uint64{})
-			}
-		}()
+		if v.Add(Days30).Before(time.Now()) {
+			s.date.Add(k, time.Now())
+			s.counterM.Add(k, &atomic.Uint64{})
+		}
 	}
 }

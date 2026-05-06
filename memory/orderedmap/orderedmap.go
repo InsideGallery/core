@@ -133,12 +133,18 @@ func (o *OrderedMap[K, V]) SetAll(values []V) {
 func (o *OrderedMap[K, V]) Iterator(size int) chan V {
 	ch := make(chan V, size)
 
-	go func() {
-		o.mu.RLock()
-		defer o.mu.RUnlock()
+	o.mu.RLock()
+	snapshot := make([]V, len(o.keys))
 
-		for _, key := range o.keys {
-			ch <- o.values[key]
+	for i, key := range o.keys {
+		snapshot[i] = o.values[key]
+	}
+
+	o.mu.RUnlock()
+
+	go func() {
+		for _, v := range snapshot {
+			ch <- v
 		}
 
 		close(ch)

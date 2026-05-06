@@ -26,7 +26,9 @@ func RoundWithPrecision(value float64, precision float64) float64 {
 func Clamp(value, lowerLimit, upperLimit float64) float64 {
 	if value < lowerLimit {
 		return lowerLimit
-	} else if value > upperLimit {
+	}
+
+	if value > upperLimit {
 		return upperLimit
 	}
 

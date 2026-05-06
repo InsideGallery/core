@@ -3,7 +3,6 @@ package tokenizer
 import (
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"testing"
 	"unicode/utf8"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestGetTokenizer(t *testing.T) {
-	p, err := GetTokenizer(embedded.GetFS(), "resources/tokenizer.json")
+	p, err := GetTokenizer(embedded.FS(), "resources/tokenizer.json")
 	testutils.Equal(t, err, nil)
 
 	en, err := p.EncodeSingle("axbgref")
@@ -40,18 +39,18 @@ func TestGetTokenizer(t *testing.T) {
 
 	tokens = len(en.Tokens)
 	testutils.Equal(t, tokens, 3)
-	fmt.Println(en.Tokens)
+	t.Log(en.Tokens)
 
 	en, err = p.EncodeSingle("maksim")
 	testutils.Equal(t, err, nil)
 
 	tokens = len(en.Tokens)
 	testutils.Equal(t, tokens, 3)
-	fmt.Println(en.Tokens)
+	t.Log(en.Tokens)
 }
 
 func TestEmails(t *testing.T) {
-	file, err := embedded.GetFS().Open("resources/tests_for_emails.csv")
+	file, err := embedded.FS().Open("resources/tests_for_emails.csv")
 	testutils.Equal(t, err, nil)
 
 	reader := csv.NewReader(file)
@@ -59,7 +58,7 @@ func TestEmails(t *testing.T) {
 	records, err := reader.ReadAll()
 	testutils.Equal(t, err, nil)
 
-	p, err := GetTokenizer(embedded.GetFS(), "resources/tokenizer.json")
+	p, err := GetTokenizer(embedded.FS(), "resources/tokenizer.json")
 	testutils.Equal(t, err, nil)
 
 	for _, record := range records[1:] {
@@ -84,7 +83,7 @@ func TestEmails(t *testing.T) {
 }
 
 func TestNames(t *testing.T) {
-	file, err := embedded.GetFS().Open("resources/tests_for_names.csv")
+	file, err := embedded.FS().Open("resources/tests_for_names.csv")
 	testutils.Equal(t, err, nil)
 
 	reader := csv.NewReader(file)
@@ -92,7 +91,7 @@ func TestNames(t *testing.T) {
 	records, err := reader.ReadAll()
 	testutils.Equal(t, err, nil)
 
-	p, err := GetTokenizer(embedded.GetFS(), "resources/tokenizer.json")
+	p, err := GetTokenizer(embedded.FS(), "resources/tokenizer.json")
 	testutils.Equal(t, err, nil)
 
 	for _, record := range records[1:] {

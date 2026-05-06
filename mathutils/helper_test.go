@@ -4,7 +4,6 @@
 package mathutils
 
 import (
-	"fmt"
 	"math/big"
 	"net"
 	"testing"
@@ -115,7 +114,7 @@ func TestBigIntToHighAndLow2(t *testing.T) {
 	intip := dataconv.IPv6ToBigInt(rip)
 
 	high, low := BigIntToHighAndLow(intip)
-	fmt.Println(high, low)
+	t.Log(high, low)
 }
 
 func TestApproximatelyEqual(t *testing.T) {

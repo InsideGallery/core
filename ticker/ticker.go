@@ -128,6 +128,7 @@ func (t *TickManager) run(id uint64, h *TickHandler) {
 		select {
 		case <-h.ctx.Done():
 			tickTimer.Stop()
+			tickTimerDebug.Stop()
 			t.Remove(id)
 			slog.Default().Info("Stop tick handler")
 

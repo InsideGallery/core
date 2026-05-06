@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"io"
 
 	localCipher "github.com/InsideGallery/core/pki"
@@ -22,11 +23,13 @@ type AES struct {
 	key []byte
 }
 
+var ErrInvalidAESSize = errors.New("invalid AES key size, must be 16, 24, or 32")
+
 func NewAES(size int) (*AES, error) {
 	switch size {
 	case AES16, AES24, AES32:
 	default:
-		size = AES32
+		return nil, ErrInvalidAESSize
 	}
 
 	bytes := make([]byte, size)

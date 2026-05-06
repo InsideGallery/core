@@ -38,7 +38,9 @@ func LevenshteinDistance(s, t string) int {
 func minInt(a, b, c int) int {
 	if a < b && a < c {
 		return a
-	} else if b < c {
+	}
+
+	if b < c {
 		return b
 	}
 

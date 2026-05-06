@@ -184,7 +184,7 @@ func (w *WorkersPool[K]) TemporalWorker(
 			if handler != nil {
 				err := handler(ctx, msg)
 				if err != nil {
-					slog.Debug("error during process message", "err", err)
+					slog.Error("error during process message", "err", err)
 				}
 			}
 

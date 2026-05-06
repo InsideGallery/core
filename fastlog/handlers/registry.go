@@ -12,8 +12,9 @@ const (
 )
 
 var (
-	writers  = map[string]func() (io.Writer, *slog.HandlerOptions, error){}
-	handlers = map[string]slog.Handler{}
+	writers          = map[string]func() (io.Writer, *slog.HandlerOptions, error){}
+	handlers         = map[string]slog.Handler{}
+	handlerFactories = map[string]func() slog.Handler{}
 )
 
 func RegisterWriter(kind string, writer func() (io.Writer, *slog.HandlerOptions, error)) {
@@ -24,10 +25,21 @@ func RegisterHandler(kind string, handler slog.Handler) {
 	handlers[kind] = handler
 }
 
+func RegisterHandlerFactory(kind string, factory func() slog.Handler) {
+	handlerFactories[kind] = factory
+}
+
 func Get(kind, format string, defaultLogLevel slog.Level) (slog.Handler, error) {
 	handler, ok := handlers[kind]
 	if ok {
 		return handler, nil
+	}
+
+	if factory, ok := handlerFactories[kind]; ok {
+		handler = factory()
+		if handler != nil {
+			return handler, nil
+		}
 	}
 
 	h, ok := writers[kind]

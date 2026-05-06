@@ -1,6 +1,6 @@
 package webserver
 
-import "github.com/gofiber/fiber/v2"
+import "github.com/gofiber/fiber/v3"
 
 // Middleware contains methods to call before handle request
 type Middleware struct {

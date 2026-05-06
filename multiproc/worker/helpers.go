@@ -129,6 +129,8 @@ func MergeChannels(input ...<-chan interface{}) <-chan interface{} {
 // GetMessageOrTimeout get message or timeout
 func GetMessageOrTimeout(timeout time.Duration, msg chan []byte, def []byte) []byte {
 	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
 	select {
 	case <-timer.C:
 		return def

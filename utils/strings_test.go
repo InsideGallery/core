@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 
@@ -67,8 +66,8 @@ func TestSimHash(t *testing.T) {
 			val := SimHash(test.input)
 			val2 := SimHash(test.input2)
 
-			fmt.Println(CRC16(strconv.FormatUint(val, hexConst)))
-			fmt.Println(CRC16(strconv.FormatUint(val2, hexConst)))
+			t.Log(CRC16(strconv.FormatUint(val, hexConst)))
+			t.Log(CRC16(strconv.FormatUint(val2, hexConst)))
 
 			testutils.Equal(t,
 				strconv.FormatUint(val, hexConst),

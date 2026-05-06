@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"slices"
 	"testing"
 
@@ -24,7 +23,7 @@ type Token struct {
 var storage = map[int]*Token{}
 
 func AddValue(str string) error {
-	p, err := tokenizer.GetTokenizer(embedded.GetFS(), "resources/tokenizer.json")
+	p, err := tokenizer.GetTokenizer(embedded.FS(), "resources/tokenizer.json")
 	if err != nil {
 		return err
 	}
@@ -65,23 +64,23 @@ func Normalize(str string) (string, error) {
 func TestMH(t *testing.T) {
 	v, err := Normalize("test.èmcop")
 	testutils.Equal(t, err, nil)
-	fmt.Println(v)
+	t.Log(v)
 
 	v2, err := Normalize("testèmCAP")
 	testutils.Equal(t, err, nil)
-	fmt.Println(v2)
+	t.Log(v2)
 
 	h1 := spooky.Hash64
 	h2 := farm.Hash64
 	h := minhash.NewMinWise(h1, h2, 1000)
 	h.Push([]byte(v))
-	fmt.Println(h.Signature())
-	fmt.Println(slices.Min(h.Signature()))
+	t.Log(h.Signature())
+	t.Log(slices.Min(h.Signature()))
 
 	h = minhash.NewMinWise(h1, h2, 1000)
 	h.Push([]byte(v2))
-	fmt.Println(h.Signature())
-	fmt.Println(slices.Min(h.Signature()))
+	t.Log(h.Signature())
+	t.Log(slices.Min(h.Signature()))
 }
 
 func TestCRC32(t *testing.T) {

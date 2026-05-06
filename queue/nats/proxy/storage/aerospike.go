@@ -55,10 +55,6 @@ func (m *Aerospike) DeleteByID(id string) error {
 	p.FilterExpression = aero.ExpEq(aero.ExpStringBin("id"), aero.ExpStringVal(id))
 
 	stmt := aero.NewStatement(m.namespace, m.setName)
-	// err := stmt.SetFilter(aero.NewEqualFilter("id", id)) // need secondary index
-	// if err != nil {
-	// 	return err
-	// }
 
 	recordSet, err := m.client.Query(p, stmt)
 	if err != nil {
@@ -90,10 +86,6 @@ func (m *Aerospike) GetKeys(group string) []string {
 	p.FilterExpression = aero.ExpEq(aero.ExpStringBin("group"), aero.ExpStringVal(group))
 
 	stmt := aero.NewStatement(m.namespace, m.setName)
-	// err := stmt.SetFilter(aero.NewEqualFilter("group", group)) // need secondary index
-	// if err != nil {
-	// 	return err
-	// }
 
 	recordSet, err := m.client.Query(p, stmt)
 	if err != nil {
@@ -102,7 +94,6 @@ func (m *Aerospike) GetKeys(group string) []string {
 	}
 
 	for rs := range recordSet.Results() {
-		// group := s.Record.Bins["group"].(string)
 		id := rs.Record.Bins["id"].(string)
 
 		s.Add(id)
@@ -123,7 +114,6 @@ func (m *Aerospike) GetIDs() []string {
 	}
 
 	for rs := range recordSet.Results() {
-		// group := s.Record.Bins["group"].(string)
 		id := rs.Record.Bins["id"].(string)
 
 		s.Add(id)
@@ -137,10 +127,6 @@ func (m *Aerospike) Size(group string) int {
 	p.FilterExpression = aero.ExpEq(aero.ExpStringBin("group"), aero.ExpStringVal(group))
 
 	stmt := aero.NewStatement(m.namespace, m.setName)
-	// err := stmt.SetFilter(aero.NewEqualFilter("group", group)) // need secondary index
-	// if err != nil {
-	// 	return err
-	// }
 
 	recordSet, err := m.client.Query(p, stmt)
 	if err != nil {

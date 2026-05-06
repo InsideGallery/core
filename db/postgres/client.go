@@ -58,7 +58,7 @@ func Default() (*sqlx.DB, error) {
 		db.SetMaxOpenConns(config.MaxOpenConns)
 		db.SetConnMaxLifetime(time.Duration(config.ConnMaxLifetime))
 
-		Set(c)
+		Set(db)
 
 		c = db
 	}

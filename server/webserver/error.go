@@ -3,10 +3,10 @@ package webserver
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-var ErrorHandler = func(c *fiber.Ctx, err error) error {
+var ErrorHandler = func(c fiber.Ctx, err error) error {
 	return c.Status(http.StatusInternalServerError).JSON(Response{
 		Ok: false,
 		Error: &ErrorResponse{

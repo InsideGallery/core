@@ -23,9 +23,9 @@ import (
 const OutKind = "otel"
 
 func init() {
-	handlers.RegisterHandler(OutKind,
-		Handler(context.Background()),
-	)
+	handlers.RegisterHandlerFactory(OutKind, func() slog.Handler {
+		return Handler(context.Background())
+	})
 }
 
 var (
@@ -65,19 +65,19 @@ type LoggerProvider struct {
 func NewProvider(ctx context.Context) (*LoggerProvider, *otelslog.HandlerOptions) {
 	cfg, err := GetConfigFromEnv()
 	if err != nil {
-		slog.Default().Error("Error get otel logger provider config", "err", err)
+		slog.Default().Error("get otel logger provider config", "err", err)
 		return nil, nil
 	}
 
 	logExporter, err := otlplogs.NewExporter(ctx)
 	if err != nil {
-		slog.Default().Error("Error get otel logger provider exporter", "err", err)
+		slog.Default().Error("get otel logger provider exporter", "err", err)
 		return nil, nil
 	}
 
 	exp, err := otlptracegrpc.New(ctx)
 	if err != nil {
-		slog.Default().Error("Error get otlptracegrpc logger", "err", err)
+		slog.Default().Error("get otlptracegrpc logger", "err", err)
 		return nil, nil
 	}
 
@@ -103,13 +103,13 @@ func (l *LoggerProvider) Shutdown() {
 		if l.LoggerProvider != nil {
 			err := l.LoggerProvider.Shutdown(l.ctx)
 			if err != nil {
-				slog.Default().Error("Error call shutdown of logger provider", "err", err)
+				slog.Default().Error("shutdown logger provider", "err", err)
 			}
 		}
 
 		if l.TracerProvider != nil {
 			if err := l.TracerProvider.Shutdown(l.ctx); err != nil {
-				slog.Default().Error("Error call shutdown of tracer provider", "err", err)
+				slog.Default().Error("shutdown tracer provider", "err", err)
 			}
 		}
 	}

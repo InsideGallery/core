@@ -62,7 +62,7 @@ func Default(names ...string) (*aero.Client, error) {
 
 			hosts, err = aero.NewHosts(config.Hosts...)
 			if err != nil {
-				return nil, fmt.Errorf("error parse aerospike hosts: %w", err)
+				return nil, fmt.Errorf("parse aerospike hosts: %w", err)
 			}
 
 			c, err = aero.NewClientWithPolicyAndHost(CreateClientPolicy(config), hosts...)

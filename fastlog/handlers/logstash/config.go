@@ -24,5 +24,5 @@ func GetConfigFromEnv() (*Config, error) {
 		return nil, err
 	}
 
-	return c, err
+	return c, nil
 }

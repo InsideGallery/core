@@ -51,7 +51,7 @@ func GetNATSConnectionConfigFromEnv(prefixes ...string) (*Config, error) {
 		return nil, err
 	}
 
-	return c, err
+	return c, nil
 }
 
 func (cfg *Config) GetConcurrentSize() int {
@@ -88,16 +88,16 @@ func (cfg *Config) GetOptions() []nats.Option {
 	if cfg.Seed != "" {
 		kp, err := nkeys.FromSeed([]byte(cfg.Seed))
 		if err != nil {
-			slog.Default().Error("Error getting key from seed", "err", err)
+			slog.Default().Error("get key from seed", "err", err)
 
-			return options
+			return nil
 		}
 
 		usrNKey, err := kp.PublicKey()
 		if err != nil {
-			slog.Default().Error("Error getting public key from key", "err", err)
+			slog.Default().Error("get public key", "err", err)
 
-			return options
+			return nil
 		}
 
 		options = append(options, nats.Nkey(usrNKey, func(nonce []byte) ([]byte, error) {

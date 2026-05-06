@@ -8,19 +8,19 @@ import (
 
 	"github.com/InsideGallery/core/testutils"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/valyala/fasthttp"
 )
 
 func TestMiddleware(t *testing.T) {
 	echoChain := func(next fiber.Handler) fiber.Handler {
-		return func(c *fiber.Ctx) error {
+		return func(c fiber.Ctx) error {
 			_, err := c.Write([]byte("echoChain:"))
 			testutils.Equal(t, err, nil)
 			return next(c)
 		}
 	}
-	handler := func(c *fiber.Ctx) error {
+	handler := func(c fiber.Ctx) error {
 		_, err := c.Write([]byte("handler"))
 		return err
 	}
@@ -28,7 +28,7 @@ func TestMiddleware(t *testing.T) {
 	testcases := []struct {
 		name    string
 		chains  []Chain
-		handler func(c *fiber.Ctx) error
+		handler func(c fiber.Ctx) error
 		result  string
 	}{
 		{

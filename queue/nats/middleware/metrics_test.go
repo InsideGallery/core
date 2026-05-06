@@ -11,7 +11,7 @@ import (
 
 	"github.com/InsideGallery/core/fastlog"
 	"github.com/InsideGallery/core/fastlog/handlers/otel"
-	"github.com/InsideGallery/core/fastlog/metrics"
+	"github.com/InsideGallery/core/metrics"
 	"github.com/InsideGallery/core/testutils"
 )
 
@@ -20,14 +20,12 @@ func TestMetrics(t *testing.T) {
 
 	fastlog.SetupDefaultLog()
 
-	m, err := metrics.Default(ctx)
-	testutils.Equal(t, err, nil)
-
-	defer m.Shutdown()
 	defer otel.Default(ctx).Shutdown()
 
+	metrics.SetDefault(nil)
+
 	mm := NewMetrics(CreateMeasures())
-	err = mm.Call(func(ctx context.Context, _ *nats.Msg) error {
+	err := mm.Call(func(ctx context.Context, _ *nats.Msg) error {
 		slog.Default().ErrorContext(ctx, "Log message of metrics collect")
 		return nil
 	})(ctx, &nats.Msg{

@@ -23,7 +23,7 @@ threshold:
 
   # (optional; default 0)
   # Minimum overall project coverage percentage required.
-  total: 35
+  total: 90
 
 # Holds regexp rules which will override thresholds for matched files or packages
 # using their paths.
@@ -42,10 +42,25 @@ threshold:
 exclude:
   # Exclude files or packages matching their paths
   paths:
-    - \.pb\.go$       # excludes all protobuf generated files
-    - _easyjson\.go$  # excludes all easyjson generated files
-    - /mocks/         # excludes all mocks generated files
-    - /examples/      # excludes examples
+    - \.pb\.go$                    # excludes all protobuf generated files
+    - _easyjson\.go$               # excludes all easyjson generated files
+    - /mocks/                      # excludes all mocks generated files
+    - /mock_cipher/                # excludes mock cipher
+    - /mock/                       # excludes all mock packages
+    - /examples/                   # excludes examples
+    - /testfixtures/               # excludes test fixtures
+    - db/aerospike/                # requires running Aerospike
+    - db/mongodb/                  # requires running MongoDB
+    - db/redis/                    # requires running Redis
+    - db/neo4j/                    # requires running Neo4j
+    - db/elasticsearch/            # requires running Elasticsearch
+    - db/gremlin/                  # requires running Gremlin
+    - queue/nats/                  # requires running NATS
+    - queue/generic/               # requires running NATS
+    - fastlog/handlers/otel/       # requires OTEL collector
+    - fastlog/handlers/datadog/    # requires Datadog API
+    - fastlog/handlers/logstash/   # requires Logstash
+    - machielearning/              # requires Gorgonia/CUDA setup
 
 # File name of go-test-coverage breakdown file, which can be used to
 # analyze coverage difference.
