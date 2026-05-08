@@ -2,6 +2,9 @@ package jwt
 
 import (
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 	"time"
 
 	jwtware "github.com/gofiber/contrib/v3/jwt"
@@ -27,6 +30,18 @@ type Payload struct {
 	UserName       string         `json:"user_name"`
 	Scopes         model.Scopes   `json:"scopes"`
 	ChangePassword bool           `json:"change_password"`
+}
+
+// TokenPair is the core-owned result shape for generated JWT credentials.
+type TokenPair struct {
+	AccessToken  string
+	RefreshToken string
+}
+
+// SigningKey is the core-owned public signing key description.
+type SigningKey struct {
+	Algorithm string
+	PublicKey []byte
 }
 
 type Service struct {
@@ -91,6 +106,19 @@ func (j *Service) Generate(payload Payload) (accessToken, refreshToken string, e
 	return
 }
 
+// GenerateTokenPair generates access and refresh tokens with a core-owned result type.
+func (j *Service) GenerateTokenPair(payload Payload) (TokenPair, error) {
+	accessToken, refreshToken, err := j.Generate(payload)
+	if err != nil {
+		return TokenPair{}, fmt.Errorf("generate jwt token pair: %w", err)
+	}
+
+	return TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
 // GetSigningKey returns a Fiber JWT middleware signing key.
 //
 // Deprecated: use PublicSigningKey for a core-owned signing key result.
@@ -99,6 +127,45 @@ func (j *Service) GetSigningKey() jwtware.SigningKey {
 		JWTAlg: jwt.SigningMethodRS512.Name,
 		Key:    j.publicKey,
 	}
+}
+
+// PublicSigningKey returns the public signing key without exposing Fiber JWT middleware types.
+func (j *Service) PublicSigningKey() (SigningKey, error) {
+	publicKey, err := x509.MarshalPKIXPublicKey(j.publicKey)
+	if err != nil {
+		return SigningKey{}, fmt.Errorf("marshal jwt public key: %w", err)
+	}
+
+	return SigningKey{
+		Algorithm: jwt.SigningMethodRS512.Name,
+		PublicKey: pem.EncodeToMemory(&pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: publicKey,
+		}),
+	}, nil
+}
+
+// ParsePayload parses and validates a JWT string into the core Payload model.
+func (j *Service) ParsePayload(tokenString string) (*Payload, error) {
+	claims := new(payloadClaims)
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(_ *jwt.Token) (interface{}, error) {
+			return j.publicKey, nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodRS512.Name}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("parse jwt payload: %w", err)
+	}
+
+	if token == nil || !token.Valid {
+		return nil, ErrJWTTokenNotFound
+	}
+
+	return &claims.Payload, nil
 }
 
 // Deprecated: use ParsePayload for token parsing without Fiber middleware types.
@@ -139,4 +206,9 @@ func DecodeClaims(c fiber.Ctx) (*Payload, error) {
 	}
 
 	return payload, nil
+}
+
+type payloadClaims struct {
+	jwt.RegisteredClaims
+	Payload
 }

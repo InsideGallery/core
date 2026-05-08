@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 	"syscall"
@@ -36,6 +37,53 @@ type Config struct {
 	ProfilerState    *profiler.State            `env:"-"`
 }
 
+// Options is the core-owned input for creating a web server runtime.
+type Options struct {
+	Address          string
+	Host             string
+	Scheme           string
+	Name             string
+	MonitorAddr      string
+	ShutdownTimeout  time.Duration
+	ShutdownListener *oslistener.SignalListener
+	ProfilerState    *profiler.State
+	InitRoutes       RouteInitializer
+}
+
+// RouteRequest is the core-owned inbound HTTP request shape for route callbacks.
+type RouteRequest struct {
+	Method      string
+	Path        string
+	OriginalURL string
+	Header      map[string][]string
+	Query       map[string]string
+	Body        []byte
+}
+
+// RouteResponse is the core-owned outbound HTTP response shape for route callbacks.
+type RouteResponse struct {
+	StatusCode int
+	Header     map[string][]string
+	Body       []byte
+}
+
+// RouteHandler handles inbound HTTP requests without exposing Fiber context values.
+type RouteHandler func(ctx context.Context, req RouteRequest) (RouteResponse, error)
+
+// Router registers HTTP routes without exposing Fiber router values.
+type Router interface {
+	Handle(method string, path string, handler RouteHandler)
+}
+
+// RouteInitializer configures routes through a core-owned router.
+type RouteInitializer func(ctx context.Context, router Router) error
+
+// RunResult is the core-owned result for a completed web server run.
+type RunResult struct {
+	Name    string
+	Address string
+}
+
 // GetEnvConfig reads HTTP server configuration from environment variables.
 func GetEnvConfig(prefix ...string) (*Config, error) {
 	p := EnvPrefix
@@ -59,12 +107,90 @@ type Server struct {
 	cfg *Config
 }
 
+// FiberRouter adapts Fiber routers to the core-owned Router contract.
+type FiberRouter struct {
+	router fiber.Router
+}
+
+// Runtime wraps the Fiber-backed server behind core-owned lifecycle methods.
+type Runtime struct {
+	server     *Server
+	initRoutes RouteInitializer
+}
+
 // New creates a new HTTP server with the given configuration.
 func New(cfg *Config) *Server {
 	return &Server{
 		App: NewFiberApp(cfg.Name),
 		cfg: cfg,
 	}
+}
+
+// NewFiberRouter wraps a Fiber router with the core-owned Router contract.
+func NewFiberRouter(router fiber.Router) *FiberRouter {
+	return &FiberRouter{router: router}
+}
+
+// NewRuntime creates a server runtime from core-owned options.
+func NewRuntime(options Options) *Runtime {
+	return &Runtime{
+		server: New(&Config{
+			Address:          options.Address,
+			Host:             options.Host,
+			Scheme:           options.Scheme,
+			Name:             options.Name,
+			MonitorAddr:      options.MonitorAddr,
+			ShutdownTimeout:  options.ShutdownTimeout,
+			ShutdownListener: options.ShutdownListener,
+			ProfilerState:    options.ProfilerState,
+		}),
+		initRoutes: options.InitRoutes,
+	}
+}
+
+// Handle registers one route on the wrapped Fiber router.
+func (r *FiberRouter) Handle(method string, path string, handler RouteHandler) {
+	r.router.Add([]string{method}, path, r.handle(handler))
+}
+
+func (r *FiberRouter) handle(handler RouteHandler) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		response, err := handler(c.Context(), routeRequest(c))
+		if err != nil {
+			return err
+		}
+
+		for key, values := range response.Header {
+			for _, value := range values {
+				c.Append(key, value)
+			}
+		}
+
+		status := response.StatusCode
+		if status == 0 {
+			status = http.StatusOK
+		}
+
+		return c.Status(status).Send(response.Body)
+	}
+}
+
+// Run starts the server and returns a core-owned result when it stops.
+func (r *Runtime) Run(ctx context.Context) (RunResult, error) {
+	if r.initRoutes != nil {
+		if err := r.initRoutes(ctx, NewFiberRouter(r.server.App)); err != nil {
+			return RunResult{}, err
+		}
+	}
+
+	if err := r.server.Run(ctx); err != nil {
+		return RunResult{}, err
+	}
+
+	return RunResult{
+		Name:    r.server.cfg.Name,
+		Address: r.server.cfg.Address,
+	}, nil
 }
 
 // RegisterHealthz adds probe endpoints to the router.
@@ -188,4 +314,28 @@ func (s *Server) profilerState() *profiler.State {
 	}
 
 	return profiler.DefaultState()
+}
+
+func routeRequest(c fiber.Ctx) RouteRequest {
+	return RouteRequest{
+		Method:      c.Method(),
+		Path:        c.Path(),
+		OriginalURL: c.OriginalURL(),
+		Header:      cloneHeader(c.GetReqHeaders()),
+		Query:       cloneQuery(c.Queries()),
+		Body:        append([]byte(nil), c.Body()...),
+	}
+}
+
+func cloneQuery(query map[string]string) map[string]string {
+	if len(query) == 0 {
+		return nil
+	}
+
+	cloned := make(map[string]string, len(query))
+	for key, value := range query {
+		cloned[key] = value
+	}
+
+	return cloned
 }

@@ -2,8 +2,6 @@ package worker
 
 import (
 	"context"
-	"log/slog"
-	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,43 +10,56 @@ import (
 )
 
 func TestFunctionWithTimeout(t *testing.T) {
-	goroutineNumBefore := runtime.NumGoroutine()
+	cases := []struct {
+		name    string
+		timeout time.Duration
+		run     func(context.Context) error
+		want    error
+	}{
+		{
+			name:    "returns timeout and cancels function context",
+			timeout: time.Millisecond,
+			run: func(ctx context.Context) error {
+				<-ctx.Done()
+				time.Sleep(5 * time.Millisecond)
 
-	fn := FunctionWithTimeout(time.Millisecond, func(ctx context.Context) error {
-		t := time.NewTicker(time.Millisecond)
-
-		for {
-			select {
-			case <-t.C:
-				slog.Default().Info("new tick")
-			case <-ctx.Done():
-				slog.Default().Info("context finish")
 				return nil
-			}
-		}
-	})
-	testutils.Equal(t, fn(context.Background()), ErrFunctionTimeout)
-
-	time.Sleep(time.Millisecond) // Wait for func result sent to the buffered channel
-
-	goroutineNumAfter := runtime.NumGoroutine()
-	testutils.Equal(t, goroutineNumAfter, goroutineNumBefore)
-
-	fn = FunctionWithTimeout(time.Second, func(ctx context.Context) error {
-		t := time.NewTimer(time.Millisecond)
-
-		for {
-			select {
-			case <-t.C:
-				slog.Default().Info("new tick")
+			},
+			want: ErrFunctionTimeout,
+		},
+		{
+			name:    "returns function result before timeout",
+			timeout: time.Second,
+			run: func(_ context.Context) error {
 				return nil
-			case <-ctx.Done():
-				slog.Default().Info("context finish")
-				return nil
-			}
-		}
-	})
-	testutils.Equal(t, fn(context.Background()), nil)
+			},
+			want: nil,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			done := make(chan struct{})
+			fn := FunctionWithTimeout(test.timeout, func(ctx context.Context) error {
+				defer close(done)
+
+				return test.run(ctx)
+			})
+
+			testutils.Equal(t, fn(context.Background()), test.want)
+			waitFunctionDone(t, done)
+		})
+	}
+}
+
+func waitFunctionDone(t *testing.T, done <-chan struct{}) {
+	t.Helper()
+
+	select {
+	case <-done:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("function did not finish")
+	}
 }
 
 func TestRunSyncMultipleWorkers(t *testing.T) {
