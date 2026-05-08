@@ -401,36 +401,29 @@ infrastructure) and are not part of these tasks.
   restores previous default).
   Swagger/docs: n/a (vendor library).
 - WHY: Twelve-Factor XI ("Treat logs as event streams") and Go Library §11 expect `slog` to be the universal
-  logging contract. `Go Best Practice.md` §11 forbids hidden init; this exposes the install as one explicit
-  call instead of an implicit option flag. KISS: one obvious entry point replaces the
-  `LoggerOptions{InstallDefault, Logger, Config, HandlerRegistry}` matrix.
+  logging contract. `Go Best Practice.md` §11 forbids hidden init outside bootstrap code; app startup should
+  install the process logger once and downstream code should use `slog.Default()`.
 - References: `docs/source/Twelve-Factor App.md`, `docs/source/Go Library.md`,
   `docs/source/Go Best Practice.md`, `docs/source/Engineering Principles.md`.
 - Backward compatibility: Yes (additive/parity-preserving change).
 - Status: DONE.
 
-### TODO CORE-LIB-19 (MISSING): Introduce `app.Config` + `app.RunWeb` / `app.RunNATS` minimal API
+### TODO CORE-LIB-19 (MISSING): Keep app bootstrap in `WebMain` and `NATSMain`
 
-- WHAT: Add a single root config and two run functions that replace the seven options structs as the
-  recommended path. `app.Config` aggregates `*fastlog.Config`, `*metrics.Config`, `*client.Config`, plus
-  service/web/nats fields. `app.ConfigFromEnv() (*Config, error)` parses env in one call. `app.RunWeb(ctx,
-  *Config, InitRouter) error` and `app.RunNATS(ctx, *Config, InitSubscriptions) error` perform the full
-  bootstrap: read config → `fastlog.SetupDefault` (CORE-LIB-18) → metrics → profiler → oslistener → run. They
-  do not accept a `*slog.Logger` argument; downstream code uses `slog.Default()`. Existing `WebOptions`,
-  `NATSOptions`, `LoggerOptions`, `MetricsOptions`, `MetricsClientOptions`, `RuntimeEnvironmentOptions`,
-  `BootstrapResult`, `WebMain`, `WebMainWithOptions` stay and gain `// Deprecated: use app.RunWeb with
-  app.Config` markers; they delegate to the new path. No call site forced to migrate in this task.
+- WHAT: Keep the app package focused on the two simple main-style bootstrap helpers: `app.WebMain` and
+  `app.NATSMain`. They perform the full bootstrap directly: fastlog env config → `fastlog.SetupDefault`
+  (CORE-LIB-18) → metrics env config → profiler monitor/probes → oslistener shutdown hooks → web routes or
+  NATS subscriptions. Do not add alternate exported run entrypoints, app-level config structs, option structs,
+  or an `any`/option-union switch.
 - WHERE:
-  Layer `domain`: `app/config.go` (new), `app/run.go` (new), `app/boundary.go`,
-  `app/web.go`, `app/nats.go`, `app/log.go`, `app/metrics.go`.
+  Layer `domain`: `app/web.go`, `app/nats.go`.
   Layer `repository`: n/a (vendor library).
   Layer `handler`: n/a (vendor library).
-  Tests: `app/config_test.go`, `app/run_test.go` (env parsing parity, `slog.Default()` swap, graceful close
-  ordering).
+  Tests: `app/web_test.go`, `go test ./app`, `go test ./...`, `go test -race -count=1 ./...`,
+  `golangci-lint run ./...`.
   Swagger/docs: n/a (vendor library).
-- WHY: The current `app/` surface has 7+ exported options structs and 3 web entry points for one bootstrap
-  flow. Engineering Principles ranks KISS above DRY above abstraction; SOLID SRP demands one reason to change
-  per type. Collapsing to `Config` + `Run*` is the smallest API that still covers every existing call site.
+- WHY: The app package should remain a tiny bootstrap convenience layer. Extra config structs and run variants
+  obscure the original API and violate KISS for a library that already has `WebMain` and `NATSMain`.
 - References: `docs/source/Engineering Principles.md`, `docs/source/Clean Code.md`,
   `docs/source/solid.md`, `docs/source/mdca.md`, `docs/source/Twelve-Factor App.md`.
 - Backward compatibility: Yes (additive/parity-preserving change).
@@ -438,19 +431,15 @@ infrastructure) and are not part of these tasks.
 
 ### TODO CORE-LIB-20 (MISSING): Drop redundant `Logger` accessor and option fields once `slog.Default` is canonical
 
-- WHAT: After CORE-LIB-18 lands, remove the *internal* uses of `loggerRuntime.Logger()` and the
-  `Logger LoggerOptions` field on `WebOptions`/`NATSOptions`: switch every internal call site in `app/`,
-  `fastlog/`, `metrics/`, `server/*` to `slog.Default()` (or a passed-in `*slog.Logger` only where the function
-  is genuinely a logger sink, e.g. middleware). Keep the exported types/fields with `// Deprecated:` markers
-  for one release; do not remove them in this task. New consumer code reads `slog.Default()` exclusively.
+- WHAT: After CORE-LIB-18 lands, keep app bootstrap logging on `fastlog.SetupDefault` and `slog.Default()`.
+  Internal app code must not expose logger accessors or option structs. Other packages should use
+  `slog.Default()` unless a function is genuinely a logger sink, e.g. middleware.
 - WHERE:
-  Layer `domain`: `app/log.go`, `app/web.go`, `app/nats.go`, `app/metrics.go`,
-  `app/boundary.go`, `fastlog/log.go`,
+  Layer `domain`: `app/web.go`, `app/nats.go`, `fastlog/log.go`,
   any `server/*` and `metrics/*` that currently take a `*slog.Logger` purely to forward it.
   Layer `repository`: n/a (vendor library).
   Layer `handler`: n/a (vendor library).
-  Tests: existing tests must keep passing. Add one test asserting `slog.Default()` returns the configured
-  logger after `app.RunWeb` setup (use a buffered handler to capture output).
+  Tests: existing tests must keep passing.
   Swagger/docs: n/a (vendor library).
 - WHY: Twelve-Factor XI and the user's own constraint ("logger must be initiated and prepared in config; logs
   must be available via `slog`, not by getting a logger"). Two ways to do the same thing is a Clean Code G11
@@ -467,7 +456,7 @@ infrastructure) and are not part of these tasks.
   the top of the package's main `.go` file (the one that introduces the primary type) and delete the empty
   shell. Expected outcome: ~9 `doc.go` files survive (those covering `db/*`, `fastlog`, `app`, `mdca`-heavy
   subsystems). The audit report (which files kept, which deleted, why) goes in the PR description, not into
-  source.
+  source. The app package keeps its package comment in `app/web.go`, not a separate `app/doc.go`.
 - WHERE:
   Layer `domain`: every `**/doc.go` under the repository root (full list from
   `find . -name doc.go`).
@@ -486,8 +475,8 @@ infrastructure) and are not part of these tasks.
 
 ### TODO CORE-LIB-22 (MISSING): Document the bundle + `slog.Default` workflow in `README.md` and `AGENTS.md`
 
-- WHAT: Add a "Quick Start" section to `README.md` showing the canonical 5-line bootstrap (read config,
-  `fastlog.SetupDefault`, `app.RunWeb`, blank-import the bundles), and a matching note in `AGENTS.md` §10
+- WHAT: Add a "Quick Start" section to `README.md` showing the canonical bootstrap (`app.WebMain` or
+  `app.NATSMain`, blank-import the bundles), and a matching note in `AGENTS.md` §10
   ("Rules") that future contributors must use `slog.Default()` everywhere downstream and the bundle import
   pattern for new backends. Cross-link `docs/source/Twelve-Factor App.md` Factor IV and §11.
 - WHERE:

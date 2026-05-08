@@ -38,42 +38,24 @@ The Go version follows `go.mod`.
 
 ## Quick Start
 
-Application binaries should read config once, install the process logger, and
-then let downstream packages emit through `slog.Default()`. Blank-import the
-bundle packages in the binary so logging and metrics backends are selected by
-configuration as attached resources:
+Application binaries should keep startup simple. Blank-import the bundle
+packages in the binary so logging and metrics backends are selected by
+configuration as attached resources, then call the main-style bootstrap helper:
 
 ```go
 package main
 
 import (
 	"context"
-	"errors"
 
 	"github.com/InsideGallery/core/app"
-	"github.com/InsideGallery/core/fastlog"
 
 	_ "github.com/InsideGallery/core/fastlog/all"
 	_ "github.com/InsideGallery/core/metrics/all"
 )
 
-func run(ctx context.Context, initRoutes app.InitRouter) (runErr error) {
-	cfg, err := app.ConfigFromEnv()
-	if err != nil {
-		return err
-	}
-
-	closeDefault, err := fastlog.SetupDefault(ctx, cfg.Log)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		runErr = errors.Join(runErr, closeDefault())
-	}()
-
-	cfg.Log = nil
-
-	return app.RunWeb(ctx, cfg, initRoutes)
+func run(ctx context.Context, initRoutes app.InitRouter) {
+	app.WebMain(ctx, ":8080", "api", initRoutes)
 }
 ```
 
@@ -351,8 +333,6 @@ Current additive replacements:
   `server/template.NewTemplateWithDir`.
   Legacy package-level `Default`, `Set`, `Get`, and env-reading wrappers remain
   available as deprecated compatibility paths.
-- App bootstrap now has error-returning APIs for explicit composition:
-  `app.RunWeb` and `app.RunNATS` accept option structs for logger, metrics,
-  profiler state, monitor, shutdown listener, routing or subscription setup,
-  and env-derived runtime values. `app.WebMain`, `app.WebMainWithOptions`, and
-  `app.NATSMain` remain as deprecated logging shims.
+- App bootstrap keeps the simple main-style entry points: `app.WebMain` and
+  `app.NATSMain` initialize logging, metrics, profiler health, shutdown
+  listeners, routes or subscriptions, and runtime config.

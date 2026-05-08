@@ -2,13 +2,11 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 	"sync/atomic"
-
-	_ "github.com/InsideGallery/core/metrics/processors/prometheus" // register default metrics processor
 
 	"github.com/InsideGallery/core/metrics"
 	"github.com/InsideGallery/core/profiler"
@@ -23,91 +21,63 @@ type InitSubscriptions func(
 
 const defaultNATSServiceName = "nats"
 
-// NATSMain starts the NATS bootstrap flow and logs failures.
-//
-// Deprecated: use app.RunNATS with app.Config.
 func NATSMain(ctx context.Context, initSubscriptions InitSubscriptions) {
-	cfg, err := ConfigFromEnv()
+	closeLogger, err := setupLogger(ctx)
 	if err != nil {
-		slog.Default().Error("create nats bootstrap options", "err", err)
+		slog.Default().Error("init logger", "err", err)
+
+		return
+	}
+	defer closeAndLog("close logger", closeLogger)
+
+	profilerState := resetProfiler()
+
+	shutdownMonitor := profilerState.Monitor(os.Getenv("MONITOR_ADDR"))
+	defer shutdownMonitor()
+	defer recoverPanic("Recovered nats panic")
+
+	metricsClient, closeMetrics, err := setupMetrics(defaultNATSServiceName, profilerState)
+	if err != nil {
+		slog.Default().Error("init metrics", "err", err)
 
 		return
 	}
 
-	if err := RunNATS(ctx, cfg, initSubscriptions); err != nil {
-		slog.Default().Error("run nats bootstrap", "err", err)
-	}
-}
-
-func runNATSOptions(ctx context.Context, options NATSOptions) (runErr error) {
-	if ctx == nil {
-		return fmt.Errorf("context is not set")
-	}
-
-	runCtx, stopRun := context.WithCancel(ctx)
-	defer stopRun()
-
-	profilerState := natsProfilerState(options)
-	profilerState.SetStarted(false)
-	profilerState.SetReady(false)
-
-	shutdownMonitor := profilerState.Monitor(options.MonitorAddr)
-	defer shutdownMonitor()
-	defer recoverBootstrapPanic(&runErr, "nats bootstrap panic")
-
-	metricsOptions := options.Metrics
-	if metricsOptions.ServiceName == "" {
-		metricsOptions.ServiceName = natsServiceName(options)
-	}
-
-	if metricsOptions.HealthState == nil {
-		metricsOptions.HealthState = profilerState
-	}
-
-	metricsRuntime, err := NewMetricsClient(metricsOptions)
-	if err != nil {
-		return fmt.Errorf("init metrics: %w", err)
-	}
-
-	metricsClient := metricsRuntime.Client()
-
-	var (
-		closeMetricsOnce  sync.Once
-		closeMetricsErr   error
-		closeMetricsErrMu sync.Mutex
-	)
+	var closeMetricsOnce sync.Once
 
 	closeMetricsFunc := func() {
 		closeMetricsOnce.Do(func() {
-			if err := metricsRuntime.Close(); err != nil {
-				closeMetricsErrMu.Lock()
-				closeMetricsErr = errors.Join(closeMetricsErr, err)
-				closeMetricsErrMu.Unlock()
-			}
+			closeAndLog("close metrics", closeMetrics)
 		})
 	}
+	defer closeMetricsFunc()
 
-	defer func() {
-		closeMetricsFunc()
-
-		closeMetricsErrMu.Lock()
-		runErr = errors.Join(runErr, closeMetricsErr)
-		closeMetricsErrMu.Unlock()
-	}()
-
-	natsRuntime, err := newNATSRuntime(runCtx, options, slog.Default())
+	natsConfig, err := client.GetNATSConnectionConfigFromEnv()
 	if err != nil {
-		return err
+		slog.Default().Error("get nats config", "err", err)
+
+		return
 	}
 
-	natsClient := natsRuntime.client
-	natsConnection := natsRuntime.subscriber
-	m := natsMiddleware(options.Middleware, metricsClient)
+	natsClient, err := client.ConnectClient(ctx, natsConfig, slog.Default())
+	if err != nil {
+		slog.Default().Error("get nats client", "err", err)
+
+		return
+	}
+
+	natsConnection := subscriber.NewSubscriber(natsClient)
+	m := middleware.NewMiddleware(
+		middleware.GetChains(
+			middleware.NewTracer().Call,
+			middleware.NewMetrics(middleware.CreateMeasuresWithClient(metricsClient)).Call,
+		)...,
+	)
 
 	var appStopped atomic.Bool
 
 	profilerState.AddHealthCheck(func() error {
-		conn := natsConnection.Conn()
+		conn := natsClient.Conn()
 		if !conn.IsConnected() {
 			return fmt.Errorf("nats connection is closed: %w", profiler.ErrServiceIsOffline)
 		}
@@ -123,9 +93,11 @@ func runNATSOptions(ctx context.Context, options NATSOptions) (runErr error) {
 		return nil
 	})
 
-	if options.InitSubscriptions != nil {
-		if err = options.InitSubscriptions(runCtx, metricsClient, m, natsConnection); err != nil {
-			return fmt.Errorf("init subscriptions: %w", err)
+	if initSubscriptions != nil {
+		if err = initSubscriptions(ctx, metricsClient, m, natsConnection); err != nil {
+			slog.Default().Error("init subscriptions", "err", err)
+
+			return
 		}
 	}
 
@@ -134,22 +106,6 @@ func runNATSOptions(ctx context.Context, options NATSOptions) (runErr error) {
 
 	var shutdownOnce sync.Once
 
-	var (
-		shutdownErr   error
-		shutdownErrMu sync.Mutex
-	)
-
-	recordShutdownErr := func(err error) {
-		if err == nil {
-			return
-		}
-
-		shutdownErrMu.Lock()
-		defer shutdownErrMu.Unlock()
-
-		shutdownErr = errors.Join(shutdownErr, err)
-	}
-
 	shutdown := func() {
 		shutdownOnce.Do(func() {
 			appStopped.Store(true)
@@ -157,115 +113,30 @@ func runNATSOptions(ctx context.Context, options NATSOptions) (runErr error) {
 			slog.Default().Info("shutting down nats worker")
 
 			if err := natsConnection.Close(); err != nil {
-				recordShutdownErr(fmt.Errorf("stop nats subscriptions: %w", err))
+				slog.Default().Error("stop nats subscriptions", "err", err)
 			}
 
-			if natsRuntime.closeClient {
-				if err := natsClient.Close(); err != nil {
-					recordShutdownErr(fmt.Errorf("stop nats connection: %w", err))
-				}
+			if err := natsClient.Close(); err != nil {
+				slog.Default().Error("stop nats connection", "err", err)
 			}
 
 			closeMetricsFunc()
 		})
 	}
 
-	registerShutdown(options.ShutdownListener, shutdown)
-	startSignalListener(runCtx, options.ShutdownListener)
+	registerShutdown(shutdown)
+	startSignalListener(ctx)
 
 	go func() {
-		<-runCtx.Done()
+		<-ctx.Done()
 		shutdown()
 	}()
 
 	if err = natsConnection.Wait(); err != nil {
-		runErr = errors.Join(runErr, fmt.Errorf("run nats handler: %w", err))
+		slog.Default().Error("run nats handler", "err", err)
+
+		return
 	}
 
 	shutdown()
-
-	shutdownErrMu.Lock()
-	runErr = errors.Join(runErr, shutdownErr)
-	shutdownErrMu.Unlock()
-
-	return runErr
-}
-
-// NATSOptionsFromEnv builds compatibility NATS options from environment-derived values.
-func NATSOptionsFromEnv(initSubscriptions InitSubscriptions) (NATSOptions, error) {
-	cfg, err := ConfigFromEnv()
-	if err != nil {
-		return NATSOptions{}, err
-	}
-
-	return natsOptionsFromConfig(cfg, initSubscriptions), nil
-}
-
-type natsRuntime struct {
-	client      *client.Client
-	subscriber  *subscriber.Subscriber
-	closeClient bool
-}
-
-func newNATSRuntime(ctx context.Context, options NATSOptions, logger client.Logger) (*natsRuntime, error) {
-	if options.Subscriber != nil {
-		return &natsRuntime{
-			client:      options.NATSClient,
-			subscriber:  options.Subscriber,
-			closeClient: options.NATSClient != nil && options.CloseNATSClient,
-		}, nil
-	}
-
-	natsClient := options.NATSClient
-	closeClient := options.CloseNATSClient
-
-	if natsClient == nil {
-		if options.NATSConfig == nil {
-			return nil, fmt.Errorf("nats config is not set")
-		}
-
-		var err error
-
-		natsClient, err = client.ConnectClient(ctx, options.NATSConfig, logger)
-		if err != nil {
-			return nil, fmt.Errorf("get nats client: %w", err)
-		}
-
-		closeClient = true
-	}
-
-	return &natsRuntime{
-		client:      natsClient,
-		subscriber:  subscriber.NewSubscriber(natsClient),
-		closeClient: closeClient,
-	}, nil
-}
-
-func natsMiddleware(m *middleware.Middleware, metricsClient *metrics.Client) *middleware.Middleware {
-	if m != nil {
-		return m
-	}
-
-	return middleware.NewMiddleware(
-		middleware.GetChains(
-			middleware.NewTracer().Call,
-			middleware.NewMetrics(middleware.CreateMeasuresWithClient(metricsClient)).Call,
-		)...,
-	)
-}
-
-func natsServiceName(options NATSOptions) string {
-	if options.ServiceName != "" {
-		return options.ServiceName
-	}
-
-	return defaultNATSServiceName
-}
-
-func natsProfilerState(options NATSOptions) *profiler.State {
-	if options.ProfilerState != nil {
-		return options.ProfilerState
-	}
-
-	return profiler.DefaultState()
 }

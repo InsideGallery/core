@@ -217,7 +217,7 @@ Quality gates expected for this library:
 | Logging helpers | `fastlog/` stdout/stderr structured handlers and middleware; logfile is opt-in legacy compatibility. |
 | Metrics helpers | `metrics/` package and processors. |
 | Profiling helpers | `profiler/` and server profiler support. |
-| App bootstrap helpers | `app.RunWeb` and `app.RunNATS` return setup/runtime errors from explicit option structs; legacy main-style wrappers only log compatibility errors. |
+| App bootstrap helpers | `app.WebMain` and `app.NATSMain` provide simple main-style startup with logging, metrics, profiler probes, shutdown signals, and route/subscription initialization. |
 | Dashboards/alerts | Consumer-owned; this repository does not define universal dashboards or alert rules. |
 
 ### Development Workflow and Collaboration

@@ -212,8 +212,8 @@ These apply when this library is used in applications:
 10. **No commented-out code** -- delete it, Git remembers.
 11. **Test coverage must not decrease** in any merge request.
 12. **Consult source documents** before making architectural or API design decisions.
-13. **Use the logging and bundle workflow** -- application bootstraps install logging with `fastlog.SetupDefault`
-    or `app.RunWeb`/`app.RunNATS`; downstream code emits through `slog.Default()`. New logging and metrics
+13. **Use the logging and bundle workflow** -- application bootstraps install logging through `app.WebMain`
+    or `app.NATSMain`; downstream code emits through `slog.Default()`. New logging and metrics
     backends must register through their package and be exposed through `fastlog/all` or `metrics/all` for
     blank imports, preserving Twelve-Factor
     [Factor IV](docs/source/Twelve-Factor%20App.md#iv-backing-services) and

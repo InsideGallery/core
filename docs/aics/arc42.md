@@ -260,11 +260,9 @@ configuration.
 Package-level `Default`, `Set`, `Get`, and env-reading helpers remain only as
 deprecated compatibility shims.
 
-CORE-APP-01 adds error-returning app bootstrap APIs. New consumers should use
-`app.RunWeb` or `app.RunNATS` with explicit option structs for logger, metrics,
-profiler state, monitor address, shutdown listener, route or subscription setup,
-and environment-derived runtime values. Legacy `WebMain`, `WebMainWithOptions`,
-and `NATSMain` remain as deprecated wrappers that log returned errors.
+CORE-APP-01 keeps `app.WebMain` and `app.NATSMain` as the simple main-style
+bootstrap helpers. They initialize logging, metrics, profiler probes, shutdown
+signals, and web routes or NATS subscriptions directly.
 
 ### 8.3 Configuration and Twelve-Factor Fit
 
