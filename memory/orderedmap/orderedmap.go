@@ -130,6 +130,8 @@ func (o *OrderedMap[K, V]) SetAll(values []V) {
 	}
 }
 
+// Iterator returns a channel that streams a snapshot of values in insertion order.
+// Mutations made after Iterator returns do not affect the streamed values.
 func (o *OrderedMap[K, V]) Iterator(size int) chan V {
 	ch := make(chan V, size)
 

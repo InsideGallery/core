@@ -21,7 +21,7 @@ const (
 )
 
 func init() {
-	metrics.Register(ProcessorName, New)
+	metrics.DefaultRegistry().Register(ProcessorName, New)
 }
 
 type processor struct {

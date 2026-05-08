@@ -75,17 +75,18 @@ func IPv4ToInt(ipaddr net.IP) (uint32, error) { //nolint:revive
 // representation. Return value contains high integer value on the first
 // place and low integer value on second place.
 func IPv6ToInt(ipaddr net.IP) ([2]uint64, error) { //nolint:revive
-	if ipaddr.To16()[0:LowPosition] == nil || ipaddr.To16()[LowPosition:HighPosition] == nil {
+	ip := ipaddr.To16()
+	if ip == nil {
 		return [2]uint64{0, 0}, ErrNotIPv6Address
 	}
 
 	// Get two separates values of integer IP
-	ip := [2]uint64{
-		binary.BigEndian.Uint64(ipaddr.To16()[0:LowPosition]),            // IP high
-		binary.BigEndian.Uint64(ipaddr.To16()[LowPosition:HighPosition]), // IP low
+	result := [2]uint64{
+		binary.BigEndian.Uint64(ip[0:LowPosition]),            // IP high
+		binary.BigEndian.Uint64(ip[LowPosition:HighPosition]), // IP low
 	}
 
-	return ip, nil
+	return result, nil
 }
 
 // IPv6ToBigInt converts IP address of version 6 from net.IP to math big
@@ -114,21 +115,9 @@ func IntToIPv4(ipaddr uint32) net.IP {
 func IntToIPv6(high, low uint64) net.IP {
 	ip := make(net.IP, net.IPv6len)
 
-	// Allocate 8 bytes arrays for IPs
-	ipHigh := make([]byte, ArrayLenForIP)
-	ipLow := make([]byte, ArrayLenForIP)
-
 	// Proceed conversion
-	binary.BigEndian.PutUint64(ipHigh, high)
-	binary.BigEndian.PutUint64(ipLow, low)
-
-	for i := 0; i < net.IPv6len; i++ {
-		if i < ArrayLenForIP {
-			ip[i] = ipHigh[i]
-		} else if i >= ArrayLenForIP {
-			ip[i] = ipLow[i-ArrayLenForIP]
-		}
-	}
+	binary.BigEndian.PutUint64(ip[:ArrayLenForIP], high)
+	binary.BigEndian.PutUint64(ip[ArrayLenForIP:], low)
 
 	return ip
 }

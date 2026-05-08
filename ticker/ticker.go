@@ -8,12 +8,20 @@ import (
 	"time"
 )
 
-const maxDelayedTicks = 100
+const (
+	maxDelayedTicks   = 100
+	debugTickInterval = time.Second
+)
 
 // Handler describe tick handler
 type Handler interface {
 	Tick(ctx context.Context)
+	// Deprecated: use ID.
 	GetID() uint64
+}
+
+type identifiedHandler interface {
+	ID() uint64
 }
 
 // TickHandler contains handler and interval
@@ -56,7 +64,7 @@ func (t *TickManager) Add(h *TickHandler) uint64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	id := h.handler.GetID()
+	id := handlerID(h.handler)
 	t.ticker[id] = h
 
 	return id
@@ -84,7 +92,14 @@ func (t *TickManager) Stop() {
 	}
 }
 
-// GetHandlers return all handlers
+// Handlers returns all handlers.
+func (t *TickManager) Handlers() map[uint64]*TickHandler {
+	return t.GetHandlers()
+}
+
+// GetHandlers returns all handlers.
+//
+// Deprecated: use Handlers.
 func (t *TickManager) GetHandlers() map[uint64]*TickHandler {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
@@ -99,7 +114,7 @@ func (t *TickManager) GetHandlers() map[uint64]*TickHandler {
 
 // Run all tickers
 func (t *TickManager) Run() {
-	tickers := t.GetHandlers()
+	tickers := t.Handlers()
 
 	var wg sync.WaitGroup
 	wg.Add(len(tickers))
@@ -115,6 +130,14 @@ func (t *TickManager) Run() {
 	wg.Wait()
 }
 
+func handlerID(handler Handler) uint64 {
+	if valueHandler, ok := handler.(identifiedHandler); ok {
+		return valueHandler.ID()
+	}
+
+	return handler.GetID()
+}
+
 // CountTicksInProgress return count of ticks in progress
 func (t *TickManager) CountTicksInProgress() int32 {
 	return atomic.LoadInt32(&t.count)
@@ -122,7 +145,7 @@ func (t *TickManager) CountTicksInProgress() int32 {
 
 func (t *TickManager) run(id uint64, h *TickHandler) {
 	tickTimer := time.NewTicker(h.interval)
-	tickTimerDebug := time.NewTicker(time.Second)
+	tickTimerDebug := time.NewTicker(debugTickInterval)
 
 	for {
 		select {

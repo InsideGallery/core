@@ -87,9 +87,11 @@ func TestSort(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			Sort(tc.values, tc.comparator)
+
 			if len(tc.values) != len(tc.want) {
 				t.Fatalf("length mismatch: got %d, want %d", len(tc.values), len(tc.want))
 			}
+
 			for i := range tc.values {
 				if tc.values[i] != tc.want[i] {
 					t.Errorf("index %d: got %v, want %v", i, tc.values[i], tc.want[i])
@@ -107,6 +109,7 @@ func TestSort_CustomComparator(t *testing.T) {
 
 	byID := func(a, b interface{}) int {
 		c1 := a.(user)
+
 		c2 := b.(user)
 		switch {
 		case c1.id > c2.id:
@@ -158,9 +161,11 @@ func TestSort_CustomComparator(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			Sort(tc.values, byID)
+
 			if len(tc.values) != len(tc.want) {
 				t.Fatalf("length mismatch: got %d, want %d", len(tc.values), len(tc.want))
 			}
+
 			for i := range tc.values {
 				if tc.values[i].(user).id != tc.want[i] {
 					t.Errorf("index %d: got id %d, want %d", i, tc.values[i].(user).id, tc.want[i])
@@ -186,7 +191,9 @@ func TestSort_LargeRandom(t *testing.T) {
 			for i := range ints {
 				ints[i] = rand.Int() //nolint:gosec
 			}
+
 			Sort(ints, comparator.IntComparator)
+
 			for i := 1; i < len(ints); i++ {
 				if ints[i-1].(int) > ints[i].(int) {
 					t.Fatalf("not sorted at index %d: %d > %d", i, ints[i-1].(int), ints[i].(int))
@@ -237,9 +244,11 @@ func TestSortable_Swap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := sortable{values: tc.values, comparator: comparator.IntComparator}
 			s.Swap(tc.i, tc.j)
+
 			if s.values[tc.i] != tc.wantI {
 				t.Errorf("after Swap values[%d] = %v, want %v", tc.i, s.values[tc.i], tc.wantI)
 			}
+
 			if s.values[tc.j] != tc.wantJ {
 				t.Errorf("after Swap values[%d] = %v, want %v", tc.j, s.values[tc.j], tc.wantJ)
 			}
@@ -274,10 +283,12 @@ func TestSortable_Less(t *testing.T) {
 
 func BenchmarkSort_Random(b *testing.B) {
 	b.StopTimer()
+
 	ints := make([]interface{}, 100000)
 	for i := range ints {
 		ints[i] = rand.Int() //nolint:gosec
 	}
+
 	b.StartTimer()
 	Sort(ints, comparator.IntComparator)
 	b.StopTimer()

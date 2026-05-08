@@ -26,12 +26,14 @@ const (
 
 // Config holds HTTP server configuration.
 type Config struct {
-	Address         string        `env:"_ADDR" envDefault:":8080"`
-	Host            string        `env:"_HOST" envDefault:"localhost:8080"`
-	Scheme          string        `env:"_SCHEME" envDefault:"http"`
-	Name            string        `env:"_NAME" envDefault:"server"`
-	MonitorAddr     string        `env:"_MONITOR_ADDR" envDefault:":8011"`
-	ShutdownTimeout time.Duration `env:"_SHUTDOWN_TIMEOUT" envDefault:"10s"`
+	Address          string                     `env:"_ADDR" envDefault:":8080"`
+	Host             string                     `env:"_HOST" envDefault:"localhost:8080"`
+	Scheme           string                     `env:"_SCHEME" envDefault:"http"`
+	Name             string                     `env:"_NAME" envDefault:"server"`
+	MonitorAddr      string                     `env:"_MONITOR_ADDR" envDefault:":8011"`
+	ShutdownTimeout  time.Duration              `env:"_SHUTDOWN_TIMEOUT" envDefault:"10s"`
+	ShutdownListener *oslistener.SignalListener `env:"-"`
+	ProfilerState    *profiler.State            `env:"-"`
 }
 
 // GetEnvConfig reads HTTP server configuration from environment variables.
@@ -74,8 +76,17 @@ func RegisterHealthz(router fiber.Router) {
 
 // RegisterProbes adds GET /healthz, /readyz, /livez, and /startupz endpoints.
 func RegisterProbes(router fiber.Router) {
+	RegisterProbesWithState(router, profiler.DefaultState())
+}
+
+// RegisterProbesWithState adds probe endpoints backed by explicit profiler state.
+func RegisterProbesWithState(router fiber.Router, state *profiler.State) {
+	if state == nil {
+		state = profiler.DefaultState()
+	}
+
 	router.Get("/healthz", func(c fiber.Ctx) error {
-		if err := profiler.CheckHealth(); err != nil {
+		if err := state.CheckHealth(); err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 				"online": false,
 				"error":  err.Error(),
@@ -86,10 +97,10 @@ func RegisterProbes(router fiber.Router) {
 	})
 
 	router.Get("/readyz", func(c fiber.Ctx) error {
-		ready := profiler.Ready.Load()
+		ready := state.IsReady()
 		status := fiber.StatusOK
 
-		if err := profiler.CheckHealth(); err != nil || !ready {
+		if err := state.CheckHealth(); err != nil || !ready {
 			status = fiber.StatusServiceUnavailable
 		}
 
@@ -101,7 +112,7 @@ func RegisterProbes(router fiber.Router) {
 	})
 
 	router.Get("/startupz", func(c fiber.Ctx) error {
-		started := profiler.Started.Load()
+		started := state.IsStarted()
 		status := fiber.StatusOK
 
 		if !started {
@@ -114,8 +125,10 @@ func RegisterProbes(router fiber.Router) {
 
 // Run starts the Fiber server and blocks until shutdown.
 func (s *Server) Run(ctx context.Context) error {
+	profilerState := s.profilerState()
+
 	shutdown := func() {
-		profiler.Ready.Store(false)
+		profilerState.SetReady(false)
 		slog.Default().Info("shutting down server", "name", s.cfg.Name)
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout())
@@ -126,7 +139,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}
 
-	listener := oslistener.Get()
+	listener := s.shutdownListener()
 	listener.Append(syscall.SIGINT, shutdown)
 	listener.Append(syscall.SIGTERM, shutdown)
 	listener.Append(syscall.SIGQUIT, shutdown)
@@ -138,7 +151,7 @@ func (s *Server) Run(ctx context.Context) error {
 		ShutdownTimeout:   s.shutdownTimeout(),
 		EnablePrintRoutes: os.Getenv("DEPLOYMENT_ENVIRONMENT") == "",
 		BeforeServeFunc: func(_ *fiber.App) error {
-			profiler.Ready.Store(true)
+			profilerState.SetReady(true)
 
 			return nil
 		},
@@ -159,4 +172,20 @@ func (s *Server) shutdownTimeout() time.Duration {
 	}
 
 	return DefaultShutdownTimeout
+}
+
+func (s *Server) shutdownListener() *oslistener.SignalListener {
+	if s.cfg.ShutdownListener != nil {
+		return s.cfg.ShutdownListener
+	}
+
+	return oslistener.DefaultListener()
+}
+
+func (s *Server) profilerState() *profiler.State {
+	if s.cfg.ProfilerState != nil {
+		return s.cfg.ProfilerState
+	}
+
+	return profiler.DefaultState()
 }

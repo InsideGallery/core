@@ -12,12 +12,22 @@ import (
 
 // CountHLL calculates amount of unique transactions by passed keys.
 func CountHLL(client Operator, namespace, set string, by []string, union bool) (int64, error) {
+	return countHLLByBinName(client, namespace, set, by, aero.HLLBin, union)
+}
+
+func countHLLByBinName(
+	client Operator,
+	namespace, set string,
+	by []string,
+	hllBinName string,
+	union bool,
+) (int64, error) {
 	if len(by) == 0 {
 		return 0, nil
 	}
 
 	if len(by) == 1 {
-		return CountHLLBin(client, namespace, set, by[0])
+		return CountHLLByBinName(client, namespace, set, by[0], hllBinName)
 	}
 
 	var (
@@ -36,7 +46,7 @@ func CountHLL(client Operator, namespace, set string, by []string, union bool) (
 			break
 		}
 
-		record, err := client.Operate(nil, key, as.GetBinOp(aero.HLLBin))
+		record, err := client.Operate(nil, key, as.GetBinOp(hllBinName))
 		if err != nil {
 			if err.Matches(types.KEY_NOT_FOUND_ERROR) {
 				return 0, nil
@@ -45,7 +55,7 @@ func CountHLL(client Operator, namespace, set string, by []string, union bool) (
 			return 0, fmt.Errorf("failed to get hll bin for %s: %w", attr, err)
 		}
 
-		hllValue, ok := record.Bins[aero.HLLBin].(as.HLLValue)
+		hllValue, ok := record.Bins[hllBinName].(as.HLLValue)
 		if !ok {
 			return 0, fmt.Errorf("failed to get hll bin, wrong type %s", attr)
 		}
@@ -68,9 +78,9 @@ func CountHLL(client Operator, namespace, set string, by []string, union bool) (
 	)
 
 	if union {
-		record, err = client.Operate(nil, lastKey, as.HLLGetUnionCountOp(aero.HLLBin, hlls))
+		record, err = client.Operate(nil, lastKey, as.HLLGetUnionCountOp(hllBinName, hlls))
 	} else {
-		record, err = client.Operate(nil, lastKey, as.HLLGetIntersectCountOp(aero.HLLBin, hlls))
+		record, err = client.Operate(nil, lastKey, as.HLLGetIntersectCountOp(hllBinName, hlls))
 	}
 
 	if err != nil {
@@ -81,7 +91,7 @@ func CountHLL(client Operator, namespace, set string, by []string, union bool) (
 		return 0, fmt.Errorf("failed to get hll intersect count: %w, %v", err, lastKey.String())
 	}
 
-	counter, ok := record.Bins[aero.HLLBin].(int64)
+	counter, ok := record.Bins[hllBinName].(int64)
 	if !ok {
 		return 0, nil
 	}

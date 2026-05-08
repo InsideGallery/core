@@ -1,6 +1,3 @@
-//go:build unit
-// +build unit
-
 package dataconv
 
 import (
@@ -15,12 +12,12 @@ func TestMergeStructEdgeCases(t *testing.T) {
 	}
 
 	cases := []struct {
-		name   string
-		dst    *simple
-		src    simple
-		wantA  int
-		wantB  string
-		wantC  bool
+		name  string
+		dst   *simple
+		src   simple
+		wantA int
+		wantB string
+		wantC bool
 	}{
 		{"src_fills_empty_dst", &simple{}, simple{A: 1, B: "hello", C: true}, 1, "hello", true},
 		{"dst_keeps_existing_values", &simple{A: 10, B: "world", C: true}, simple{A: 1, B: "hello", C: false}, 10, "world", true},
@@ -162,12 +159,12 @@ func TestMergeStructNestedStructs(t *testing.T) {
 	}
 
 	cases := []struct {
-		name   string
-		dst    *outer
-		src    outer
-		wantX  int
-		wantY  string
-		wantN  string
+		name  string
+		dst   *outer
+		src   outer
+		wantX int
+		wantY string
+		wantN string
 	}{
 		{"nested_fill", &outer{}, outer{Name: "test", Inner: inner{X: 1, Y: "y"}}, 1, "y", "test"},
 		{"nested_partial", &outer{Inner: inner{X: 5}}, outer{Inner: inner{Y: "hello"}}, 5, "hello", ""},

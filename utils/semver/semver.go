@@ -187,10 +187,10 @@ func (v *SemVersion) getNumVersion(version string, from, to int, core bool) (uin
 	if err != nil {
 		if core {
 			return 0, err
-		} else {
-			for _, v := range version[from:to] {
-				val += uint64(v)
-			}
+		}
+
+		for _, v := range version[from:to] {
+			val += uint64(v)
 		}
 	}
 

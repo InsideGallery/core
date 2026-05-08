@@ -91,6 +91,9 @@ func (j *Service) Generate(payload Payload) (accessToken, refreshToken string, e
 	return
 }
 
+// GetSigningKey returns a Fiber JWT middleware signing key.
+//
+// Deprecated: use PublicSigningKey for a core-owned signing key result.
 func (j *Service) GetSigningKey() jwtware.SigningKey {
 	return jwtware.SigningKey{
 		JWTAlg: jwt.SigningMethodRS512.Name,
@@ -98,6 +101,7 @@ func (j *Service) GetSigningKey() jwtware.SigningKey {
 	}
 }
 
+// Deprecated: use ParsePayload for token parsing without Fiber middleware types.
 func DecodeClaims(c fiber.Ctx) (*Payload, error) {
 	jwtToken := jwtware.FromContext(c)
 	if jwtToken == nil {

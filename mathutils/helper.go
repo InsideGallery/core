@@ -1,3 +1,12 @@
+// Package mathutils is the legacy math-helper import path.
+//
+// New code should import the focused replacement package:
+//
+//	import "github.com/InsideGallery/core/mathx"
+//
+// Compatibility: existing exports remain available for downstream consumers that
+// still import mathutils. Do not add new helpers here; add them to mathx unless
+// a future major-version migration removes this compatibility path.
 package mathutils
 
 import (

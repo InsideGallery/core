@@ -48,6 +48,7 @@ func TestAdd(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			addKey:     "b",
@@ -62,6 +63,7 @@ func TestAdd(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("b", 2)
+
 				return o
 			},
 			addKey:     "a",
@@ -77,6 +79,7 @@ func TestAdd(t *testing.T) {
 				o.Add("x", 10)
 				o.Add("y", 20)
 				o.Add("z", 30)
+
 				return o
 			},
 			addKey:     "y",
@@ -110,6 +113,7 @@ func TestAdd(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("a", 1)
 				o.Add("a", 1)
+
 				return o
 			},
 			addKey:     "a",
@@ -149,6 +153,7 @@ func TestGet(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 42)
+
 				return o
 			},
 			key:  "a",
@@ -159,6 +164,7 @@ func TestGet(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			key:  "b",
@@ -170,6 +176,7 @@ func TestGet(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("a", 99)
+
 				return o
 			},
 			key:  "a",
@@ -181,6 +188,7 @@ func TestGet(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Remove("a")
+
 				return o
 			},
 			key:  "a",
@@ -191,6 +199,7 @@ func TestGet(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("", 7)
+
 				return o
 			},
 			key:  "",
@@ -229,6 +238,7 @@ func TestRemove(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			removeKey:  "z",
@@ -241,6 +251,7 @@ func TestRemove(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			removeKey:  "a",
@@ -255,6 +266,7 @@ func TestRemove(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 			removeKey:  "a",
@@ -269,6 +281,7 @@ func TestRemove(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 			removeKey:  "c",
@@ -283,6 +296,7 @@ func TestRemove(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 			removeKey:  "b",
@@ -297,6 +311,7 @@ func TestRemove(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Remove("a")
+
 				return o
 			},
 			removeKey:  "a",
@@ -335,6 +350,7 @@ func TestExists(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			key:  "a",
@@ -345,6 +361,7 @@ func TestExists(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			key:  "b",
@@ -356,6 +373,7 @@ func TestExists(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Remove("a")
+
 				return o
 			},
 			key:  "a",
@@ -366,6 +384,7 @@ func TestExists(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("zero", 0)
+
 				return o
 			},
 			key:  "zero",
@@ -376,6 +395,7 @@ func TestExists(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("", 5)
+
 				return o
 			},
 			key:  "",
@@ -387,6 +407,7 @@ func TestExists(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Truncate()
+
 				return o
 			},
 			key:  "a",
@@ -417,6 +438,7 @@ func TestSize(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			want: 1,
@@ -428,6 +450,7 @@ func TestSize(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 			want: 3,
@@ -438,6 +461,7 @@ func TestSize(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("a", 2)
+
 				return o
 			},
 			want: 1,
@@ -449,6 +473,7 @@ func TestSize(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Remove("a")
+
 				return o
 			},
 			want: 1,
@@ -460,6 +485,7 @@ func TestSize(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Truncate()
+
 				return o
 			},
 			want: 0,
@@ -493,6 +519,7 @@ func TestCopy(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			wantSize:   1,
@@ -506,6 +533,7 @@ func TestCopy(t *testing.T) {
 				o.Add("c", 3)
 				o.Add("a", 1)
 				o.Add("b", 2)
+
 				return o
 			},
 			wantSize:   3,
@@ -521,6 +549,7 @@ func TestCopy(t *testing.T) {
 				o.Add("z", 30)
 				o.Add("w", 40)
 				o.Add("v", 50)
+
 				return o
 			},
 			wantSize:   5,
@@ -535,6 +564,7 @@ func TestCopy(t *testing.T) {
 				o.Add("b", 2)
 				o.Add("c", 3)
 				o.Remove("b")
+
 				return o
 			},
 			wantSize:   2,
@@ -547,6 +577,7 @@ func TestCopy(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("b", 2)
+
 				return o
 			},
 			wantSize:   2,
@@ -604,6 +635,7 @@ func TestTruncate(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 		},
@@ -614,6 +646,7 @@ func TestTruncate(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 		},
@@ -623,6 +656,7 @@ func TestTruncate(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Truncate()
+
 				return o
 			},
 		},
@@ -632,6 +666,7 @@ func TestTruncate(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("b", 2)
+
 				return o
 			},
 		},
@@ -642,6 +677,7 @@ func TestTruncate(t *testing.T) {
 				for i := 0; i < 100; i++ {
 					o.Add(string(rune('A'+i)), i)
 				}
+
 				return o
 			},
 		},
@@ -691,6 +727,7 @@ func TestSetAll(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 			newValues:  []int{10, 20, 30},
@@ -703,6 +740,7 @@ func TestSetAll(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("b", 2)
+
 				return o
 			},
 			newValues:  []int{10, 20, 30, 40},
@@ -716,6 +754,7 @@ func TestSetAll(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 			newValues:  []int{10},
@@ -727,6 +766,7 @@ func TestSetAll(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("only", 1)
+
 				return o
 			},
 			newValues:  []int{99},
@@ -748,6 +788,7 @@ func TestSetAll(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 5)
 				o.Add("b", 10)
+
 				return o
 			},
 			newValues:  []int{0, 0},
@@ -799,6 +840,7 @@ func TestSetKeys(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("x", 10)
+
 				return o
 			},
 			keys:       []string{"a", "b"},
@@ -823,6 +865,7 @@ func TestSetKeys(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 100)
+
 				return o
 			},
 			keys:       []string{"a"},
@@ -846,6 +889,7 @@ func TestSetKeys(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("b", 2)
+
 				return o
 			},
 			keys:       []string{"b", "c"},
@@ -883,6 +927,7 @@ func TestGetMap(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			wantMap: map[string]int{"a": 1},
@@ -894,6 +939,7 @@ func TestGetMap(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("c", 3)
+
 				return o
 			},
 			wantMap: map[string]int{"a": 1, "b": 2, "c": 3},
@@ -905,6 +951,7 @@ func TestGetMap(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Remove("a")
+
 				return o
 			},
 			wantMap: map[string]int{"b": 2},
@@ -915,6 +962,7 @@ func TestGetMap(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
 				o.Add("a", 99)
+
 				return o
 			},
 			wantMap: map[string]int{"a": 99},
@@ -924,6 +972,7 @@ func TestGetMap(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("z", 0)
+
 				return o
 			},
 			wantMap: map[string]int{"z": 0},
@@ -943,6 +992,7 @@ func TestGetMap(t *testing.T) {
 		m := o.GetMap()
 		m["a"] = 999
 		m["b"] = 2
+
 		testutils.Equal(t, o.Get("a"), 1)
 		testutils.Equal(t, o.Exists("b"), false)
 	})
@@ -966,6 +1016,7 @@ func TestGetAll(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			wantKeys:   []string{"a"},
@@ -978,6 +1029,7 @@ func TestGetAll(t *testing.T) {
 				o.Add("z", 26)
 				o.Add("a", 1)
 				o.Add("m", 13)
+
 				return o
 			},
 			wantKeys:   []string{"z", "a", "m"},
@@ -993,6 +1045,7 @@ func TestGetAll(t *testing.T) {
 				o.Add("d", 4)
 				o.Remove("b")
 				o.Remove("d")
+
 				return o
 			},
 			wantKeys:   []string{"a", "c"},
@@ -1005,6 +1058,7 @@ func TestGetAll(t *testing.T) {
 				o.Add("a", 1)
 				o.Add("b", 2)
 				o.Add("a", 100)
+
 				return o
 			},
 			wantKeys:   []string{"a", "b"},
@@ -1017,6 +1071,7 @@ func TestGetAll(t *testing.T) {
 				o.Add("a", 1)
 				o.Truncate()
 				o.Add("x", 10)
+
 				return o
 			},
 			wantKeys:   []string{"x"},
@@ -1038,6 +1093,7 @@ func TestGetAll(t *testing.T) {
 		o.Add("b", 2)
 		keys, _ := o.GetAll()
 		keys[0] = "modified"
+
 		testutils.Equal(t, o.Get("a"), 1)
 		origKeys, _ := o.GetAll()
 		testutils.Equal(t, origKeys[0], "a")
@@ -1062,6 +1118,7 @@ func TestIterator(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			bufSize:    1,
@@ -1074,6 +1131,7 @@ func TestIterator(t *testing.T) {
 				o.Add("c", 3)
 				o.Add("a", 1)
 				o.Add("b", 2)
+
 				return o
 			},
 			bufSize:    3,
@@ -1085,6 +1143,7 @@ func TestIterator(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 10)
 				o.Add("b", 20)
+
 				return o
 			},
 			bufSize:    0,
@@ -1095,6 +1154,7 @@ func TestIterator(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			bufSize:    100,
@@ -1108,6 +1168,7 @@ func TestIterator(t *testing.T) {
 				o.Add("b", 2)
 				o.Add("c", 3)
 				o.Remove("b")
+
 				return o
 			},
 			bufSize:    2,
@@ -1118,6 +1179,7 @@ func TestIterator(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("x", 42)
+
 				return o
 			},
 			bufSize:    1,
@@ -1128,10 +1190,12 @@ func TestIterator(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			o := tc.setup()
 			ch := o.Iterator(tc.bufSize)
+
 			var got []int
 			for v := range ch {
 				got = append(got, v)
 			}
+
 			if len(tc.wantValues) == 0 {
 				testutils.Equal(t, len(got), 0)
 			} else {
@@ -1148,12 +1212,69 @@ func TestIterator(t *testing.T) {
 		ch := o.Iterator(0)
 		o.Add("d", 4)
 		o.Remove("a")
+
 		var got []int
 		for v := range ch {
 			got = append(got, v)
 		}
+
 		testutils.Equal(t, got, []int{1, 2, 3})
 	})
+}
+
+func TestIteratorSnapshotWithConcurrentMutation(t *testing.T) {
+	cases := []struct {
+		name    string
+		bufSize int
+		mutate  func(*OrderedMap[string, int])
+		want    []int
+	}{
+		{
+			name:    "add and remove while draining iterator",
+			bufSize: 0,
+			mutate: func(o *OrderedMap[string, int]) {
+				o.Add("d", 4)
+				o.Remove("a")
+				o.Add("b", 20)
+			},
+			want: []int{1, 2, 3},
+		},
+		{
+			name:    "truncate while draining iterator",
+			bufSize: 0,
+			mutate: func(o *OrderedMap[string, int]) {
+				o.Truncate()
+				o.Add("x", 100)
+			},
+			want: []int{1, 2, 3},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			o := &OrderedMap[string, int]{}
+			o.Add("a", 1)
+			o.Add("b", 2)
+			o.Add("c", 3)
+			ch := o.Iterator(tc.bufSize)
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				tc.mutate(o)
+			}()
+
+			var got []int
+			for value := range ch {
+				got = append(got, value)
+			}
+
+			wg.Wait()
+			testutils.Equal(t, got, tc.want)
+		})
+	}
 }
 
 func TestIntKeys(t *testing.T) {
@@ -1170,6 +1291,7 @@ func TestIntKeys(t *testing.T) {
 				o.Add(3, "three")
 				o.Add(1, "one")
 				o.Add(2, "two")
+
 				return o
 			},
 			wantKeys:   []int{3, 1, 2},
@@ -1181,6 +1303,7 @@ func TestIntKeys(t *testing.T) {
 				o := &OrderedMap[int, string]{}
 				o.Add(0, "zero")
 				o.Add(-1, "neg")
+
 				return o
 			},
 			wantKeys:   []int{0, -1},
@@ -1194,6 +1317,7 @@ func TestIntKeys(t *testing.T) {
 				o.Add(2, "b")
 				o.Add(3, "c")
 				o.Remove(2)
+
 				return o
 			},
 			wantKeys:   []int{1, 3},
@@ -1206,6 +1330,7 @@ func TestIntKeys(t *testing.T) {
 				o.Add(-5, "neg5")
 				o.Add(-3, "neg3")
 				o.Add(-1, "neg1")
+
 				return o
 			},
 			wantKeys:   []int{-5, -3, -1},
@@ -1217,6 +1342,7 @@ func TestIntKeys(t *testing.T) {
 				o := &OrderedMap[int, string]{}
 				o.Add(1, "old")
 				o.Add(1, "new")
+
 				return o
 			},
 			wantKeys:   []int{1},
@@ -1236,14 +1362,18 @@ func TestIntKeys(t *testing.T) {
 func TestConcurrentAccess(t *testing.T) {
 	t.Run("concurrent adds do not panic", func(t *testing.T) {
 		o := &OrderedMap[int, int]{}
+
 		var wg sync.WaitGroup
 		for i := 0; i < 100; i++ {
 			wg.Add(1)
+
 			go func(n int) {
 				defer wg.Done()
+
 				o.Add(n, n*10)
 			}(i)
 		}
+
 		wg.Wait()
 		testutils.Equal(t, o.Size(), 100)
 	})
@@ -1253,58 +1383,73 @@ func TestConcurrentAccess(t *testing.T) {
 		for i := 0; i < 50; i++ {
 			o.Add(i, i)
 		}
+
 		var wg sync.WaitGroup
 		for i := 0; i < 50; i++ {
 			wg.Add(3)
+
 			go func(n int) {
 				defer wg.Done()
+
 				o.Add(n+50, n)
 			}(i)
 			go func(n int) {
 				defer wg.Done()
+
 				o.Get(n)
 			}(i)
 			go func(n int) {
 				defer wg.Done()
+
 				o.Exists(n)
 			}(i)
 		}
+
 		wg.Wait()
 		testutils.Equal(t, o.Size(), 100)
 	})
 
-	t.Run("concurrent iterator does not panic", func(t *testing.T) {
+	t.Run("concurrent iterator does not panic", func(_ *testing.T) {
 		o := &OrderedMap[int, int]{}
 		for i := 0; i < 20; i++ {
 			o.Add(i, i)
 		}
+
 		var wg sync.WaitGroup
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
+
 			go func() {
 				defer wg.Done()
+
 				ch := o.Iterator(5)
-				for range ch {
+				for value := range ch {
+					_ = value
 				}
 			}()
 		}
+
 		wg.Wait()
 	})
 
-	t.Run("concurrent copy does not panic", func(t *testing.T) {
+	t.Run("concurrent copy does not panic", func(_ *testing.T) {
 		o := &OrderedMap[int, int]{}
 		for i := 0; i < 20; i++ {
 			o.Add(i, i)
 		}
+
 		var wg sync.WaitGroup
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
+
 			go func() {
 				defer wg.Done()
+
 				cp := o.Copy()
 				_ = cp.Size()
 			}()
 		}
+
 		wg.Wait()
 	})
 
@@ -1313,14 +1458,18 @@ func TestConcurrentAccess(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			o.Add(i, i)
 		}
+
 		var wg sync.WaitGroup
 		for i := 0; i < 100; i++ {
 			wg.Add(1)
+
 			go func(n int) {
 				defer wg.Done()
+
 				o.Remove(n)
 			}(i)
 		}
+
 		wg.Wait()
 		testutils.Equal(t, o.Size(), 0)
 	})
@@ -1339,6 +1488,7 @@ func TestGetMapIndependence(t *testing.T) {
 			setup: func() *OrderedMap[string, int] {
 				o := &OrderedMap[string, int]{}
 				o.Add("a", 1)
+
 				return o
 			},
 			mutate:     func(m map[string]int) { m["a"] = 999; m["b"] = 2 },
@@ -1372,6 +1522,7 @@ func TestOrderedMapSequentialOperations(t *testing.T) {
 				o.Add("a", 1)
 				o.Remove("a")
 				o.Add("a", 2)
+
 				return o
 			},
 			wantSize:   1,
@@ -1384,6 +1535,7 @@ func TestOrderedMapSequentialOperations(t *testing.T) {
 				o := &OrderedMap[string, int]{}
 				o.SetKeys([]string{"a", "b", "c"}, 0)
 				o.SetAll([]int{10, 20, 30})
+
 				return o
 			},
 			wantSize:   3,
@@ -1398,6 +1550,7 @@ func TestOrderedMapSequentialOperations(t *testing.T) {
 				o.Add("b", 2)
 				cp := o.Copy()
 				o.Truncate()
+
 				return cp
 			},
 			wantSize:   2,
@@ -1415,6 +1568,7 @@ func TestOrderedMapSequentialOperations(t *testing.T) {
 				o.Add("e", 5)
 				o.Remove("b")
 				o.Remove("d")
+
 				return o
 			},
 			wantSize:   3,
@@ -1429,6 +1583,7 @@ func TestOrderedMapSequentialOperations(t *testing.T) {
 				o.Add("b", 2)
 				o.SetAll([]int{10, 20})
 				o.Add("c", 30)
+
 				return o
 			},
 			wantSize:   3,
@@ -1445,6 +1600,7 @@ func TestOrderedMapSequentialOperations(t *testing.T) {
 				o.Remove("a")
 				o.Remove("b")
 				o.Remove("c")
+
 				return o
 			},
 			wantSize:   0,
@@ -1466,15 +1622,20 @@ func TestOrderedMapSequentialOperations(t *testing.T) {
 func TestConcurrentAddsSorted(t *testing.T) {
 	t.Run("all concurrent adds are present in map", func(t *testing.T) {
 		o := &OrderedMap[int, int]{}
+
 		var wg sync.WaitGroup
+
 		n := 200
 		for i := 0; i < n; i++ {
 			wg.Add(1)
+
 			go func(v int) {
 				defer wg.Done()
+
 				o.Add(v, v*2)
 			}(i)
 		}
+
 		wg.Wait()
 
 		testutils.Equal(t, o.Size(), n)
@@ -1483,6 +1644,7 @@ func TestConcurrentAddsSorted(t *testing.T) {
 		testutils.Equal(t, len(values), n)
 
 		sort.Ints(keys)
+
 		for i := 0; i < n; i++ {
 			testutils.Equal(t, keys[i], i)
 			testutils.Equal(t, o.Get(i), i*2)

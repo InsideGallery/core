@@ -48,6 +48,57 @@ func TestNew_EnabledWithRegisteredProcessor(t *testing.T) {
 	}
 }
 
+func TestRegistryNew(t *testing.T) {
+	cases := []struct {
+		name    string
+		setup   func(*Registry)
+		cfg     Config
+		wantLen int
+		wantErr bool
+	}{
+		{
+			name: "explicit registry creates client",
+			setup: func(registry *Registry) {
+				registry.Register("explicit", func(_ Config, service string) (Processor, error) {
+					return &spyProcessor{service: service}, nil
+				})
+			},
+			cfg:     Config{Processors: []string{"explicit"}},
+			wantLen: 1,
+		},
+		{
+			name:    "missing processor returns error",
+			setup:   func(*Registry) {},
+			cfg:     Config{Processors: []string{"missing-explicit"}},
+			wantErr: true,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			registry := NewRegistry()
+			test.setup(registry)
+
+			client, err := registry.New(test.cfg, "test-svc")
+			if test.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("registry new: %v", err)
+			}
+
+			if len(client.processors) != test.wantLen {
+				t.Fatalf("processors = %d, want %d", len(client.processors), test.wantLen)
+			}
+		})
+	}
+}
+
 func TestNew_UnregisteredProcessor(t *testing.T) {
 	_, err := New(Config{Processors: []string{"missing-test-processor"}}, "test-svc")
 	if err == nil {
@@ -113,6 +164,39 @@ func TestDefaultClient(t *testing.T) {
 
 	if Default() != c {
 		t.Fatal("expected default metrics client")
+	}
+}
+
+func TestInstallDefault(t *testing.T) {
+	cases := []struct {
+		name string
+	}{
+		{name: "restores previous default"},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			previous := &Client{processors: []Processor{&spyProcessor{}}, service: "previous"}
+			next := &Client{processors: []Processor{&spyProcessor{}}, service: "next"}
+
+			SetDefault(previous)
+			t.Cleanup(func() {
+				SetDefault(nil)
+			})
+
+			handle := InstallDefault(next)
+			if Default() != next {
+				t.Fatal("default was not installed")
+			}
+
+			if err := handle.Close(); err != nil {
+				t.Fatalf("close default handle: %v", err)
+			}
+
+			if Default() != previous {
+				t.Fatal("previous default was not restored")
+			}
+		})
 	}
 }
 

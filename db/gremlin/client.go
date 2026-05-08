@@ -6,10 +6,16 @@ import (
 	"github.com/InsideGallery/core/errors"
 )
 
+// Client is the legacy Gremlin SDK-shaped client.
+//
+// Deprecated: use VertexStore and core-owned option/result types for new code.
 type Client struct {
 	Connection *gremlingo.DriverRemoteConnection
 }
 
+// GetConnection creates the legacy Gremlin remote connection.
+//
+// Deprecated: use NewClient for new code.
 func GetConnection(
 	cfg *ConnectionConfig,
 	configurations ...func(settings *gremlingo.DriverRemoteConnectionSettings),
@@ -39,6 +45,9 @@ func (c *Client) Close() {
 	c.Connection.Close()
 }
 
+// S returns the legacy Gremlin traversal source.
+//
+// Deprecated: use core-owned operation methods such as UpsertVertex for new code.
 func (c *Client) S() *gremlingo.GraphTraversalSource {
 	return gremlingo.Traversal_().WithRemote(c.Connection)
 }

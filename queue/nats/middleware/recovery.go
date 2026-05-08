@@ -17,6 +17,7 @@ func NewRecovery() *Recovery {
 	return &Recovery{}
 }
 
+//nolint:staticcheck // legacy middleware keeps NATS handler shim
 func (t *Recovery) Call(next subscriber.MsgHandler) subscriber.MsgHandler {
 	return func(ctx context.Context, msg *nats.Msg) error {
 		defer func() {

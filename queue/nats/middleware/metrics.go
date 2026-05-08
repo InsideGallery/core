@@ -21,8 +21,14 @@ type Metrics struct {
 	client *metrics.Client
 }
 
+// CreateMeasuresWithClient creates NATS metrics middleware state from an explicit client.
+func CreateMeasuresWithClient(client *metrics.Client) *Metrics {
+	return &Metrics{client: client}
+}
+
+// CreateMeasures creates NATS metrics middleware state from the package-level metrics default.
 func CreateMeasures() *Metrics {
-	return &Metrics{client: metrics.Default()}
+	return CreateMeasuresWithClient(metrics.Default()) //nolint:staticcheck // legacy wrapper reads compatibility default
 }
 
 // SubMetrics implement Middleware interface
@@ -34,6 +40,7 @@ func NewMetrics(m *Metrics) *SubMetrics {
 	return &SubMetrics{Metrics: m}
 }
 
+//nolint:staticcheck // legacy middleware keeps NATS handler shim
 func (t *SubMetrics) Call(next subscriber.MsgHandler) subscriber.MsgHandler {
 	return func(ctx context.Context, msg *nats.Msg) error {
 		var err error

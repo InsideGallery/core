@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -9,6 +11,11 @@ import (
 )
 
 const KeyTemporary = "test"
+
+const (
+	registryLargeCount  = 512
+	registryReaderCount = 8
+)
 
 type MockEntity struct {
 	counter int
@@ -210,6 +217,186 @@ func TestAsyncRegistry(t *testing.T) {
 
 	if entity.GetID() != 1 {
 		t.Fatalf("Unexpected id: %d", entity.GetID())
+	}
+}
+
+func TestRegistryBoundaryConditions(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		run  func(t *testing.T)
+	}{
+		{
+			name: "empty registry lazily creates missing group",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				registry := NewRegistry[string, string, int]()
+
+				if registry.Size() != 0 {
+					t.Fatalf("size = %d, want 0", registry.Size())
+				}
+
+				if _, err := registry.Get("missing", "id"); !errors.Is(err, ErrNotFoundEntity) {
+					t.Fatalf("err = %v, want %v", err, ErrNotFoundEntity)
+				}
+
+				if registry.Size() != 1 {
+					t.Fatalf("size after get = %d, want 1", registry.Size())
+				}
+			},
+		},
+		{
+			name: "single element can be added read and removed",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				registry := NewRegistry[string, string, int]()
+				mustAddRegistryValue(t, registry, "group", "one", 1)
+
+				got, err := registry.Get("group", "one")
+				if err != nil {
+					t.Fatalf("get: %v", err)
+				}
+
+				if got != 1 {
+					t.Fatalf("value = %d, want 1", got)
+				}
+
+				if err := registry.Remove("group", "one"); err != nil {
+					t.Fatalf("remove: %v", err)
+				}
+
+				if _, err := registry.Get("group", "one"); !errors.Is(err, ErrNotFoundEntity) {
+					t.Fatalf("err = %v, want %v", err, ErrNotFoundEntity)
+				}
+			},
+		},
+		{
+			name: "duplicate id updates existing value",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				registry := NewRegistry[string, string, string]()
+				mustAddRegistryValue(t, registry, "group", "shared", "first")
+				mustAddRegistryValue(t, registry, "group", "shared", "second")
+
+				got, err := registry.Get("group", "shared")
+				if err != nil {
+					t.Fatalf("get: %v", err)
+				}
+
+				if got != "second" {
+					t.Fatalf("value = %q, want second", got)
+				}
+
+				if values := registry.GetValues("group"); len(values) != 1 {
+					t.Fatalf("values len = %d, want 1", len(values))
+				}
+			},
+		},
+		{
+			name: "large id range preserves values and indexes",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				registry := NewRegistry[string, uint64, uint64]()
+
+				for id := uint64(0); id < registryLargeCount; id++ {
+					mustAddRegistryValue(t, registry, "group", id, id)
+					registry.AddIndex(id, id)
+				}
+
+				if values := registry.GetValues("group"); len(values) != registryLargeCount {
+					t.Fatalf("values len = %d, want %d", len(values), registryLargeCount)
+				}
+
+				for _, id := range []uint64{0, registryLargeCount / 2, registryLargeCount - 1} {
+					got, err := registry.Get("group", id)
+					if err != nil {
+						t.Fatalf("get %d: %v", id, err)
+					}
+
+					if got != id {
+						t.Fatalf("value = %d, want %d", got, id)
+					}
+
+					if got := registry.GetIndex(id); got != id {
+						t.Fatalf("index = %d, want %d", got, id)
+					}
+				}
+			},
+		},
+	}
+
+	for _, test := range cases {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			test.run(t)
+		})
+	}
+}
+
+func TestRegistryConcurrentReads(t *testing.T) {
+	t.Parallel()
+
+	registry := NewRegistry[string, uint64, uint64]()
+	for id := uint64(0); id < registryLargeCount; id++ {
+		mustAddRegistryValue(t, registry, "group", id, id)
+	}
+
+	errCh := make(chan error, registryReaderCount)
+
+	var wg sync.WaitGroup
+	wg.Add(registryReaderCount)
+
+	for range registryReaderCount {
+		go func() {
+			defer wg.Done()
+
+			for id := uint64(0); id < registryLargeCount; id++ {
+				got, err := registry.Get("group", id)
+				if err != nil {
+					errCh <- fmt.Errorf("get id %d: %w", id, err)
+					return
+				}
+
+				if got != id {
+					errCh <- fmt.Errorf("value = %d, want %d", got, id)
+					return
+				}
+			}
+
+			if values := registry.GetValues("group"); len(values) != registryLargeCount {
+				errCh <- fmt.Errorf("values len = %d, want %d", len(values), registryLargeCount)
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func mustAddRegistryValue[G comparable, I comparable, V any](
+	t *testing.T,
+	registry *Registry[G, I, V],
+	group G,
+	id I,
+	value V,
+) {
+	t.Helper()
+
+	if err := registry.Add(group, id, value); err != nil {
+		t.Fatalf("add: %v", err)
 	}
 }
 

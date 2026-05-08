@@ -15,77 +15,105 @@ func TestWaiter(t *testing.T) {
 	const (
 		totalItemsToAdd  = 23
 		maxCountPerBatch = 10
+		pendingItems     = totalItemsToAdd - 2*maxCountPerBatch
 	)
 
-	// This sub-test demonstrates the failure when we don't wait.
-
-	t.Run("Fails Without Close and Wait", func(t *testing.T) {
-		var processedCount atomic.Uint32
-
-		agg := NewAggregator[int](
-			context.Background(),
-			1,
-			maxCountPerBatch, // Flush after 10 items
-			10*time.Second,   // Use a long ticker to ensure flushing is by count
-			func(items []int) error {
-				processedCount.Add(uint32(len(items))) // nolint:gosec
-				return nil
-			},
-		)
-		go agg.Flusher()
-
-		// 2. Action: Add 23 items.
-		// This will trigger two flushes of 10 items each.
-		// The final 3 items will remain in the buffer.
-		for i := 0; i < totalItemsToAdd; i++ {
-			agg.Add(i)
-		}
-
-		// 3. Problem: We don't wait for the final 3 items to be processed.
-		// We give the background processor a moment to run, but there's no guarantee.
-		time.Sleep(50 * time.Millisecond)
-
-		// 4. Assertion: The test finishes before the background work is done.
-		// We expect this assertion to FAIL because `processedCount` will be 20, not 23.
-		// We use NotEqual to make the test pass, but demonstrate the logical error.
-		finalCount := processedCount.Load()
-		t.Logf("Items processed without waiting: %d", finalCount)
-		require.NotEqual(t, uint32(totalItemsToAdd), finalCount, "The final batch was not processed")
-
-		agg.Close() // Cleanup
-	})
-
-	// This sub-test demonstrates the success when we wait correctly.
-	t.Run("Succeeds With Close and Wait", func(t *testing.T) {
-		var processedCount atomic.Uint32
+	t.Run("Flushes Count Batches And Drains Pending Items On Close", func(t *testing.T) {
+		batches := make(chan int, 3)
+		flusherErr := make(chan error, 1)
 
 		agg := NewAggregator[int](
 			context.Background(),
 			1,
 			maxCountPerBatch,
-			10*time.Second,
+			time.Hour,
 			func(items []int) error {
-				processedCount.Add(uint32(len(items))) // nolint:gosec
+				batches <- len(items)
 				return nil
 			},
 		)
-		go agg.Flusher()
 
-		// 2. Action: Add the same 23 items.
-		for i := 0; i < totalItemsToAdd; i++ {
-			agg.Add(i)
-		}
+		t.Cleanup(agg.Close)
 
-		// 3. Solution: Use the correct synchronization pattern.
-		agg.Close() // Signal the Flusher to process any remaining items and shut down.
-		agg.Wait()  // Pause this test until the aggregator's count is zero.
+		go func() {
+			flusherErr <- agg.Flusher()
+		}()
 
-		// 4. Assertion: The test waits until all background work is complete.
-		// This assertion will reliably pass.
-		finalCount := processedCount.Load()
-		t.Logf("Items processed after waiting: %d", finalCount)
-		require.Equal(t, uint32(totalItemsToAdd), finalCount, "All items should be processed")
+		addAggregatorItems(t, agg, 0, maxCountPerBatch)
+		require.Equal(t, maxCountPerBatch, waitForAggregatorBatch(t, batches))
+		require.Equal(t, 0, agg.Count())
+
+		addAggregatorItems(t, agg, maxCountPerBatch, maxCountPerBatch)
+		require.Equal(t, maxCountPerBatch, waitForAggregatorBatch(t, batches))
+		require.Equal(t, 0, agg.Count())
+
+		addAggregatorItems(t, agg, 2*maxCountPerBatch, pendingItems)
+		require.Equal(t, pendingItems, agg.Count())
+		requireNoAggregatorBatch(t, batches)
+
+		agg.Close()
+		agg.Wait()
+
+		require.Equal(t, pendingItems, waitForAggregatorBatch(t, batches))
+		require.NoError(t, waitForAggregatorFlusher(t, flusherErr))
+		require.Equal(t, 0, agg.Count())
 	})
+}
+
+func addAggregatorItems(t *testing.T, agg *Aggregator[int], start, count int) {
+	t.Helper()
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+
+		for i := 0; i < count; i++ {
+			agg.Add(start + i)
+		}
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		require.FailNow(t, "timed out adding aggregator items")
+	}
+}
+
+func waitForAggregatorBatch(t *testing.T, batches <-chan int) int {
+	t.Helper()
+
+	select {
+	case size := <-batches:
+		return size
+	case <-time.After(time.Second):
+		require.FailNow(t, "timed out waiting for aggregator batch")
+	}
+
+	return 0
+}
+
+func waitForAggregatorFlusher(t *testing.T, flusherErr <-chan error) error {
+	t.Helper()
+
+	select {
+	case err := <-flusherErr:
+		return err
+	case <-time.After(time.Second):
+		require.FailNow(t, "timed out waiting for aggregator flusher")
+	}
+
+	return nil
+}
+
+func requireNoAggregatorBatch(t *testing.T, batches <-chan int) {
+	t.Helper()
+
+	select {
+	case size := <-batches:
+		require.Failf(t, "unexpected aggregator batch", "received batch with %d items", size)
+	default:
+	}
 }
 
 func TestAggregator(t *testing.T) {

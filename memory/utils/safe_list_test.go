@@ -51,13 +51,16 @@ func TestNewSafeList(t *testing.T) {
 			} else {
 				sl = NewSafeList(tc.input...)
 			}
+
 			if got := sl.Count(); got != tc.wantLen {
 				t.Fatalf("Count() = %d, want %d", got, tc.wantLen)
 			}
+
 			list := sl.List()
 			if len(list) != tc.wantLen {
 				t.Fatalf("List() len = %d, want %d", len(list), tc.wantLen)
 			}
+
 			for i, v := range tc.input {
 				if list[i] != v {
 					t.Errorf("List()[%d] = %d, want %d", i, list[i], v)
@@ -126,13 +129,16 @@ func TestSafeList_Add(t *testing.T) {
 			} else {
 				sl = NewSafeList(tc.initial...)
 			}
+
 			for _, item := range tc.addItems {
 				sl.Add(item)
 			}
+
 			got := sl.List()
 			if len(got) != len(tc.wantList) {
 				t.Fatalf("List() len = %d, want %d", len(got), len(tc.wantList))
 			}
+
 			for i := range tc.wantList {
 				if got[i] != tc.wantList[i] {
 					t.Errorf("List()[%d] = %d, want %d", i, got[i], tc.wantList[i])
@@ -183,10 +189,12 @@ func TestSafeList_List(t *testing.T) {
 			} else {
 				sl = NewSafeList(tc.initial...)
 			}
+
 			got := sl.List()
 			if len(got) != len(tc.want) {
 				t.Fatalf("List() len = %d, want %d", len(got), len(tc.want))
 			}
+
 			for i := range tc.want {
 				if got[i] != tc.want[i] {
 					t.Errorf("List()[%d] = %d, want %d", i, got[i], tc.want[i])
@@ -210,6 +218,7 @@ func TestSafeList_ListReturnsCopy(t *testing.T) {
 			sl := NewSafeList(tc.initial...)
 			got := sl.List()
 			got[0] = -999
+
 			original := sl.List()
 			if original[0] == -999 {
 				t.Error("List should return a copy, not the internal slice")
@@ -220,9 +229,9 @@ func TestSafeList_ListReturnsCopy(t *testing.T) {
 
 func TestSafeList_Reset(t *testing.T) {
 	cases := []struct {
-		name         string
-		initial      []int
-		wantReturned []int
+		name           string
+		initial        []int
+		wantReturned   []int
 		wantCountAfter int
 	}{
 		{
@@ -271,15 +280,18 @@ func TestSafeList_Reset(t *testing.T) {
 			} else {
 				sl = NewSafeList(tc.initial...)
 			}
+
 			got := sl.Reset()
 			if len(got) != len(tc.wantReturned) {
 				t.Fatalf("Reset() len = %d, want %d", len(got), len(tc.wantReturned))
 			}
+
 			for i := range tc.wantReturned {
 				if got[i] != tc.wantReturned[i] {
 					t.Errorf("Reset()[%d] = %d, want %d", i, got[i], tc.wantReturned[i])
 				}
 			}
+
 			if c := sl.Count(); c != tc.wantCountAfter {
 				t.Errorf("Count() after Reset = %d, want %d", c, tc.wantCountAfter)
 			}
@@ -289,10 +301,10 @@ func TestSafeList_Reset(t *testing.T) {
 
 func TestSafeList_ResetThenAdd(t *testing.T) {
 	cases := []struct {
-		name       string
-		initial    []int
-		addAfter   []int
-		wantList   []int
+		name     string
+		initial  []int
+		addAfter []int
+		wantList []int
 	}{
 		{
 			name:     "reset then add",
@@ -334,14 +346,18 @@ func TestSafeList_ResetThenAdd(t *testing.T) {
 			} else {
 				sl = NewSafeList(tc.initial...)
 			}
+
 			sl.Reset()
+
 			for _, v := range tc.addAfter {
 				sl.Add(v)
 			}
+
 			got := sl.List()
 			if len(got) != len(tc.wantList) {
 				t.Fatalf("List() len = %d, want %d", len(got), len(tc.wantList))
 			}
+
 			for i := range tc.wantList {
 				if got[i] != tc.wantList[i] {
 					t.Errorf("List()[%d] = %d, want %d", i, got[i], tc.wantList[i])
@@ -411,12 +427,15 @@ func TestSafeList_Count(t *testing.T) {
 			} else {
 				sl = NewSafeList(tc.initial...)
 			}
+
 			for i := 0; i < tc.resets; i++ {
 				sl.Reset()
 			}
+
 			for i := 0; i < tc.adds; i++ {
 				sl.Add(i)
 			}
+
 			if got := sl.Count(); got != tc.want {
 				t.Errorf("Count() = %d, want %d", got, tc.want)
 			}
@@ -438,14 +457,16 @@ func TestSafeList_ConcurrentAccess(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			sl := NewSafeList[int]()
+
 			var wg sync.WaitGroup
 			wg.Add(tc.goroutines * 4)
 
 			for g := 0; g < tc.goroutines; g++ {
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.opsPerG; i++ {
 						sl.Add(i)
 					}
@@ -453,6 +474,7 @@ func TestSafeList_ConcurrentAccess(t *testing.T) {
 
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.opsPerG; i++ {
 						sl.List()
 					}
@@ -460,6 +482,7 @@ func TestSafeList_ConcurrentAccess(t *testing.T) {
 
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.opsPerG; i++ {
 						sl.Count()
 					}
@@ -467,6 +490,7 @@ func TestSafeList_ConcurrentAccess(t *testing.T) {
 
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.opsPerG; i++ {
 						sl.Reset()
 					}
@@ -525,13 +549,16 @@ func TestSafeList_StringType(t *testing.T) {
 			} else {
 				sl = NewSafeList(tc.initial...)
 			}
+
 			for _, s := range tc.add {
 				sl.Add(s)
 			}
+
 			got := sl.List()
 			if len(got) != len(tc.want) {
 				t.Fatalf("List() len = %d, want %d", len(got), len(tc.want))
 			}
+
 			for i := range tc.want {
 				if got[i] != tc.want[i] {
 					t.Errorf("List()[%d] = %q, want %q", i, got[i], tc.want[i])
@@ -546,5 +573,6 @@ func makeSequence(n int) []int {
 	for i := range s {
 		s[i] = i
 	}
+
 	return s
 }

@@ -11,6 +11,7 @@ const (
 	skipListMaxLevel = 32
 	skipListP        = 0.25
 	maxLimit         = 2147483648
+	maxSegmentMask   = 0xFFFF
 )
 
 type SortedSet[K comparable, V comparable] struct {
@@ -22,6 +23,16 @@ type SortedSet[K comparable, V comparable] struct {
 	length     uint64
 	level      int
 	mu         sync.RWMutex
+}
+
+type keyRangeQuery[K comparable] struct {
+	start        K
+	end          K
+	limit        int
+	excludeStart bool
+	excludeEnd   bool
+	remove       bool
+	reverse      bool
 }
 
 func (s *SortedSet[K, V]) createNode(level int, key K, value V) *Node[K, V] {
@@ -40,7 +51,7 @@ func (s *SortedSet[K, V]) createNode(level int, key K, value V) *Node[K, V] {
 // levels are less likely to be returned.
 func (s *SortedSet[K, V]) randomLevel() int {
 	level := 1
-	for float64(rand.Int31()&0xFFFF) < float64(skipListP*0xFFFF) { //nolint:gosec,mnd
+	for float64(rand.Int31()&maxSegmentMask) < float64(skipListP*maxSegmentMask) { //nolint:gosec
 		level++
 	}
 
@@ -51,6 +62,14 @@ func (s *SortedSet[K, V]) randomLevel() int {
 	return skipListMaxLevel
 }
 
+func addRankSpan(rank *[skipListMaxLevel]uint64, index int, span uint64) {
+	if index < 0 || index >= len(rank) {
+		return
+	}
+
+	rank[index] += span
+}
+
 func (s *SortedSet[K, V]) insertNode(key K, value V) *Node[K, V] {
 	var (
 		update [skipListMaxLevel]*Node[K, V]
@@ -59,9 +78,14 @@ func (s *SortedSet[K, V]) insertNode(key K, value V) *Node[K, V] {
 
 	x := s.header
 
-	for i := s.level - 1; i >= 0; i-- {
+	activeLevel := s.level
+	if activeLevel > skipListMaxLevel {
+		activeLevel = skipListMaxLevel
+	}
+
+	for i := activeLevel - 1; i >= 0; i-- {
 		/* store rank that is crossed to reach the insert position */
-		if s.level-1 == i {
+		if activeLevel-1 == i {
 			rank[i] = 0
 		} else {
 			rank[i] = rank[i+1]
@@ -71,7 +95,7 @@ func (s *SortedSet[K, V]) insertNode(key K, value V) *Node[K, V] {
 			(s.comparator(x.level[i].forward.key, key) < 0 ||
 				(s.comparator(x.level[i].forward.key, key) == 0 && // key is the same but the key is different
 					x.level[i].forward.value != value)) {
-			rank[i] += x.level[i].span
+			addRankSpan(&rank, i, x.level[i].span)
 			x = x.level[i].forward
 		}
 
@@ -324,128 +348,160 @@ func (s *SortedSet[K, V]) GetByKeyRange(start K, end K, options *GetByKeyRangeOp
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	limit := maxLimit
-	if options != nil && options.Limit > 0 {
-		limit = options.Limit
-	}
-
-	var remove bool
-	if options != nil {
-		remove = options.Remove
-	}
-
-	excludeStart := options != nil && options.ExcludeStart
-	excludeEnd := options != nil && options.ExcludeEnd
-
-	reverse := s.comparator(start, end) > 0
-	if reverse {
-		start, end = end, start
-		excludeStart, excludeEnd = excludeEnd, excludeStart
-	}
+	query := s.newKeyRangeQuery(start, end, options)
 
 	if s.length == 0 {
 		return nil
 	}
 
-	if reverse {
-		return s.searchReverse(start, end, excludeStart, excludeEnd, limit, remove)
+	if query.reverse {
+		return s.searchReverse(query)
 	}
 
-	return s.searchForward(start, end, excludeStart, excludeEnd, limit, remove)
+	return s.searchForward(query)
 }
 
-func (s *SortedSet[K, V]) searchReverse(
-	start, end K, excludeStart, excludeEnd bool, limit int, remove bool,
-) []*Node[K, V] {
+func (s *SortedSet[K, V]) newKeyRangeQuery(start K, end K, options *GetByKeyRangeOptions) keyRangeQuery[K] {
+	query := keyRangeQuery[K]{
+		start: start,
+		end:   end,
+		limit: maxLimit,
+	}
+
+	if options != nil {
+		query.limit = options.Limit
+		query.excludeStart = options.ExcludeStart
+		query.excludeEnd = options.ExcludeEnd
+		query.remove = options.Remove
+	}
+
+	if query.limit <= 0 {
+		query.limit = maxLimit
+	}
+
+	query.reverse = s.comparator(query.start, query.end) > 0
+	if query.reverse {
+		query.start, query.end = query.end, query.start
+		query.excludeStart, query.excludeEnd = query.excludeEnd, query.excludeStart
+	}
+
+	return query
+}
+
+func (s *SortedSet[K, V]) searchReverse(query keyRangeQuery[K]) []*Node[K, V] {
+	node := s.findReverseRangeStart(query)
+
+	return s.collectReverseRange(node, query)
+}
+
+func (s *SortedSet[K, V]) findReverseRangeStart(query keyRangeQuery[K]) *Node[K, V] {
 	x := s.header
 
-	if excludeEnd {
-		for i := s.level - 1; i >= 0; i-- {
-			for x.level[i].forward != nil &&
-				s.comparator(x.level[i].forward.key, end) < 0 {
-				x = x.level[i].forward
-			}
-		}
-	} else {
-		for i := s.level - 1; i >= 0; i-- {
-			for x.level[i].forward != nil &&
-				s.comparator(x.level[i].forward.key, end) <= 0 {
-				x = x.level[i].forward
-			}
+	for i := s.level - 1; i >= 0; i-- {
+		for x.level[i].forward != nil && s.beforeReverseRangeEnd(x.level[i].forward, query) {
+			x = x.level[i].forward
 		}
 	}
 
+	return x
+}
+
+func (s *SortedSet[K, V]) beforeReverseRangeEnd(node *Node[K, V], query keyRangeQuery[K]) bool {
+	comparison := s.comparator(node.key, query.end)
+	if query.excludeEnd {
+		return comparison < 0
+	}
+
+	return comparison <= 0
+}
+
+func (s *SortedSet[K, V]) collectReverseRange(x *Node[K, V], query keyRangeQuery[K]) []*Node[K, V] {
 	var nodes []*Node[K, V]
 
-	for x != nil && limit > 0 {
-		if excludeStart && s.comparator(x.key, start) <= 0 {
-			break
-		}
-
-		if !excludeStart && s.comparator(x.key, start) < 0 {
+	for x != nil && query.limit > 0 {
+		if s.beforeReverseRangeStart(x, query) {
 			break
 		}
 
 		next := x.backward
 		nodes = append(nodes, x)
 
-		if remove {
+		if query.remove {
 			s.delete(x.Key(), x.Value())
 		}
 
-		limit--
+		query.limit--
 		x = next
 	}
 
 	return nodes
 }
 
-func (s *SortedSet[K, V]) searchForward(
-	start, end K, excludeStart, excludeEnd bool, limit int, remove bool,
-) []*Node[K, V] {
+func (s *SortedSet[K, V]) beforeReverseRangeStart(node *Node[K, V], query keyRangeQuery[K]) bool {
+	comparison := s.comparator(node.key, query.start)
+	if query.excludeStart {
+		return comparison <= 0
+	}
+
+	return comparison < 0
+}
+
+func (s *SortedSet[K, V]) searchForward(query keyRangeQuery[K]) []*Node[K, V] {
+	node := s.findForwardRangeStart(query)
+
+	return s.collectForwardRange(node, query)
+}
+
+func (s *SortedSet[K, V]) findForwardRangeStart(query keyRangeQuery[K]) *Node[K, V] {
 	x := s.header
 
-	if excludeStart {
-		for i := s.level - 1; i >= 0; i-- {
-			for x.level[i].forward != nil &&
-				s.comparator(x.level[i].forward.key, start) <= 0 {
-				x = x.level[i].forward
-			}
-		}
-	} else {
-		for i := s.level - 1; i >= 0; i-- {
-			for x.level[i].forward != nil &&
-				s.comparator(x.level[i].forward.key, start) < 0 {
-				x = x.level[i].forward
-			}
+	for i := s.level - 1; i >= 0; i-- {
+		for x.level[i].forward != nil && s.beforeForwardRangeStart(x.level[i].forward, query) {
+			x = x.level[i].forward
 		}
 	}
 
-	x = x.level[0].forward
+	return x.level[0].forward
+}
 
+func (s *SortedSet[K, V]) beforeForwardRangeStart(node *Node[K, V], query keyRangeQuery[K]) bool {
+	comparison := s.comparator(node.key, query.start)
+	if query.excludeStart {
+		return comparison <= 0
+	}
+
+	return comparison < 0
+}
+
+func (s *SortedSet[K, V]) collectForwardRange(x *Node[K, V], query keyRangeQuery[K]) []*Node[K, V] {
 	var nodes []*Node[K, V]
 
-	for x != nil && limit > 0 {
-		if excludeEnd && s.comparator(x.key, end) >= 0 {
-			break
-		}
-
-		if !excludeEnd && s.comparator(x.key, end) > 0 {
+	for x != nil && query.limit > 0 {
+		if s.afterForwardRangeEnd(x, query) {
 			break
 		}
 
 		next := x.level[0].forward
 		nodes = append(nodes, x)
 
-		if remove {
+		if query.remove {
 			s.delete(x.Key(), x.Value())
 		}
 
-		limit--
+		query.limit--
 		x = next
 	}
 
 	return nodes
+}
+
+func (s *SortedSet[K, V]) afterForwardRangeEnd(node *Node[K, V], query keyRangeQuery[K]) bool {
+	comparison := s.comparator(node.key, query.end)
+	if query.excludeEnd {
+		return comparison >= 0
+	}
+
+	return comparison > 0
 }
 
 // GetByRankRange get nodes within specific rank range [start, end]

@@ -1,15 +1,13 @@
-//go:build unit
-// +build unit
-
 package webserver
 
 import (
+	"context"
 	"testing"
-
-	"github.com/InsideGallery/core/testutils"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/valyala/fasthttp"
+
+	"github.com/InsideGallery/core/testutils"
 )
 
 func TestMiddleware(t *testing.T) {
@@ -90,4 +88,46 @@ func TestMiddlewareCopy(t *testing.T) {
 		testutils.NotEqual(t, c, nil)
 	}
 	testutils.Equal(t, len(m2.chains), 1)
+}
+
+func TestRouteMiddleware(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		want string
+	}{
+		{
+			name: "wraps route handler",
+			want: "chain:handler",
+		},
+	}
+
+	for _, test := range cases {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			middleware := NewRouteMiddleware(func(next RouteHandler) RouteHandler {
+				return func(ctx context.Context, req RouteRequest) (RouteResponse, error) {
+					req.Body = append([]byte("chain:"), req.Body...)
+
+					return next(ctx, req)
+				}
+			})
+
+			handler := middleware.Then(func(_ context.Context, req RouteRequest) (RouteResponse, error) {
+				return RouteResponse{Body: req.Body}, nil
+			})
+
+			response, err := handler(context.Background(), RouteRequest{Body: []byte("handler")})
+			if err != nil {
+				t.Fatalf("handler: %v", err)
+			}
+
+			if string(response.Body) != test.want {
+				t.Fatalf("body = %q, want %q", response.Body, test.want)
+			}
+		})
+	}
 }

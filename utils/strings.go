@@ -88,7 +88,8 @@ func CommonString(str string) string {
 	return result.String()
 }
 
-// SplitBetweenTokens take string and one or two tokens, and cut everything between two tokens, or between two copies of first token
+// SplitBetweenTokens takes string and one or two tokens, and cuts everything between two tokens,
+// or between two copies of first token.
 func SplitBetweenTokens(data string, keys ...string) []string {
 	if data == "" {
 		return []string{}

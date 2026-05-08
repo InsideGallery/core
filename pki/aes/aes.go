@@ -1,4 +1,14 @@
-package aes
+// Package aes is the legacy AES-GCM import path.
+//
+// New code should import the focused replacement package:
+//
+//	import "github.com/InsideGallery/core/pki/aesgcm"
+//
+// Compatibility: existing AES-GCM exports remain available for downstream
+// consumers that still import pki/aes. Do not add new helpers here; add AES-GCM
+// behavior to pki/aesgcm so call sites avoid a local name collision with
+// crypto/aes.
+package aes //nolint:revive
 
 import (
 	"crypto/aes"
@@ -26,6 +36,10 @@ type AES struct {
 var ErrInvalidAESSize = errors.New("invalid AES key size, must be 16, 24, or 32")
 
 func NewAES(size int) (*AES, error) {
+	return NewAESStrict(size)
+}
+
+func NewAESStrict(size int) (*AES, error) {
 	switch size {
 	case AES16, AES24, AES32:
 	default:

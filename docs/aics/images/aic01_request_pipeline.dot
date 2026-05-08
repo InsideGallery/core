@@ -1,0 +1,68 @@
+digraph LibraryUseFlow {
+    graph [
+        label="Library Use Flow\nConsumer-Owned Runtime"
+        labelloc=t
+        fontsize=16
+        fontname="Helvetica"
+        rankdir=LR
+        compound=true
+        nodesep=0.5
+        ranksep=0.6
+        pad=0.4
+    ]
+    node [shape=box style="filled,rounded" fontname="Helvetica" fontsize=9 width=1.4]
+    edge [fontname="Helvetica" fontsize=8]
+
+    start [label="Consumer\nApplication" fillcolor="#08427B" fontcolor=white]
+
+    subgraph cluster_import {
+        label="Import and Compose"
+        style=dashed color="#438DD5" fontname="Helvetica" fontsize=11
+
+        get_module [label="go get\ncore module" fillcolor="#B5DCFF"]
+        import_pkg [label="Import selected\npackage path" fillcolor="#B5DCFF"]
+        configure [label="Build config\nfrom env/struct" fillcolor="#B5DCFF"]
+    }
+
+    subgraph cluster_choice {
+        label="Package Type"
+        style=dashed color="#438DD5" fontname="Helvetica" fontsize=11
+
+        pure [label="Pure helper\nor data structure" fillcolor="#D4EDFF"]
+        adapter [label="Adapter or\nserver helper" fillcolor="#D4EDFF"]
+    }
+
+    subgraph cluster_call {
+        label="Consumer-Owned Call"
+        style=dashed color="#438DD5" fontname="Helvetica" fontsize=11
+
+        context [label="Pass context\nwhen blocking" fillcolor="#E8F5E9"]
+        call_api [label="Call exported\nGo API" fillcolor="#E8F5E9"]
+        external [label="Use configured\nbacking service" fillcolor="#FFF3E0"]
+        result [label="Return value\nor wrapped error" fillcolor="#E8F5E9"]
+    }
+
+    subgraph cluster_shutdown {
+        label="Lifecycle"
+        style=dashed color="#438DD5" fontname="Helvetica" fontsize=11
+
+        observe [label="Consumer logs\nand metrics" fillcolor="#B5DCFF"]
+        close [label="Consumer closes\nor drains resources" fillcolor="#B5DCFF"]
+    }
+
+    start -> get_module
+    get_module -> import_pkg
+    import_pkg -> configure
+    configure -> pure [label="No external I/O"]
+    configure -> adapter [label="Needs runtime\nresources"]
+
+    pure -> call_api
+    adapter -> context
+    context -> call_api
+    call_api -> external [label="only for\nadapters"]
+    external -> result
+    call_api -> result [label="pure path" style=dashed]
+    result -> observe
+    observe -> close
+    close -> start [label="next consumer\noperation" style=dashed]
+}

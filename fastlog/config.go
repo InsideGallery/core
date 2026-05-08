@@ -41,7 +41,19 @@ func GetConfigFromEnv() (*Config, error) {
 	return c, nil
 }
 
+// GetHandler returns a slog handler from the package-level compatibility registry.
+//
+// Deprecated: use GetHandlerFromRegistry with an explicit handler registry.
 func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
+	return c.GetHandlerFromRegistry(nil, m...)
+}
+
+// GetHandlerFromRegistry returns a slog handler from an explicit handler registry.
+func (c *Config) GetHandlerFromRegistry(registry *handlers.Registry, m ...slogmulti.Middleware) (slog.Handler, error) {
+	if registry == nil {
+		registry = handlers.DefaultRegistry()
+	}
+
 	var (
 		outputs []slog.Handler
 		errs    []error
@@ -56,7 +68,7 @@ func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
 		kind := parts[0]
 		format := parts[1]
 
-		o, err := handlers.Get(kind, format, c.Level)
+		o, err := registry.Get(kind, format, c.Level)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -69,7 +81,7 @@ func (c *Config) GetHandler(m ...slogmulti.Middleware) (slog.Handler, error) {
 	}
 
 	if len(outputs) == 0 {
-		h, err := handlers.Get(nop.OutKind, handlers.FormatJSON, c.Level)
+		h, err := registry.Get(nop.OutKind, handlers.FormatJSON, c.Level)
 		if err != nil {
 			return nil, errors.Combine(append(errs, err)...)
 		}

@@ -25,6 +25,7 @@ func NewTracer() *Tracer {
 	return &Tracer{}
 }
 
+//nolint:staticcheck // legacy middleware keeps NATS handler shim
 func (t *Tracer) Call(next subscriber.MsgHandler) subscriber.MsgHandler {
 	return func(ctx context.Context, msg *nats.Msg) error {
 		defer func() {
@@ -55,9 +56,11 @@ func (t *Tracer) Call(next subscriber.MsgHandler) subscriber.MsgHandler {
 				if err != nil {
 					span.SetStatus(codes.Error, err.Error())
 					span.RecordError(err)
-				} else {
-					span.SetStatus(codes.Ok, "")
+
+					return
 				}
+
+				span.SetStatus(codes.Ok, "")
 			},
 		)
 

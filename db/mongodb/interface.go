@@ -8,6 +8,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Client is the legacy MongoDB SDK-shaped client contract.
+//
+// Deprecated: use DocumentStore and core-owned option/result types for new code.
 type Client interface {
 	FindOne(
 		ctx context.Context,

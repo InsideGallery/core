@@ -12,6 +12,10 @@ var store = registry.NewRegistry[string, string, any]()
 
 type ExampleTicker struct{}
 
+func (t *ExampleTicker) ID() uint64 {
+	return t.GetID()
+}
+
 func (t *ExampleTicker) GetID() uint64 {
 	return store.NextID()
 }

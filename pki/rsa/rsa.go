@@ -1,4 +1,14 @@
-package rsa
+// Package rsa is the legacy RSA-OAEP import path.
+//
+// New code should import the focused replacement package:
+//
+//	import "github.com/InsideGallery/core/pki/rsaoaep"
+//
+// Compatibility: existing RSA-OAEP exports remain available for downstream
+// consumers that still import pki/rsa. Do not add new helpers here; add RSA-OAEP
+// behavior to pki/rsaoaep so call sites avoid a local name collision with
+// crypto/rsa.
+package rsa //nolint:revive
 
 import (
 	"crypto/rand"

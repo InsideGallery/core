@@ -54,10 +54,12 @@ func TestNewSafeMap(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			sm := NewSafeMap(tc.input)
+
 			got := sm.GetMap()
 			if len(got) != tc.wantLen {
 				t.Fatalf("len = %d, want %d", len(got), tc.wantLen)
 			}
+
 			for _, k := range tc.wantKeys {
 				if _, ok := got[k]; !ok {
 					t.Errorf("key %q not found", k)
@@ -84,11 +86,14 @@ func TestNewSafeMap_DoesNotMutateInput(t *testing.T) {
 			for k, v := range tc.input {
 				original[k] = v
 			}
+
 			sm := NewSafeMap(tc.input)
 			sm.Set("z", 99)
+
 			if _, ok := tc.input["z"]; ok {
 				t.Error("NewSafeMap should copy data, not reference it")
 			}
+
 			if len(tc.input) != len(original) {
 				t.Error("input map was mutated")
 			}
@@ -159,10 +164,12 @@ func TestSafeMap_Set(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			sm := NewSafeMap(tc.setup)
 			sm.Set(tc.setKey, tc.setValue)
+
 			got, ok := sm.Get(tc.setKey)
 			if ok != tc.wantOk {
 				t.Fatalf("Get ok = %v, want %v", ok, tc.wantOk)
 			}
+
 			if got != tc.wantValue {
 				t.Errorf("Get value = %d, want %d", got, tc.wantValue)
 			}
@@ -225,10 +232,12 @@ func TestSafeMap_Get(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			sm := NewSafeMap(tc.setup)
+
 			got, ok := sm.Get(tc.getKey)
 			if ok != tc.wantOk {
 				t.Fatalf("Get ok = %v, want %v", ok, tc.wantOk)
 			}
+
 			if got != tc.wantValue {
 				t.Errorf("Get value = %d, want %d", got, tc.wantValue)
 			}
@@ -293,11 +302,11 @@ func TestSafeMap_Exists(t *testing.T) {
 
 func TestSafeMap_Remove(t *testing.T) {
 	cases := []struct {
-		name        string
-		setup       map[string]int
-		removeKey   string
-		wantExists  bool
-		wantLen     int
+		name       string
+		setup      map[string]int
+		removeKey  string
+		wantExists bool
+		wantLen    int
 	}{
 		{
 			name:       "remove existing key",
@@ -347,9 +356,11 @@ func TestSafeMap_Remove(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			sm := NewSafeMap(tc.setup)
 			sm.Remove(tc.removeKey)
+
 			if got := sm.Exists(tc.removeKey); got != tc.wantExists {
 				t.Errorf("Exists(%q) after Remove = %v, want %v", tc.removeKey, got, tc.wantExists)
 			}
+
 			if got := len(sm.GetMap()); got != tc.wantLen {
 				t.Errorf("len after Remove = %d, want %d", got, tc.wantLen)
 			}
@@ -393,10 +404,12 @@ func TestSafeMap_GetMap(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			sm := NewSafeMap(tc.setup)
+
 			got := sm.GetMap()
 			if len(got) != tc.wantLen {
 				t.Fatalf("GetMap len = %d, want %d", len(got), tc.wantLen)
 			}
+
 			for k, v := range tc.setup {
 				if gv, ok := got[k]; !ok || gv != v {
 					t.Errorf("GetMap[%q] = %d, %v; want %d, true", k, gv, ok, v)
@@ -422,6 +435,7 @@ func TestSafeMap_GetMap_ReturnsCopy(t *testing.T) {
 			sm := NewSafeMap(tc.setup)
 			got := sm.GetMap()
 			got["injected"] = 999
+
 			if sm.Exists("injected") {
 				t.Error("GetMap should return a copy, not internal reference")
 			}
@@ -443,14 +457,16 @@ func TestSafeMap_ConcurrentAccess(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			sm := NewSafeMap[string, int](nil)
+
 			var wg sync.WaitGroup
 			wg.Add(tc.goroutines * 3)
 
 			for g := 0; g < tc.goroutines; g++ {
 				go func(id int) {
 					defer wg.Done()
+
 					for i := 0; i < tc.opsPerG; i++ {
 						sm.Set(strconv.Itoa(id*1000+i), i)
 					}
@@ -458,6 +474,7 @@ func TestSafeMap_ConcurrentAccess(t *testing.T) {
 
 				go func(id int) {
 					defer wg.Done()
+
 					for i := 0; i < tc.opsPerG; i++ {
 						sm.Get(strconv.Itoa(id*1000 + i))
 					}
@@ -465,6 +482,7 @@ func TestSafeMap_ConcurrentAccess(t *testing.T) {
 
 				go func(id int) {
 					defer wg.Done()
+
 					for i := 0; i < tc.opsPerG; i++ {
 						sm.Exists(strconv.Itoa(id*1000 + i))
 						sm.Remove(strconv.Itoa(id*1000 + i))
@@ -496,6 +514,7 @@ func TestSafeMap_SetGetRemoveCycle(t *testing.T) {
 			sm := NewSafeMap[string, int](nil)
 
 			sm.Set(tc.key, tc.value)
+
 			if !sm.Exists(tc.key) {
 				t.Fatal("key should exist after Set")
 			}
@@ -506,6 +525,7 @@ func TestSafeMap_SetGetRemoveCycle(t *testing.T) {
 			}
 
 			sm.Remove(tc.key)
+
 			if sm.Exists(tc.key) {
 				t.Fatal("key should not exist after Remove")
 			}
@@ -523,5 +543,6 @@ func makeLargeMap(n int) map[string]int {
 	for i := 0; i < n; i++ {
 		m[strconv.Itoa(i)] = i
 	}
+
 	return m
 }

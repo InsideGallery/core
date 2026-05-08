@@ -10,6 +10,9 @@ import (
 	"github.com/InsideGallery/core/queue/nats/client"
 )
 
+// Client is the legacy NATS SDK-shaped subscriber dependency.
+//
+// Deprecated: use queue/generic/subscriber/interfaces.Client for new code.
 type Client interface {
 	Conn() *nats.Conn
 	Context() context.Context
@@ -20,4 +23,7 @@ type Client interface {
 	WithMeter(metric.Meter)
 }
 
+// MsgHandler is the legacy NATS message handler shape.
+//
+// Deprecated: use queue/generic/subscriber/interfaces.MsgHandler for new code.
 type MsgHandler func(ctx context.Context, msg *nats.Msg) error

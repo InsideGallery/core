@@ -1,0 +1,77 @@
+digraph C4_Container {
+    graph [
+        label="Container Diagram\ngithub.com/InsideGallery/core"
+        labelloc=t
+        fontsize=20
+        fontname="Helvetica"
+        rankdir=TB
+        compound=true
+        nodesep=0.8
+        ranksep=1.0
+    ]
+    node [shape=box style="filled,rounded" fontname="Helvetica" fontsize=10]
+    edge [fontname="Helvetica" fontsize=8]
+
+    consumer_apps [
+        label="Consumer Applications\n[Go Binaries]\n\nOwn composition,\nports, config, routes,\nworkers, and deploys."
+        fillcolor="#08427B" fontcolor=white
+    ]
+    backing_services [
+        label="Backing Services\n[Consumer-Owned]\n\nDatabases, queues,\nmetrics sinks, log sinks,\nidentity/key stores."
+        fillcolor="#999999" fontcolor=white
+    ]
+
+    subgraph cluster_core {
+        label="InsideGallery Core Library"
+        style=dashed
+        color="#1168BD"
+        fontname="Helvetica"
+        fontsize=14
+
+        pure_helpers [
+            label="Pure Utility Packages\n[dataconv, errors,\nmathutils, utils]\n\nConversion, strings,\nbytes, hashes, semver,\nmath, and error helpers."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        memory [
+            label="Memory Packages\n[memory/*]\n\nData structures,\nprobabilistic sets,\nregistries, caches,\nfuzzy search."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        security [
+            label="Security Packages\n[pki, server/jwt]\n\nAES/RSA/cipher helpers,\nJWT, password helpers,\nkey-related utilities."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        runtime [
+            label="Runtime Helpers\n[multiproc, ticker,\noslistener, commands, ecs]\n\nWorkers, signals,\ntimers, command events,\nECS primitives."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        adapters [
+            label="Adapter Packages\n[db, queue]\n\nDatabase clients,\nNATS subscriber support,\nconsumer-configured I/O."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        observability [
+            label="Observability Helpers\n[fastlog, metrics,\nprofiler]\n\nslog handlers,\nmetrics processors,\nprofiling support."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        server_support [
+            label="Server Support\n[app, server]\n\nWeb, SSE, JWT,\ntemplates, backoff,\nthroughput helpers."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        tests [
+            label="Test and Fixture Support\n[testutils, fixtures,\nembedded]\n\nAssertions, fixtures,\nembedded resources."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+    }
+
+    consumer_apps -> pure_helpers [label="Import\nwhen needed"]
+    consumer_apps -> memory [label="Use in-process\nstructures"]
+    consumer_apps -> security [label="Encrypt, sign,\nvalidate"]
+    consumer_apps -> runtime [label="Coordinate\nruntime work"]
+    consumer_apps -> adapters [label="Configure\nclients"]
+    consumer_apps -> observability [label="Configure logs\nand metrics"]
+    consumer_apps -> server_support [label="Compose\nconsumer server"]
+    consumer_apps -> tests [label="Reuse in tests"]
+
+    adapters -> backing_services [label="Consumer-supplied\nendpoints and credentials"]
+    observability -> backing_services [label="Consumer-selected\nsinks/exporters"]
+    server_support -> backing_services [label="May call adapters\nfrom consumer code" style=dashed]
+}

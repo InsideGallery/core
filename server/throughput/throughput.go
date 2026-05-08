@@ -99,7 +99,7 @@ func (t *Throughput) Middleware(parameter string) func(next fiber.Handler) fiber
 			defer func() {
 				latency := time.Since(st)
 				if latency > time.Second {
-					slog.Warn("Latency is higher of second",
+					slog.Default().Warn("Latency is higher of second",
 						"latency", latency.String(),
 						"siid", instance.GetShortInstanceID(),
 					)
@@ -108,7 +108,7 @@ func (t *Throughput) Middleware(parameter string) func(next fiber.Handler) fiber
 
 			val := c.Locals(parameter).(string)
 			if !t.Validate(val) {
-				slog.Warn("Too many requests",
+				slog.Default().Warn("Too many requests",
 					"tier", t.storage.Tier(val),
 					"max rps", t.storage.RPS(val),
 					"max rpm", t.storage.RPM(val),

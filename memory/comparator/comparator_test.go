@@ -345,7 +345,7 @@ func TestFloat32Comparator(t *testing.T) {
 		{"small positive difference", float32(1.0001), float32(1.0), 1},
 		{"max equal", float32(math.MaxFloat32), float32(math.MaxFloat32), 0},
 		{"smallest positive vs zero", float32(math.SmallestNonzeroFloat32), float32(0), 1},
-		{"negative zero vs positive zero", float32(-0.0), float32(0.0), 0},
+		{"negative zero vs positive zero", math.Float32frombits(1 << 31), float32(0.0), 0},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

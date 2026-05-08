@@ -85,7 +85,7 @@ func recordMetricCount(client metricRecorder, name string, value int64, tags []s
 	}
 
 	if err := client.Count(name, value, tags); err != nil {
-		slog.Warn("record http metric failed", "metric", name, "error", err)
+		slog.Default().Warn("record http metric failed", "metric", name, "error", err)
 	}
 }
 
@@ -95,6 +95,6 @@ func recordMetricDistribution(client metricRecorder, name string, value float64,
 	}
 
 	if err := client.Distribution(name, value, tags); err != nil {
-		slog.Warn("record http metric failed", "metric", name, "error", err)
+		slog.Default().Warn("record http metric failed", "metric", name, "error", err)
 	}
 }

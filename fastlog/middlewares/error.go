@@ -30,12 +30,12 @@ func ErrorFormattingMiddleware(
 						slog.String("message", msg),
 					),
 				)
-			} else {
-				attrs = append(attrs, attr)
+
+				return true
 			}
-		} else {
-			attrs = append(attrs, attr)
 		}
+
+		attrs = append(attrs, attr)
 
 		return true
 	})

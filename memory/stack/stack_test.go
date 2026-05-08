@@ -1,6 +1,3 @@
-//go:build unit
-// +build unit
-
 package stack
 
 import (
@@ -104,49 +101,49 @@ func TestSet(t *testing.T) {
 	cases := []struct {
 		name        string
 		initial     []int
-		setValue     []int
+		setValue    []int
 		expectedLen int
 		expectedVal []int
 	}{
 		{
 			name:        "set on empty stack",
 			initial:     nil,
-			setValue:     []int{1, 2, 3},
+			setValue:    []int{1, 2, 3},
 			expectedLen: 3,
 			expectedVal: []int{1, 2, 3},
 		},
 		{
 			name:        "set replaces existing items",
 			initial:     []int{10, 20},
-			setValue:     []int{30, 40, 50},
+			setValue:    []int{30, 40, 50},
 			expectedLen: 3,
 			expectedVal: []int{30, 40, 50},
 		},
 		{
 			name:        "set with nil clears stack",
 			initial:     []int{1, 2},
-			setValue:     nil,
+			setValue:    nil,
 			expectedLen: 0,
 			expectedVal: nil,
 		},
 		{
 			name:        "set with empty slice",
 			initial:     []int{1, 2, 3},
-			setValue:     []int{},
+			setValue:    []int{},
 			expectedLen: 0,
 			expectedVal: []int{},
 		},
 		{
 			name:        "set single element",
 			initial:     nil,
-			setValue:     []int{99},
+			setValue:    []int{99},
 			expectedLen: 1,
 			expectedVal: []int{99},
 		},
 		{
 			name:        "set with large slice",
 			initial:     []int{1},
-			setValue:     make([]int, 1000),
+			setValue:    make([]int, 1000),
 			expectedLen: 1000,
 			expectedVal: make([]int, 1000),
 		},
@@ -520,8 +517,14 @@ func TestPush(t *testing.T) {
 			expectedTop: 999999,
 		},
 		{
-			name:        "push many values",
-			pushValues:  func() []int { v := make([]int, 100); for i := range v { v[i] = i }; return v }(),
+			name: "push many values",
+			pushValues: func() []int {
+				v := make([]int, 100)
+				for i := range v {
+					v[i] = i
+				}
+				return v
+			}(),
 			expectedLen: 100,
 			expectedTop: 99,
 		},
@@ -610,9 +613,9 @@ func TestPushLeft(t *testing.T) {
 
 func TestPop(t *testing.T) {
 	cases := []struct {
-		name           string
-		setup          func() *Stack[int]
-		expectedValue  int
+		name             string
+		setup            func() *Stack[int]
+		expectedValue    int
 		expectedLenAfter int
 	}{
 		{
@@ -1071,7 +1074,7 @@ func TestStackWithStructType(t *testing.T) {
 		},
 		{
 			name: "pop struct from empty returns zero struct",
-			ops: func(s *Stack[item]) {
+			ops: func(_ *Stack[item]) {
 			},
 			expectedLen:  0,
 			expectedPeek: item{},

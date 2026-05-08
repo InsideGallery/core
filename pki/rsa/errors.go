@@ -1,4 +1,4 @@
-package rsa
+package rsa //nolint:revive
 
 import "errors"
 

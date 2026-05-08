@@ -7,6 +7,9 @@ import (
 	"github.com/aerospike/aerospike-client-go/v7"
 )
 
+// Aerospike is the legacy Aerospike SDK-shaped client contract.
+//
+// Deprecated: use NamespaceStore and core-owned option/result types for new code.
 type Aerospike interface {
 	IsConnected() bool
 	GetNodeNames() []string
@@ -84,6 +87,9 @@ type Aerospike interface {
 	BatchOperate(policy *aerospike.BatchPolicy, records []aerospike.BatchRecordIfc) aerospike.Error
 }
 
+// Namespace is the legacy namespace contract that exposes Aerospike SDK types.
+//
+// Deprecated: use NamespaceStore and core-owned option/result types for new code.
 type Namespace interface {
 	Put(*aerospike.WritePolicy, string, interface{}, aerospike.BinMap) aerospike.Error
 	PutBins(policy *aerospike.WritePolicy, setName string, value interface{}, bins ...*aerospike.Bin) aerospike.Error

@@ -1,0 +1,52 @@
+digraph C4_Context {
+    graph [
+        label="System Context Diagram\nInsideGallery Core Library"
+        labelloc=t
+        fontsize=20
+        fontname="Helvetica"
+        rankdir=TB
+        compound=true
+        nodesep=1.0
+        ranksep=1.2
+    ]
+    node [shape=box style="filled,rounded" fontname="Helvetica" fontsize=11]
+    edge [fontname="Helvetica" fontsize=9]
+
+    consumer_apps [
+        label="Consumer Go Applications\n[Services, APIs, Workers]\n\nOwn main(), ports, routes,\nconfig, deployment, and\nattached resources."
+        fillcolor="#08427B" fontcolor=white
+    ]
+    test_suites [
+        label="Consumer and Package Tests\n[Go Test]\n\nUse fixtures, testutils,\nin-memory structures,\nand package APIs."
+        fillcolor="#08427B" fontcolor=white
+    ]
+    maintainers [
+        label="Core Maintainers\n[Library Owners]\n\nEvolve package APIs,\nreview compatibility,\nrun tests and lint."
+        fillcolor="#08427B" fontcolor=white
+    ]
+
+    subgraph cluster_core {
+        label=""
+        style=invis
+        core [
+            label="github.com/InsideGallery/core\n[Reusable Go Library]\n\nUtility packages, adapters,\nobservability helpers,\nserver support, PKI,\nand test helpers."
+            fillcolor="#1168BD" fontcolor=white
+            width=3.7 height=1.6
+        ]
+    }
+
+    backing_services [
+        label="Consumer-Owned Backing Services\n[Databases, NATS, Metrics, Logs]\n\nEndpoints, credentials,\ntimeouts, and lifecycle\ncome from the application."
+        fillcolor="#999999" fontcolor=white
+    ]
+    go_modules [
+        label="Go Module Toolchain\n[go get, go test]\n\nFetches versions,\ncompiles packages,\nruns tests and lint."
+        fillcolor="#999999" fontcolor=white
+    ]
+
+    consumer_apps -> core [label="Import selected packages\n[Go API]"]
+    test_suites -> core [label="Exercise package APIs\n[go test]"]
+    maintainers -> core [label="Publish compatible changes\n[Go module tags]"]
+    core -> backing_services [label="Connect only through\nconsumer-selected adapters"]
+    go_modules -> core [label="Resolve module and deps\n[Go modules]"]
+}

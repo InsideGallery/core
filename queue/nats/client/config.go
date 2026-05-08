@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"runtime"
 	"strings"
@@ -71,6 +72,17 @@ func (cfg *Config) GetReadTimeout() time.Duration {
 }
 
 func (cfg *Config) GetOptions() []nats.Option {
+	options, err := cfg.GetOptionsStrict()
+	if err != nil {
+		slog.Default().Error("get nats options", "err", err)
+
+		return nil
+	}
+
+	return options
+}
+
+func (cfg *Config) GetOptionsStrict() ([]nats.Option, error) {
 	options := []nats.Option{
 		nats.RetryOnFailedConnect(cfg.RetryOnFailedConnect),
 		nats.MaxReconnects(cfg.MaxReconnects),
@@ -88,16 +100,12 @@ func (cfg *Config) GetOptions() []nats.Option {
 	if cfg.Seed != "" {
 		kp, err := nkeys.FromSeed([]byte(cfg.Seed))
 		if err != nil {
-			slog.Default().Error("get key from seed", "err", err)
-
-			return nil
+			return nil, fmt.Errorf("get key from seed: %w", err)
 		}
 
 		usrNKey, err := kp.PublicKey()
 		if err != nil {
-			slog.Default().Error("get public key", "err", err)
-
-			return nil
+			return nil, fmt.Errorf("get public key: %w", err)
 		}
 
 		options = append(options, nats.Nkey(usrNKey, func(nonce []byte) ([]byte, error) {
@@ -114,11 +122,13 @@ func (cfg *Config) GetOptions() []nats.Option {
 		if sub != nil {
 			slog.Error("Error on connection",
 				"err", err, "cid", cid, "subject", sub.Subject)
-		} else {
-			slog.Error("Error on connection",
-				"err", err, "cid", cid)
+
+			return
 		}
+
+		slog.Error("Error on connection",
+			"err", err, "cid", cid)
 	}))
 
-	return options
+	return options, nil
 }

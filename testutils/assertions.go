@@ -1,3 +1,12 @@
+// Package testutils is the legacy shared assertion import path.
+//
+// New code should import the focused replacement package:
+//
+//	import "github.com/InsideGallery/core/testassert"
+//
+// Compatibility: existing assertion helpers remain available for downstream
+// tests that still import testutils. Do not add new assertions here; add them to
+// testassert so new tests avoid the legacy aggregate path.
 package testutils
 
 import (

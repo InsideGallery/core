@@ -9,7 +9,7 @@ import (
 
 type Operations interface {
 	Execute([]*as.Operation) error
-	GetNamespace() aerospike.Namespace
+	GetNamespace() aerospike.Namespace //nolint:staticcheck // legacy entity operations keep the namespace shim
 	Get(bins ...string) (*as.Record, error)
 	GetBin(binName string) (interface{}, error)
 	Exists() (bool, as.Error)

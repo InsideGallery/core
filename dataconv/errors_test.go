@@ -22,6 +22,7 @@ func TestErrorValues(t *testing.T) {
 			if tc.err == nil {
 				t.Fatal("expected non-nil error")
 			}
+
 			if tc.err.Error() != tc.wantMsg {
 				t.Fatalf("expected %q, got %q", tc.wantMsg, tc.err.Error())
 			}

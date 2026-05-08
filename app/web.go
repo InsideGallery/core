@@ -6,18 +6,15 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
 
-	_ "github.com/InsideGallery/core/fastlog/handlers/stderr"       // register default log handler
 	_ "github.com/InsideGallery/core/metrics/processors/prometheus" // register default metrics processor
 
 	"github.com/gofiber/fiber/v3"
 
-	"github.com/InsideGallery/core/fastlog"
 	"github.com/InsideGallery/core/metrics"
 	"github.com/InsideGallery/core/oslistener"
 	"github.com/InsideGallery/core/profiler"
@@ -27,43 +24,94 @@ import (
 
 const shutdownTimeout = 10 * time.Second
 
+// InitRoutes configures routes through a core-owned router.
+type InitRoutes = webserver.RouteInitializer
+
+// InitRouter configures routes with the legacy Fiber app callback.
+//
+// Deprecated: use WebOptions.InitRoutes for new code.
 type InitRouter func(ctx context.Context, app *fiber.App, met *metrics.Client) error
 
+// WebMain starts the web bootstrap flow and logs failures.
+//
+// Deprecated: use app.RunWeb with app.Config.
 func WebMain(ctx context.Context, port string, serverName string, initRouter InitRouter) {
-	fastlog.SetupDefaultLog()
-	profiler.Started.Store(false)
-	profiler.Ready.Store(false)
-
-	shutdownMonitor := profiler.Monitor(os.Getenv("MONITOR_ADDR"))
-	defer shutdownMonitor()
-	defer recoverPanic("Recovered request panic")
-
-	metricsClient, closeMetrics, err := newMetricsClient(serverName)
+	cfg, err := webConfigFromEnv(port, serverName)
 	if err != nil {
-		slog.Default().Error("init metrics", "err", err)
+		slog.Default().Error("create web bootstrap options", "err", err)
 
 		return
 	}
 
-	var closeMetricsOnce sync.Once
+	if err := RunWeb(ctx, cfg, initRouter); err != nil {
+		slog.Default().Error("run web bootstrap", "err", err)
+	}
+}
+
+func runWebOptions(ctx context.Context, options WebOptions) (runErr error) {
+	if ctx == nil {
+		return fmt.Errorf("context is not set")
+	}
+
+	runCtx, stopRun := context.WithCancel(ctx)
+	defer stopRun()
+
+	profilerState := webProfilerState(options)
+	profilerState.SetStarted(false)
+	profilerState.SetReady(false)
+
+	shutdownMonitor := profilerState.Monitor(options.MonitorAddr)
+	defer shutdownMonitor()
+	defer recoverBootstrapPanic(&runErr, "web bootstrap panic")
+
+	metricsOptions := options.Metrics
+	if metricsOptions.ServiceName == "" {
+		metricsOptions.ServiceName = options.ServerName
+	}
+
+	if metricsOptions.HealthState == nil {
+		metricsOptions.HealthState = profilerState
+	}
+
+	metricsRuntime, err := NewMetricsClient(metricsOptions)
+	if err != nil {
+		return fmt.Errorf("init metrics: %w", err)
+	}
+
+	metricsClient := metricsRuntime.Client()
+
+	var (
+		closeMetricsOnce  sync.Once
+		closeMetricsErr   error
+		closeMetricsErrMu sync.Mutex
+	)
 
 	closeMetricsFunc := func() {
 		closeMetricsOnce.Do(func() {
-			if err := closeMetrics(); err != nil {
-				slog.Default().Error("close metrics", "err", err)
+			if err := metricsRuntime.Close(); err != nil {
+				closeMetricsErrMu.Lock()
+				closeMetricsErr = errors.Join(closeMetricsErr, err)
+				closeMetricsErrMu.Unlock()
 			}
 		})
 	}
-	defer closeMetricsFunc()
 
-	app := webserver.NewFiberApp(serverName)
+	defer func() {
+		closeMetricsFunc()
+
+		closeMetricsErrMu.Lock()
+		runErr = errors.Join(runErr, closeMetricsErr)
+		closeMetricsErrMu.Unlock()
+	}()
+
+	app := webserver.NewFiberApp(options.ServerName)
 	if metricsClient != nil {
 		app.Use(webmiddlewares.Metrics(metricsClient))
 	}
 
 	var appStopped atomic.Bool
 
-	profiler.AddHealthCheck(func() error {
+	profilerState.AddHealthCheck(func() error {
 		if appStopped.Load() {
 			return fmt.Errorf("app stopped: %w", profiler.ErrServiceIsOffline)
 		}
@@ -71,75 +119,141 @@ func WebMain(ctx context.Context, port string, serverName string, initRouter Ini
 		return nil
 	})
 
-	if initRouter != nil {
-		if err = initRouter(ctx, app, metricsClient); err != nil {
-			slog.Default().Error("init routers", "err", err)
-
-			return
+	if options.InitRouter != nil {
+		if err = options.InitRouter(runCtx, app, metricsClient); err != nil {
+			return fmt.Errorf("init routers: %w", err)
 		}
 	}
 
-	profiler.Started.Store(true)
+	if options.InitRoutes != nil {
+		if err = options.InitRoutes(runCtx, webserver.NewFiberRouter(app)); err != nil {
+			return fmt.Errorf("init routes: %w", err)
+		}
+	}
+
+	profilerState.SetStarted(true)
 
 	var shutdownOnce sync.Once
+
+	var (
+		shutdownErr   error
+		shutdownErrMu sync.Mutex
+	)
+
+	recordShutdownErr := func(err error) {
+		if err == nil {
+			return
+		}
+
+		shutdownErrMu.Lock()
+		defer shutdownErrMu.Unlock()
+
+		shutdownErr = errors.Join(shutdownErr, err)
+	}
 
 	shutdown := func() {
 		shutdownOnce.Do(func() {
 			appStopped.Store(true)
-			profiler.Ready.Store(false)
-			slog.Default().Info("shutting down web server", "service", serverName)
+			profilerState.SetReady(false)
+			slog.Default().Info("shutting down web server", "service", options.ServerName)
 
-			shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), webShutdownTimeout(options))
 			defer cancel()
 
 			if err := app.ShutdownWithContext(shutdownCtx); err != nil && !errors.Is(err, fiber.ErrNotRunning) {
-				slog.Default().Error("stop fiber", "err", err)
+				recordShutdownErr(fmt.Errorf("stop fiber: %w", err))
 			}
 
 			closeMetricsFunc()
 		})
 	}
 
-	registerShutdown(shutdown)
-	startSignalListener(ctx)
+	registerShutdown(options.ShutdownListener, shutdown)
+	startSignalListener(runCtx, options.ShutdownListener)
 
 	go func() {
-		<-ctx.Done()
+		<-runCtx.Done()
 		shutdown()
 	}()
 
-	err = app.Listen(port, fiber.ListenConfig{
-		GracefulContext:   ctx,
-		ShutdownTimeout:   shutdownTimeout,
-		EnablePrintRoutes: os.Getenv("DEPLOYMENT_ENVIRONMENT") == "",
+	err = app.Listen(options.Port, fiber.ListenConfig{
+		GracefulContext:   runCtx,
+		ShutdownTimeout:   webShutdownTimeout(options),
+		EnablePrintRoutes: options.Environment.EnablePrintRoutes,
 		BeforeServeFunc: func(_ *fiber.App) error {
-			profiler.Ready.Store(true)
+			profilerState.SetReady(true)
 
 			return nil
 		},
 	})
 
-	profiler.Ready.Store(false)
+	profilerState.SetReady(false)
+	shutdown()
 
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Default().Error("server stopped with error", "err", err)
+		runErr = errors.Join(runErr, fmt.Errorf("server stopped: %w", err))
 	}
+
+	shutdownErrMu.Lock()
+	runErr = errors.Join(runErr, shutdownErr)
+	shutdownErrMu.Unlock()
+
+	return runErr
 }
 
-func registerShutdown(shutdown func()) {
-	listener := oslistener.Get()
+// WebOptionsFromEnv builds compatibility web options from environment-derived values.
+func WebOptionsFromEnv(port string, serverName string, initRouter InitRouter) (WebOptions, error) {
+	cfg, err := webConfigFromEnv(port, serverName)
+	if err != nil {
+		return WebOptions{}, err
+	}
+
+	return webOptionsFromConfig(cfg, initRouter), nil
+}
+
+func webProfilerState(options WebOptions) *profiler.State {
+	if options.ProfilerState != nil {
+		return options.ProfilerState
+	}
+
+	return profiler.DefaultState()
+}
+
+func webShutdownTimeout(options WebOptions) time.Duration {
+	if options.ShutdownTimeout > 0 {
+		return options.ShutdownTimeout
+	}
+
+	return shutdownTimeout
+}
+
+func registerShutdown(listener *oslistener.SignalListener, shutdown func()) {
+	if listener == nil {
+		return
+	}
+
 	listener.Append(syscall.SIGTERM, shutdown)
 	listener.Append(syscall.SIGINT, shutdown)
 	listener.Append(syscall.SIGQUIT, shutdown)
 	listener.Append(syscall.SIGHUP, shutdown)
 }
 
-func startSignalListener(ctx context.Context) {
-	oslistener.Start(ctx, oslistener.Get())
+func startSignalListener(ctx context.Context, listener *oslistener.SignalListener) {
+	if listener == nil {
+		return
+	}
+
+	oslistener.Start(ctx, listener)
 }
 
 func recoverPanic(message string) {
 	if value := recover(); value != nil {
 		slog.Default().Error(message, "value", value)
+	}
+}
+
+func recoverBootstrapPanic(err *error, message string) {
+	if value := recover(); value != nil {
+		*err = errors.Join(*err, fmt.Errorf("%s: %v", message, value))
 	}
 }

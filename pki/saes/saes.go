@@ -36,8 +36,12 @@ func (a *SAES) ToBinary() ([]byte, error) {
 	return a.key, nil
 }
 
-func (a *SAES) FromBinary(raw []byte) (localCipher.Cipher, error) {
+func FromBinary(raw []byte) (*SAES, error) {
 	return &SAES{key: raw}, nil
+}
+
+func (a *SAES) FromBinary(raw []byte) (localCipher.Cipher, error) { //nolint:ireturn
+	return FromBinary(raw)
 }
 
 func (a *SAES) Encrypt(origin []byte) ([]byte, error) {

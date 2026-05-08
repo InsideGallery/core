@@ -1,13 +1,14 @@
-package rsa
+package rsa_test
 
 import (
 	"testing"
 
+	corersa "github.com/InsideGallery/core/pki/rsa"
 	"github.com/InsideGallery/core/testutils"
 )
 
 func TestRSACipher(t *testing.T) {
-	a, err := NewRSA(DefaultBitsSize)
+	a, err := corersa.NewRSA(corersa.DefaultBitsSize)
 	testutils.Equal(t, err, nil)
 
 	val := []byte("test string")
@@ -21,7 +22,7 @@ func TestRSACipher(t *testing.T) {
 }
 
 func TestRSACipherRestore(t *testing.T) {
-	a, err := NewRSA(DefaultBitsSize)
+	a, err := corersa.NewRSA(corersa.DefaultBitsSize)
 	testutils.Equal(t, err, nil)
 
 	raw, err := a.ToBinary()

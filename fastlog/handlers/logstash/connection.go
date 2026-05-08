@@ -11,15 +11,11 @@ import (
 const OutKind = "logstash"
 
 func init() {
-	handlers.RegisterWriter(OutKind, New)
+	handlers.DefaultRegistry().RegisterWriter(OutKind, New)
 }
 
-func New() (io.Writer, *slog.HandlerOptions, error) {
-	cfg, err := GetConfigFromEnv()
-	if err != nil {
-		return nil, nil, err
-	}
-
+// NewFromConfig creates a Logstash writer from explicit config.
+func NewFromConfig(cfg Config) (io.Writer, *slog.HandlerOptions, error) {
 	// to test logstash, execute ncat -l 4242 -k
 	addr, err := net.ResolveTCPAddr(cfg.Network, cfg.Host)
 	if err != nil {
@@ -31,4 +27,16 @@ func New() (io.Writer, *slog.HandlerOptions, error) {
 	return w, &slog.HandlerOptions{
 		Level: cfg.Level,
 	}, err
+}
+
+// New creates a Logstash writer from environment config.
+//
+// Deprecated: use NewFromConfig with explicit config ownership.
+func New() (io.Writer, *slog.HandlerOptions, error) {
+	cfg, err := GetConfigFromEnv()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return NewFromConfig(*cfg)
 }

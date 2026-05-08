@@ -42,9 +42,11 @@ func (h *gdprMiddleware) Handle(ctx context.Context, record slog.Record) error {
 	record.Attrs(func(attr slog.Attr) bool {
 		if mightContainPII(attr.Key) {
 			attrs = append(attrs, anonymize(attr))
-		} else {
-			attrs = append(attrs, attr)
+
+			return true
 		}
+
+		attrs = append(attrs, attr)
 
 		return true
 	})

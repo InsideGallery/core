@@ -56,8 +56,12 @@ func (l *List[V]) insert(e, at *Element[V]) *Element[V] {
 	e.id = id
 
 	// Remove previous value
-	if _, exists := l.index[e.id]; exists {
-		l.Remove(l.ByID(e.id))
+	if existing, exists := l.index[e.id]; exists {
+		if at == existing {
+			at = existing.prev
+		}
+
+		l.Remove(existing)
 	}
 
 	l.index[e.id] = e

@@ -10,6 +10,8 @@ import (
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
+
+	coreredis "github.com/InsideGallery/core/db/redis"
 )
 
 const (
@@ -30,6 +32,16 @@ type Redis struct {
 	key   string
 }
 
+// RedisOptions is the core-owned input for Redis-backed proxy storage.
+type RedisOptions struct {
+	Context    context.Context
+	Key        string
+	Connection *coreredis.Connection //nolint:staticcheck // adapts the core Redis compatibility wrapper
+}
+
+// NewRedis creates Redis-backed proxy storage from a Redis SDK client.
+//
+// Deprecated: use NewRedisWithOptions with db/redis.Connection for new code.
 func NewRedis(ctx context.Context, key string, conn *redis.Client) *Redis {
 	pool := goredis.NewPool(conn)
 	rs := redsync.New(pool)
@@ -41,6 +53,21 @@ func NewRedis(ctx context.Context, key string, conn *redis.Client) *Redis {
 		conn:  conn,
 		mutex: mutex,
 	}
+}
+
+// NewRedisWithOptions creates Redis-backed proxy storage without exposing Redis SDK types.
+func NewRedisWithOptions(options RedisOptions) *Redis {
+	ctx := options.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var conn *redis.Client
+	if options.Connection != nil {
+		conn = options.Connection.Client
+	}
+
+	return NewRedis(ctx, options.Key, conn)
 }
 
 func (s *Redis) LockOrWait() error {

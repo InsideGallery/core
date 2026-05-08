@@ -1,3 +1,8 @@
+// Package utils is a legacy aggregate of byte, string, hash, context, password,
+// slice, semver, and tokenizer helpers.
+//
+// New helpers should live in the package that owns the concept. Existing exports
+// remain for compatibility.
 package utils
 
 import (
@@ -6,9 +11,20 @@ import (
 	"github.com/go-faster/xor"
 )
 
+const (
+	bitsPerByte       = 8
+	nibbleBitSize     = 4
+	leftNibbleMask    = 0xF0
+	rightNibbleMask   = 0x0F
+	unsignedByteMask  = 0xff
+	crcByteIndexTwo   = 2
+	crcByteIndexThree = 3
+	messagePadStart   = 0x80
+)
+
 func GetByteLSB(value int64, byteNumber int) byte {
 	for byteNumber > 0 {
-		value = value >> 8
+		value >>= bitsPerByte
 		byteNumber--
 	}
 
@@ -20,15 +36,15 @@ func GetBitLSB(b byte, bit int) bool {
 }
 
 func LeftNibble(input byte) int {
-	return (int(input) & 0xF0) >> 4
+	return (int(input) & leftNibbleMask) >> nibbleBitSize
 }
 
 func RightNibble(input byte) int {
-	return int(input) & 0x0F
+	return int(input) & rightNibbleMask
 }
 
 func UnsignedByteToInt(b byte) int {
-	return int(b) & 0xff
+	return int(b) & unsignedByteMask
 }
 
 func XOR(a1, a2 []byte) []byte {
@@ -73,8 +89,8 @@ func JamCRC32(value []byte) []byte {
 	basicCRC := []byte{
 		GetByteLSB(int64(result), 0),
 		GetByteLSB(int64(result), 1),
-		GetByteLSB(int64(result), 2),
-		GetByteLSB(int64(result), 3),
+		GetByteLSB(int64(result), crcByteIndexTwo),
+		GetByteLSB(int64(result), crcByteIndexThree),
 	}
 
 	jamCRC := XOR(basicCRC,
@@ -112,7 +128,7 @@ func RotateRight(val []byte, rotations int) []byte {
 	result := make([]byte, len(val))
 
 	for i := 0; i < len(val); i++ {
-		newIdx := i
+		var newIdx int
 		if i >= (len(val) - rotations) {
 			newIdx = i - len(val) + rotations
 		} else {
@@ -135,7 +151,7 @@ func PadMessageToBlocksize(message []byte, blocksize int) []byte {
 
 	result := make([]byte, (compleBlocks+1)*blocksize)
 	copy(result, message)
-	result[len(message)] = byte(0x80)
+	result[len(message)] = messagePadStart
 
 	return result
 }

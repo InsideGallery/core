@@ -6,6 +6,7 @@ import "time"
 type Subscription interface {
 	NextMsg(timeout time.Duration) (Msg, error)
 	Drain() error
+	// Deprecated: use Subject.
 	GetSubject() string
 	Pending() (int64, int64, error)
 	Dropped() (int64, error)

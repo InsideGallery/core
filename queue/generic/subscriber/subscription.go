@@ -93,7 +93,7 @@ func (s *Subscription) Process(
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				if len(ch) > 0 && s.wpool.Size() < s.Config().GetMaxConcurrentSize() {
+				if len(ch) > 0 && s.wpool.Size() < interfaces.MaxConcurrentSize(s.Config()) {
 					s.Client.Logger().Info("Increase pool size", "pending", len(ch), "wpool", s.wpool.Size())
 					s.wpool.Execute(func(ctx context.Context) error {
 						return s.wpool.TemporalWorker(ctx, idleTimeout, func() {

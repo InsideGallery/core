@@ -1,3 +1,13 @@
+// Package utils is the legacy memory-helper import path.
+//
+// New code should import the focused replacement packages:
+//
+//	import "github.com/InsideGallery/core/memory/concurrent"
+//	import "github.com/InsideGallery/core/memory/order"
+//
+// Compatibility: SafeList, SafeMap, and Sort remain available for downstream
+// consumers that still import memory/utils. Do not add new helpers here; place
+// them in the focused memory package that owns the behavior.
 package utils
 
 import "sync"

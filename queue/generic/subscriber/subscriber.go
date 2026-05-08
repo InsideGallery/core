@@ -11,13 +11,18 @@ import (
 	"github.com/InsideGallery/core/queue/generic/subscriber/interfaces"
 )
 
-func GetConcurrentSize(cfg interfaces.Config) int {
-	size := cfg.GetConcurrentSize()
+func ConcurrentSize(cfg interfaces.Config) int {
+	size := interfaces.ConcurrentSize(cfg)
 	if size <= 0 {
 		return runtime.NumCPU()
 	}
 
 	return size
+}
+
+// Deprecated: use ConcurrentSize.
+func GetConcurrentSize(cfg interfaces.Config) int {
+	return ConcurrentSize(cfg)
 }
 
 type Subscriber struct {
@@ -40,7 +45,7 @@ func (s *Subscriber) GetSubs() *memory.SafeMap[string, *Subscription] {
 }
 
 func (s *Subscriber) Subscribe(subject, queue string, handler interfaces.MsgHandler) {
-	s.SubscribeWithParameters(GetConcurrentSize(s.Config()), s.Config().GetReadTimeout(), subject, queue, handler)
+	s.SubscribeWithParameters(ConcurrentSize(s.Config()), interfaces.ReadTimeout(s.Config()), subject, queue, handler)
 }
 
 func (s *Subscriber) SubscribeWithParameters(

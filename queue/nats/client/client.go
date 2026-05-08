@@ -19,6 +19,9 @@ type Client struct {
 	meter metric.Meter
 }
 
+// NewClient creates the legacy NATS SDK-shaped client.
+//
+// Deprecated: use Connect and CoreClient for new connection code.
 func NewClient(
 	ctx context.Context,
 	conn *nats.Conn,
@@ -47,10 +50,12 @@ func (c *Client) Meter() metric.Meter {
 	return c.meter
 }
 
+// Conn returns the legacy NATS SDK connection.
 func (c *Client) Conn() *nats.Conn {
 	return c.conn
 }
 
+// QueueSubscribeSync exposes the legacy NATS subscription type.
 func (c *Client) QueueSubscribeSync(subject, queue string) (*nats.Subscription, error) {
 	return c.conn.QueueSubscribeSync(subject, queue)
 }
@@ -75,16 +80,29 @@ func (c *Client) Config() *Config {
 	return c.cfg
 }
 
+// ConnectClient creates a NATS client from explicit config.
+func ConnectClient(ctx context.Context, config *Config, logger Logger) (*Client, error) {
+	options, err := config.GetOptionsStrict()
+	if err != nil {
+		return nil, fmt.Errorf("queue config options: %w", err)
+	}
+
+	ncc, err := nats.Connect(config.Addr, options...)
+	if err != nil {
+		return nil, fmt.Errorf("queue connect err: %w", err)
+	}
+
+	return NewClient(ctx, ncc, config, logger)
+}
+
+// Default creates a NATS client from environment variables.
+//
+// Deprecated: use ConnectClient with explicit config or Connect with core-owned options.
 func Default(ctx context.Context, logger Logger, prefixes ...string) (*Client, error) {
 	config, err := GetNATSConnectionConfigFromEnv(prefixes...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting queue config: %w", err)
 	}
 
-	ncc, err := nats.Connect(config.Addr, config.GetOptions()...)
-	if err != nil {
-		return nil, fmt.Errorf("queue connect err: %w", err)
-	}
-
-	return NewClient(ctx, ncc, config, logger)
+	return ConnectClient(ctx, config, logger)
 }

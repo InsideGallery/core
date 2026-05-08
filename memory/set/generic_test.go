@@ -9,13 +9,7 @@ func sortedStrings(s []string) []string {
 	out := make([]string, len(s))
 	copy(out, s)
 	sort.Strings(out)
-	return out
-}
 
-func sortedInts(s []int) []int {
-	out := make([]int, len(s))
-	copy(out, s)
-	sort.Ints(out)
 	return out
 }
 
@@ -23,27 +17,16 @@ func equalStringSlicesSorted(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
 	sa := sortedStrings(a)
+
 	sb := sortedStrings(b)
 	for i := range sa {
 		if sa[i] != sb[i] {
 			return false
 		}
 	}
-	return true
-}
 
-func equalIntSlicesSorted(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	sa := sortedInts(a)
-	sb := sortedInts(b)
-	for i := range sa {
-		if sa[i] != sb[i] {
-			return false
-		}
-	}
 	return true
 }
 
@@ -51,11 +34,13 @@ func equalStringSlicesOrdered(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
 	for i := range a {
 		if a[i] != b[i] {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -116,6 +101,7 @@ func TestNewGenericDataSet(t *testing.T) {
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			if !equalStringSlicesSorted(s.ToSlice(), tc.wantSlice) {
 				t.Fatalf("ToSlice: got %v, want %v", s.ToSlice(), tc.wantSlice)
 			}
@@ -158,10 +144,10 @@ func TestNewGenericDataSetInts(t *testing.T) {
 
 func TestGenericDataSet_Add(t *testing.T) {
 	cases := []struct {
-		name       string
-		initial    []string
-		addKeys    []string
-		wantCount  int
+		name        string
+		initial     []string
+		addKeys     []string
+		wantCount   int
 		wantContain []string
 	}{
 		{
@@ -214,9 +200,11 @@ func TestGenericDataSet_Add(t *testing.T) {
 			for _, k := range tc.addKeys {
 				s.Add(k)
 			}
+
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			for _, k := range tc.wantContain {
 				if !s.Contains(k) {
 					t.Fatalf("expected set to contain %q", k)
@@ -282,9 +270,11 @@ func TestGenericDataSet_Delete(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericDataSet(tc.initial...)
 			s.Delete(tc.deleteKey)
+
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			if s.Contains(tc.shouldAbsent) {
 				t.Fatalf("expected set to not contain %q after delete", tc.shouldAbsent)
 			}
@@ -346,6 +336,7 @@ func TestGenericDataSet_Contains(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericDataSet(tc.initial...)
+
 			got := s.Contains(tc.key)
 			if got != tc.want {
 				t.Fatalf("Contains(%q): got %v, want %v", tc.key, got, tc.want)
@@ -452,10 +443,10 @@ func TestGenericDataSet_IsEmpty(t *testing.T) {
 
 func TestGenericDataSet_IsEmpty_AfterMutation(t *testing.T) {
 	cases := []struct {
-		name      string
-		addKeys   []string
+		name       string
+		addKeys    []string
 		deleteKeys []string
-		want      bool
+		want       bool
 	}{
 		{
 			name:       "add then delete same key",
@@ -501,9 +492,11 @@ func TestGenericDataSet_IsEmpty_AfterMutation(t *testing.T) {
 			for _, k := range tc.addKeys {
 				s.Add(k)
 			}
+
 			for _, k := range tc.deleteKeys {
 				s.Delete(k)
 			}
+
 			if s.IsEmpty() != tc.want {
 				t.Fatalf("IsEmpty: got %v, want %v", s.IsEmpty(), tc.want)
 			}
@@ -552,6 +545,7 @@ func TestGenericDataSet_ToSlice(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericDataSet(tc.initial...)
+
 			got := s.ToSlice()
 			if !equalStringSlicesSorted(got, tc.want) {
 				t.Fatalf("ToSlice: got %v, want %v (order-independent)", sortedStrings(got), sortedStrings(tc.want))
@@ -616,6 +610,7 @@ func TestGenericDataSet_Union(t *testing.T) {
 			sa := NewGenericDataSet(tc.a...)
 			sb := NewGenericDataSet(tc.b...)
 			result := sa.Union(sb)
+
 			got := result.ToSlice()
 			if !equalStringSlicesSorted(got, tc.want) {
 				t.Fatalf("Union: got %v, want %v", sortedStrings(got), sortedStrings(tc.want))
@@ -626,11 +621,11 @@ func TestGenericDataSet_Union(t *testing.T) {
 
 func TestGenericDataSet_Union_DoesNotMutateOriginals(t *testing.T) {
 	cases := []struct {
-		name    string
-		a       []string
-		b       []string
-		aCount  int
-		bCount  int
+		name   string
+		a      []string
+		b      []string
+		aCount int
+		bCount int
 	}{
 		{
 			name:   "originals unchanged after union",
@@ -645,10 +640,12 @@ func TestGenericDataSet_Union_DoesNotMutateOriginals(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			sa := NewGenericDataSet(tc.a...)
 			sb := NewGenericDataSet(tc.b...)
+
 			_ = sa.Union(sb)
 			if sa.Count() != tc.aCount {
 				t.Fatalf("original set a mutated: got count %d, want %d", sa.Count(), tc.aCount)
 			}
+
 			if sb.Count() != tc.bCount {
 				t.Fatalf("original set b mutated: got count %d, want %d", sb.Count(), tc.bCount)
 			}
@@ -712,6 +709,7 @@ func TestGenericDataSet_Intersection(t *testing.T) {
 			sa := NewGenericDataSet(tc.a...)
 			sb := NewGenericDataSet(tc.b...)
 			result := sa.Intersection(sb)
+
 			got := result.ToSlice()
 			if !equalStringSlicesSorted(got, tc.want) {
 				t.Fatalf("Intersection: got %v, want %v", sortedStrings(got), sortedStrings(tc.want))
@@ -777,6 +775,7 @@ func TestNewGenericOrderedDataSet(t *testing.T) {
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			got := s.ToSlice()
 			if !equalStringSlicesOrdered(got, tc.wantSlice) {
 				t.Fatalf("ToSlice: got %v, want %v", got, tc.wantSlice)
@@ -843,9 +842,11 @@ func TestGenericOrderedDataSet_Add(t *testing.T) {
 			for _, k := range tc.addKeys {
 				s.Add(k)
 			}
+
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			got := s.ToSlice()
 			if !equalStringSlicesOrdered(got, tc.wantSlice) {
 				t.Fatalf("ToSlice: got %v, want %v", got, tc.wantSlice)
@@ -917,9 +918,11 @@ func TestGenericOrderedDataSet_Delete(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
 			s.Delete(tc.deleteKey)
+
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			got := s.ToSlice()
 			if !equalStringSlicesOrdered(got, tc.wantSlice) {
 				t.Fatalf("ToSlice: got %v, want %v", got, tc.wantSlice)
@@ -964,6 +967,7 @@ func TestGenericOrderedDataSet_Last(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
+
 			got := s.Last()
 			if got != tc.want {
 				t.Fatalf("Last: got %q, want %q", got, tc.want)
@@ -997,6 +1001,7 @@ func TestGenericOrderedDataSet_Last_AfterAdd(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
 			s.Add(tc.addKey)
+
 			got := s.Last()
 			if got != tc.want {
 				t.Fatalf("Last: got %q, want %q", got, tc.want)
@@ -1059,6 +1064,7 @@ func TestGenericOrderedDataSet_Contains(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
+
 			got := s.Contains(tc.key)
 			if got != tc.want {
 				t.Fatalf("Contains(%q): got %v, want %v", tc.key, got, tc.want)
@@ -1116,6 +1122,7 @@ func TestGenericOrderedDataSet_Contains_AfterDelete(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
 			s.Delete(tc.deleteKey)
+
 			got := s.Contains(tc.checkKey)
 			if got != tc.want {
 				t.Fatalf("Contains(%q) after Delete(%q): got %v, want %v", tc.checkKey, tc.deleteKey, got, tc.want)
@@ -1165,6 +1172,7 @@ func TestGenericOrderedDataSet_ToSlice(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
+
 			got := s.ToSlice()
 			if !equalStringSlicesOrdered(got, tc.want) {
 				t.Fatalf("ToSlice: got %v, want %v", got, tc.want)
@@ -1187,10 +1195,12 @@ func TestGenericOrderedDataSet_ToSlice_ReturnsCopy(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
+
 			sl := s.ToSlice()
 			if len(sl) > 0 {
 				sl[0] = "MUTATED"
 			}
+
 			got := s.ToSlice()
 			if !equalStringSlicesOrdered(got, tc.initial) {
 				t.Fatalf("internal state changed after mutating ToSlice result: got %v, want %v", got, tc.initial)
@@ -1298,9 +1308,11 @@ func TestGenericOrderedDataSet_Count_AfterMutations(t *testing.T) {
 			for _, k := range tc.addKeys {
 				s.Add(k)
 			}
+
 			for _, k := range tc.deleteKeys {
 				s.Delete(k)
 			}
+
 			if s.Count() != tc.want {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.want)
 			}
@@ -1380,17 +1392,21 @@ func TestGenericDataSet_WithIntType(t *testing.T) {
 			for _, k := range tc.addKeys {
 				s.Add(k)
 			}
+
 			for _, k := range tc.deleteKeys {
 				s.Delete(k)
 			}
+
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			for _, k := range tc.wantContain {
 				if !s.Contains(k) {
 					t.Fatalf("expected set to contain %d", k)
 				}
 			}
+
 			for _, k := range tc.wantAbsent {
 				if s.Contains(k) {
 					t.Fatalf("expected set to not contain %d", k)
@@ -1479,26 +1495,32 @@ func TestGenericOrderedDataSet_WithIntType(t *testing.T) {
 			for _, k := range tc.addKeys {
 				s.Add(k)
 			}
+
 			for _, k := range tc.deleteKeys {
 				s.Delete(k)
 			}
+
 			if s.Count() != tc.wantCount {
 				t.Fatalf("Count: got %d, want %d", s.Count(), tc.wantCount)
 			}
+
 			got := s.ToSlice()
 			if len(got) != len(tc.wantSlice) {
 				t.Fatalf("ToSlice length: got %d, want %d", len(got), len(tc.wantSlice))
 			}
+
 			for i := range got {
 				if got[i] != tc.wantSlice[i] {
 					t.Fatalf("ToSlice[%d]: got %d, want %d", i, got[i], tc.wantSlice[i])
 				}
 			}
+
 			for _, k := range tc.wantContain {
 				if !s.Contains(k) {
 					t.Fatalf("expected set to contain %d", k)
 				}
 			}
+
 			for _, k := range tc.wantAbsent {
 				if s.Contains(k) {
 					t.Fatalf("expected set to not contain %d", k)
@@ -1558,6 +1580,7 @@ func TestGenericOrderedDataSet_AddAfterDelete(t *testing.T) {
 			s := NewGenericOrderedDataSet(tc.initial...)
 			s.Delete(tc.deleteKey)
 			s.Add(tc.addKey)
+
 			got := s.ToSlice()
 			if !equalStringSlicesOrdered(got, tc.wantSlice) {
 				t.Fatalf("ToSlice after delete+add: got %v, want %v", got, tc.wantSlice)

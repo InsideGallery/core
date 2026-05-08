@@ -19,9 +19,11 @@ func TestEncodeBool(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeBool(tc.in, buf)
+
 			if buf.Len() != 1 {
 				t.Fatalf("expected 1 byte, got %d", buf.Len())
 			}
+
 			if buf.Bytes()[0] != tc.want {
 				t.Fatalf("expected %d, got %d", tc.want, buf.Bytes()[0])
 			}
@@ -44,6 +46,7 @@ func TestDecodeBool(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(tc.in)
+
 			got := DecodeBool(buf)
 			if got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, got)
@@ -67,6 +70,7 @@ func TestEncodeDecodeUint8(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeUint8(tc.in, buf)
+
 			got := DecodeUint8(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -90,9 +94,11 @@ func TestEncodeDecodeUint16(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeUint16(tc.in, buf)
+
 			if buf.Len() != 2 {
 				t.Fatalf("expected 2 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeUint16(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -116,9 +122,11 @@ func TestEncodeDecodeUint32(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeUint32(tc.in, buf)
+
 			if buf.Len() != 4 {
 				t.Fatalf("expected 4 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeUint32(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -142,9 +150,11 @@ func TestEncodeDecodeUint64(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeUint64(tc.in, buf)
+
 			if buf.Len() != 8 {
 				t.Fatalf("expected 8 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeUint64(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -169,9 +179,11 @@ func TestEncodeDecodeFloat64(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeFloat64(tc.in, buf)
+
 			if buf.Len() != 8 {
 				t.Fatalf("expected 8 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeFloat64(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %f, got %f", tc.in, got)
@@ -196,9 +208,11 @@ func TestEncodeDecodeFloat32(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeFloat32(tc.in, buf)
+
 			if buf.Len() != 4 {
 				t.Fatalf("expected 4 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeFloat32(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %f, got %f", tc.in, got)
@@ -223,9 +237,11 @@ func TestEncodeDecodeInt(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeInt(tc.in, buf)
+
 			if buf.Len() != 4 {
 				t.Fatalf("expected 4 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeInt(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.want {
 				t.Fatalf("expected %d, got %d", tc.want, got)
@@ -250,9 +266,11 @@ func TestEncodeDecodeInt64(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeInt64(tc.in, buf)
+
 			if buf.Len() != 8 {
 				t.Fatalf("expected 8 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeInt64(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -277,9 +295,11 @@ func TestEncodeDecodeInt32(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeInt32(tc.in, buf)
+
 			if buf.Len() != 4 {
 				t.Fatalf("expected 4 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeInt32(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -304,9 +324,11 @@ func TestEncodeDecodeInt16(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeInt16(tc.in, buf)
+
 			if buf.Len() != 2 {
 				t.Fatalf("expected 2 bytes, got %d", buf.Len())
 			}
+
 			got := DecodeInt16(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -331,9 +353,11 @@ func TestEncodeDecodeInt8(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeInt8(tc.in, buf)
+
 			if buf.Len() != 1 {
 				t.Fatalf("expected 1 byte, got %d", buf.Len())
 			}
+
 			got := DecodeInt8(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
@@ -357,6 +381,7 @@ func TestEncodeDecodeBytes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeBytes(tc.in, buf)
+
 			got := DecodeBytes(bytes.NewBuffer(buf.Bytes()))
 			if !bytes.Equal(got, tc.in) {
 				t.Fatalf("expected %v, got %v", tc.in, got)
@@ -381,6 +406,7 @@ func TestEncodeDecodeString(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeString(tc.in, buf)
+
 			got := DecodeString(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %q, got %q", tc.in, got)
@@ -405,6 +431,7 @@ func TestEncodeDecodeBuffer(t *testing.T) {
 			srcBuf := bytes.NewBuffer(tc.in)
 			dstBuf := bytes.NewBuffer(nil)
 			EncodeBuffer(srcBuf, dstBuf)
+
 			got := DecodeBuffer(bytes.NewBuffer(dstBuf.Bytes()))
 			if !bytes.Equal(got.Bytes(), tc.in) {
 				t.Fatalf("expected %v, got %v", tc.in, got.Bytes())
@@ -428,10 +455,10 @@ func (e *testEncodeable) Decode(kind uint8, data []byte) any {
 
 func TestEncodeEncodeable(t *testing.T) {
 	cases := []struct {
-		name     string
-		kind     uint8
-		data     []byte
-		wantLen  int
+		name    string
+		kind    uint8
+		data    []byte
+		wantLen int
 	}{
 		{"empty_data", 1, []byte{}, 1},
 		{"single_byte_data", 2, []byte{0xFF}, 2},
@@ -444,9 +471,11 @@ func TestEncodeEncodeable(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			enc := &testEncodeable{kind: tc.kind, data: tc.data}
 			EncodeEncodeable(enc, buf)
+
 			if buf.Len() != tc.wantLen {
 				t.Fatalf("expected %d bytes, got %d", tc.wantLen, buf.Len())
 			}
+
 			if buf.Bytes()[0] != tc.kind {
 				t.Fatalf("expected kind %d, got %d", tc.kind, buf.Bytes()[0])
 			}
@@ -472,13 +501,16 @@ func TestDecodeDecodable(t *testing.T) {
 			buf := bytes.NewBuffer(raw)
 			dec := &testEncodeable{}
 			result := DecodeDecodable(dec, buf)
+
 			got, ok := result.(*testEncodeable)
 			if !ok {
 				t.Fatal("expected *testEncodeable")
 			}
+
 			if got.kind != tc.kind {
 				t.Fatalf("expected kind %d, got %d", tc.kind, got.kind)
 			}
+
 			if !bytes.Equal(got.data, tc.data) {
 				t.Fatalf("expected data %v, got %v", tc.data, got.data)
 			}
@@ -501,11 +533,14 @@ func TestBinaryEncoderEncodeBool(t *testing.T) {
 			if err := enc.Encode(tc.in); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			dec := NewBinaryDecoder(enc.Bytes())
+
 			var got bool
 			if err := dec.Decode(&got); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, got)
 			}
@@ -531,11 +566,14 @@ func TestBinaryEncoderEncodeInt(t *testing.T) {
 			if err := enc.Encode(tc.in); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			dec := NewBinaryDecoder(enc.Bytes())
+
 			var got int
 			if err := dec.Decode(&got); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got != tc.want {
 				t.Fatalf("expected %d, got %d", tc.want, got)
 			}
@@ -560,11 +598,14 @@ func TestBinaryEncoderEncodeInt8(t *testing.T) {
 			if err := enc.Encode(tc.in); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			dec := NewBinaryDecoder(enc.Bytes())
+
 			var got int8
 			if err := dec.Decode(&got); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
 			}
@@ -589,11 +630,14 @@ func TestBinaryEncoderEncodeInt16(t *testing.T) {
 			if err := enc.Encode(tc.in); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			dec := NewBinaryDecoder(enc.Bytes())
+
 			var got int16
 			if err := dec.Decode(&got); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
 			}
@@ -618,11 +662,14 @@ func TestBinaryEncoderEncodeInt32(t *testing.T) {
 			if err := enc.Encode(tc.in); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			dec := NewBinaryDecoder(enc.Bytes())
+
 			var got int32
 			if err := dec.Decode(&got); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
 			}
@@ -647,11 +694,14 @@ func TestBinaryEncoderEncodeInt64(t *testing.T) {
 			if err := enc.Encode(tc.in); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			dec := NewBinaryDecoder(enc.Bytes())
+
 			var got int64
 			if err := dec.Decode(&got); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got != tc.in {
 				t.Fatalf("expected %d, got %d", tc.in, got)
 			}
@@ -673,15 +723,19 @@ func TestBinaryEncoderEncodeBuffer(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			enc := NewBinaryEncoder()
+
 			inBuf := bytes.NewBuffer(tc.in)
 			if err := enc.Encode(inBuf); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			dec := NewBinaryDecoder(enc.Bytes())
+
 			var got bytes.Buffer
 			if err := dec.Decode(&got); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if !bytes.Equal(got.Bytes(), tc.in) {
 				t.Fatalf("expected %v, got %v", tc.in, got.Bytes())
 			}
@@ -704,14 +758,17 @@ func TestBinaryEncoderEncodeEncodeable(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			enc := NewBinaryEncoder()
+
 			obj := &testEncodeable{kind: tc.kind, data: tc.data}
 			if err := enc.Encode(obj); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			encoded := enc.Bytes()
 			if len(encoded) == 0 {
 				t.Fatal("expected non-empty encoded bytes")
 			}
+
 			if encoded[0] != tc.kind {
 				t.Fatalf("expected kind %d at position 0, got %d", tc.kind, encoded[0])
 			}
@@ -733,6 +790,7 @@ func TestBinaryEncoderEncodeUnsupportedType(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			enc := NewBinaryEncoder()
+
 			err := enc.Encode(tc.in)
 			if err != ErrWrongEncodeType {
 				t.Fatalf("expected ErrWrongEncodeType, got %v", err)
@@ -755,6 +813,7 @@ func TestBinaryDecoderDecodeUnsupportedType(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dec := NewBinaryDecoder([]byte{0, 0, 0, 0, 0, 0, 0, 0})
+
 			err := dec.Decode(tc.in)
 			if err != ErrWrongDecodeType {
 				t.Fatalf("expected ErrWrongDecodeType, got %v", err)
@@ -780,6 +839,7 @@ func TestBinaryDecoderDecodeDecodable(t *testing.T) {
 			raw := append([]byte{tc.kind}, tc.data...)
 			dec := NewBinaryDecoder(raw)
 			obj := &testEncodeable{}
+
 			err := dec.Decode(obj)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -800,6 +860,7 @@ func TestNewBinaryEncoderBytes(t *testing.T) {
 			if enc == nil {
 				t.Fatal("expected non-nil encoder")
 			}
+
 			b := enc.Bytes()
 			if len(b) != 0 {
 				t.Fatalf("expected empty bytes, got %d bytes", len(b))
@@ -826,6 +887,7 @@ func TestNewBinaryDecoderBytes(t *testing.T) {
 			if dec == nil {
 				t.Fatal("expected non-nil decoder")
 			}
+
 			got := dec.Bytes()
 			if !bytes.Equal(got, tc.want) {
 				t.Fatalf("expected %v, got %v", tc.want, got)
@@ -836,165 +898,138 @@ func TestNewBinaryDecoderBytes(t *testing.T) {
 
 func TestBinaryEncoderMultipleValues(t *testing.T) {
 	cases := []struct {
-		name string
+		name   string
+		encode func(t *testing.T, enc *BinaryEncoder)
+		verify func(t *testing.T, dec *BinaryDecoder)
 	}{
-		{"bool_int8_string"},
-		{"all_int_types"},
-		{"mixed_types"},
-		{"floats_and_bytes"},
-		{"string_and_bool"},
+		{
+			name: "bool_int8_string",
+			encode: func(t *testing.T, enc *BinaryEncoder) {
+				encodeBinaryValues(t, enc, true, int8(42), "test")
+			},
+			verify: verifyBoolInt8String,
+		},
+		{
+			name: "all_int_types",
+			encode: func(t *testing.T, enc *BinaryEncoder) {
+				encodeBinaryValues(t, enc, int(100), int16(200), int32(300), int64(400))
+			},
+			verify: verifyAllIntTypes,
+		},
+		{
+			name: "mixed_types",
+			encode: func(t *testing.T, enc *BinaryEncoder) {
+				encodeBinaryValues(t, enc, uint8(10), float64(3.14), false)
+			},
+			verify: verifyMixedTypes,
+		},
+		{
+			name: "floats_and_bytes",
+			encode: func(t *testing.T, enc *BinaryEncoder) {
+				encodeBinaryValues(t, enc, float32(1.5), float64(2.5), []byte{0xDE, 0xAD})
+			},
+			verify: verifyFloatsAndBytes,
+		},
+		{
+			name: "string_and_bool",
+			encode: func(t *testing.T, enc *BinaryEncoder) {
+				encodeBinaryValues(t, enc, "hello", true, "world")
+			},
+			verify: verifyStringAndBool,
+		},
 	}
 
-	t.Run(cases[0].name, func(t *testing.T) {
-		enc := NewBinaryEncoder()
-		if err := enc.Encode(true); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode(int8(42)); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode("test"); err != nil {
-			t.Fatal(err)
-		}
-		dec := NewBinaryDecoder(enc.Bytes())
-		var b bool
-		var i int8
-		var s string
-		if err := dec.Decode(&b); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&i); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&s); err != nil {
-			t.Fatal(err)
-		}
-		if b != true || i != 42 || s != "test" {
-			t.Fatalf("decoded values mismatch: %v %d %q", b, i, s)
-		}
-	})
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			enc := NewBinaryEncoder()
+			tc.encode(t, enc)
 
-	t.Run(cases[1].name, func(t *testing.T) {
-		enc := NewBinaryEncoder()
-		if err := enc.Encode(int(100)); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode(int16(200)); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode(int32(300)); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode(int64(400)); err != nil {
-			t.Fatal(err)
-		}
-		dec := NewBinaryDecoder(enc.Bytes())
-		var i int
-		var i16 int16
-		var i32 int32
-		var i64 int64
-		if err := dec.Decode(&i); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&i16); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&i32); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&i64); err != nil {
-			t.Fatal(err)
-		}
-		if i != 100 || i16 != 200 || i32 != 300 || i64 != 400 {
-			t.Fatalf("decoded values mismatch: %d %d %d %d", i, i16, i32, i64)
-		}
-	})
+			dec := NewBinaryDecoder(enc.Bytes())
+			tc.verify(t, dec)
+		})
+	}
+}
 
-	t.Run(cases[2].name, func(t *testing.T) {
-		enc := NewBinaryEncoder()
-		if err := enc.Encode(uint8(10)); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode(float64(3.14)); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode(false); err != nil {
-			t.Fatal(err)
-		}
-		dec := NewBinaryDecoder(enc.Bytes())
-		var u8 uint8
-		var f64 float64
-		var b bool
-		if err := dec.Decode(&u8); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&f64); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&b); err != nil {
-			t.Fatal(err)
-		}
-		if u8 != 10 || f64 != 3.14 || b != false {
-			t.Fatalf("decoded values mismatch: %d %f %v", u8, f64, b)
-		}
-	})
+func encodeBinaryValues(t *testing.T, enc *BinaryEncoder, values ...any) {
+	t.Helper()
 
-	t.Run(cases[3].name, func(t *testing.T) {
-		enc := NewBinaryEncoder()
-		if err := enc.Encode(float32(1.5)); err != nil {
+	for _, value := range values {
+		if err := enc.Encode(value); err != nil {
 			t.Fatal(err)
 		}
-		if err := enc.Encode(float64(2.5)); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode([]byte{0xDE, 0xAD}); err != nil {
-			t.Fatal(err)
-		}
-		dec := NewBinaryDecoder(enc.Bytes())
-		var f32 float32
-		var f64 float64
-		var bs []byte
-		if err := dec.Decode(&f32); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&f64); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&bs); err != nil {
-			t.Fatal(err)
-		}
-		if f32 != 1.5 || f64 != 2.5 || !bytes.Equal(bs, []byte{0xDE, 0xAD}) {
-			t.Fatalf("decoded values mismatch: %f %f %v", f32, f64, bs)
-		}
-	})
+	}
+}
 
-	t.Run(cases[4].name, func(t *testing.T) {
-		enc := NewBinaryEncoder()
-		if err := enc.Encode("hello"); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode(true); err != nil {
-			t.Fatal(err)
-		}
-		if err := enc.Encode("world"); err != nil {
-			t.Fatal(err)
-		}
-		dec := NewBinaryDecoder(enc.Bytes())
-		var s1, s2 string
-		var b bool
-		if err := dec.Decode(&s1); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&b); err != nil {
-			t.Fatal(err)
-		}
-		if err := dec.Decode(&s2); err != nil {
-			t.Fatal(err)
-		}
-		if s1 != "hello" || b != true || s2 != "world" {
-			t.Fatalf("decoded values mismatch: %q %v %q", s1, b, s2)
-		}
-	})
+func decodeBinaryValue[T any](t *testing.T, dec *BinaryDecoder) T {
+	t.Helper()
+
+	var got T
+	if err := dec.Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+
+	return got
+}
+
+func verifyBoolInt8String(t *testing.T, dec *BinaryDecoder) {
+	t.Helper()
+
+	b := decodeBinaryValue[bool](t, dec)
+	i := decodeBinaryValue[int8](t, dec)
+	s := decodeBinaryValue[string](t, dec)
+
+	if b != true || i != 42 || s != "test" {
+		t.Fatalf("decoded values mismatch: %v %d %q", b, i, s)
+	}
+}
+
+func verifyAllIntTypes(t *testing.T, dec *BinaryDecoder) {
+	t.Helper()
+
+	i := decodeBinaryValue[int](t, dec)
+	i16 := decodeBinaryValue[int16](t, dec)
+	i32 := decodeBinaryValue[int32](t, dec)
+	i64 := decodeBinaryValue[int64](t, dec)
+
+	if i != 100 || i16 != 200 || i32 != 300 || i64 != 400 {
+		t.Fatalf("decoded values mismatch: %d %d %d %d", i, i16, i32, i64)
+	}
+}
+
+func verifyMixedTypes(t *testing.T, dec *BinaryDecoder) {
+	t.Helper()
+
+	u8 := decodeBinaryValue[uint8](t, dec)
+	f64 := decodeBinaryValue[float64](t, dec)
+	b := decodeBinaryValue[bool](t, dec)
+
+	if u8 != 10 || f64 != 3.14 || b != false {
+		t.Fatalf("decoded values mismatch: %d %f %v", u8, f64, b)
+	}
+}
+
+func verifyFloatsAndBytes(t *testing.T, dec *BinaryDecoder) {
+	t.Helper()
+
+	f32 := decodeBinaryValue[float32](t, dec)
+	f64 := decodeBinaryValue[float64](t, dec)
+	bs := decodeBinaryValue[[]byte](t, dec)
+
+	if f32 != 1.5 || f64 != 2.5 || !bytes.Equal(bs, []byte{0xDE, 0xAD}) {
+		t.Fatalf("decoded values mismatch: %f %f %v", f32, f64, bs)
+	}
+}
+
+func verifyStringAndBool(t *testing.T, dec *BinaryDecoder) {
+	t.Helper()
+
+	s1 := decodeBinaryValue[string](t, dec)
+	b := decodeBinaryValue[bool](t, dec)
+	s2 := decodeBinaryValue[string](t, dec)
+
+	if s1 != "hello" || b != true || s2 != "world" {
+		t.Fatalf("decoded values mismatch: %q %v %q", s1, b, s2)
+	}
 }
 
 func TestEncodeDecodeBoolRoundTrip(t *testing.T) {
@@ -1009,6 +1044,7 @@ func TestEncodeDecodeBoolRoundTrip(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBuffer(nil)
 			EncodeBool(tc.in, buf)
+
 			got := DecodeBool(bytes.NewBuffer(buf.Bytes()))
 			if got != tc.in {
 				t.Fatalf("expected %v, got %v", tc.in, got)

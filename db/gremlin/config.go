@@ -14,9 +14,28 @@ type ConnectionConfig struct {
 	URL string `env:"_URL" envDefault:"ws://127.0.0.1:8182/gremlin"`
 }
 
+// SyntaxConfig contains Gremlin syntax configuration.
+type SyntaxConfig struct {
+	Syntax string `env:"_SYNTAX" envDefault:""`
+}
+
 // GetConnectionConfigFromEnv return aerospike configs bases on environment variables
 func GetConnectionConfigFromEnv() (*ConnectionConfig, error) {
 	c := new(ConnectionConfig)
+
+	err := env.ParseWithOptions(c, env.Options{
+		Prefix: strings.ToUpper(EnvPrefix),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// GetSyntaxConfigFromEnv returns Gremlin syntax config from environment variables.
+func GetSyntaxConfigFromEnv() (*SyntaxConfig, error) {
+	c := new(SyntaxConfig)
 
 	err := env.ParseWithOptions(c, env.Options{
 		Prefix: strings.ToUpper(EnvPrefix),

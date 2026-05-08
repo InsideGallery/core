@@ -5,14 +5,14 @@ import "embed"
 //go:embed resources/*
 var fs embed.FS
 
-// FS return embed FS
+// FS returns embed FS.
 func FS() embed.FS {
-	return fs
+	return GetFS()
 }
 
-// GetFS return embed FS.
+// GetFS returns embed FS.
 //
-// Deprecated: Use FS instead.
+// Deprecated: use FS.
 func GetFS() embed.FS {
 	return fs
 }

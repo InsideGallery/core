@@ -236,6 +236,7 @@ func TestPaddingLength(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			data := make([]byte, tc.inputLen)
+
 			result := Padding(data)
 			if len(result) != tc.expectedLen {
 				t.Fatalf("Padding(len=%d) produced len=%d, want %d", tc.inputLen, len(result), tc.expectedLen)
@@ -305,11 +306,13 @@ func TestNewCMAC(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, tc.keySize)
+
 			h, err := NewCMAC(key)
 			if tc.expectErr != nil {
 				if err != tc.expectErr {
 					t.Fatalf("NewCMAC(keySize=%d) error = %v, want %v", tc.keySize, err, tc.expectErr)
 				}
+
 				if h != nil {
 					t.Fatalf("NewCMAC(keySize=%d) returned non-nil hash on error", tc.keySize)
 				}
@@ -317,6 +320,7 @@ func TestNewCMAC(t *testing.T) {
 				if err != nil {
 					t.Fatalf("NewCMAC(keySize=%d) unexpected error: %v", tc.keySize, err)
 				}
+
 				if h == nil {
 					t.Fatalf("NewCMAC(keySize=%d) returned nil hash", tc.keySize)
 				}
@@ -347,20 +351,24 @@ func TestSizeAndBlockSize(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name+"_Size", func(t *testing.T) {
 			key := make([]byte, tc.keySize)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			if h.Size() != 16 {
 				t.Fatalf("Size() = %d, want 16", h.Size())
 			}
 		})
 		t.Run(tc.name+"_BlockSize", func(t *testing.T) {
 			key := make([]byte, tc.keySize)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			if h.BlockSize() != 16 {
 				t.Fatalf("BlockSize() = %d, want 16", h.BlockSize())
 			}
@@ -372,11 +380,11 @@ func TestWrite(t *testing.T) {
 	key := make([]byte, 16)
 
 	cases := []struct {
-		name       string
-		writes     [][]byte
-		expectN    []int
-		expectErr  bool
-		expectMac  string
+		name      string
+		writes    [][]byte
+		expectN   []int
+		expectErr bool
+		expectMac string
 	}{
 		{
 			name:      "empty write returns 0",
@@ -435,11 +443,13 @@ func TestWrite(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			for i, data := range tc.writes {
 				n, werr := h.Write(data)
 				if werr != nil && !tc.expectErr {
 					t.Fatalf("Write #%d unexpected error: %v", i, werr)
 				}
+
 				if n != tc.expectN[i] {
 					t.Fatalf("Write #%d returned n=%d, want %d", i, n, tc.expectN[i])
 				}
@@ -478,16 +488,19 @@ func TestWriteAfterSum(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, 16)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			if len(tc.initialData) > 0 {
 				_, err = h.Write(tc.initialData)
 				if err != nil {
 					t.Fatalf("Write error: %v", err)
 				}
 			}
+
 			_ = h.Sum(nil)
 
 			_, err = h.Write([]byte{0x01})
@@ -528,10 +541,12 @@ func TestFinishedFlagOnDirectCmac(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, 16)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			c := h.(*cmac)
 			if len(tc.initialData) > 0 {
 				_, err = c.Write(tc.initialData)
@@ -539,6 +554,7 @@ func TestFinishedFlagOnDirectCmac(t *testing.T) {
 					t.Fatalf("Write error: %v", err)
 				}
 			}
+
 			if c.finished {
 				t.Fatalf("finished should be false before Sum")
 			}
@@ -593,12 +609,13 @@ func TestReset(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, 16)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
 
-			if tc.initialData != nil && len(tc.initialData) > 0 {
+			if len(tc.initialData) > 0 {
 				_, err = h.Write(tc.initialData)
 				if err != nil {
 					t.Fatalf("Write error: %v", err)
@@ -615,6 +632,7 @@ func TestReset(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Write after Reset returned error: %v", err)
 			}
+
 			if n != 2 {
 				t.Fatalf("Write after Reset returned n=%d, want 2", n)
 			}
@@ -652,6 +670,7 @@ func TestResetProducesSameResult(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, 16)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
@@ -737,11 +756,13 @@ func TestSumPackageLevel(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, tc.keySize)
+
 			result, err := Sum(key, tc.data)
 			if tc.expectErr {
 				if err == nil {
 					t.Fatalf("Sum expected error but got nil")
 				}
+
 				if result != nil {
 					t.Fatalf("Sum returned non-nil result on error")
 				}
@@ -749,6 +770,7 @@ func TestSumPackageLevel(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Sum unexpected error: %v", err)
 				}
+
 				if len(result) != 16 {
 					t.Fatalf("Sum result length = %d, want 16", len(result))
 				}
@@ -792,10 +814,12 @@ func TestSumConsistency(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Sum first call error: %v", err)
 			}
+
 			result2, err := Sum(key, tc.data)
 			if err != nil {
 				t.Fatalf("Sum second call error: %v", err)
 			}
+
 			if !bytes.Equal(result1, result2) {
 				t.Fatalf("Sum not deterministic: %x != %x", result1, result2)
 			}
@@ -839,10 +863,12 @@ func TestSumMethodWithPrefix(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, 16)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			_, _ = h.Write(tc.data)
 			result := h.Sum(tc.prefix)
 
@@ -850,7 +876,7 @@ func TestSumMethodWithPrefix(t *testing.T) {
 				t.Fatalf("Sum(prefix) length = %d, want %d", len(result), len(tc.prefix)+16)
 			}
 
-			if tc.prefix != nil && len(tc.prefix) > 0 {
+			if len(tc.prefix) > 0 {
 				if !bytes.Equal(result[:len(tc.prefix)], tc.prefix) {
 					t.Fatalf("Sum(prefix) prefix mismatch")
 				}
@@ -881,10 +907,12 @@ func TestSumWithNoWrite(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, tc.keySize)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			result := h.Sum(nil)
 			if len(result) != 16 {
 				t.Fatalf("Sum without Write produced len=%d, want 16", len(result))
@@ -938,6 +966,7 @@ func TestSumKnownVectors(t *testing.T) {
 			if err != nil {
 				t.Fatalf("hex decode key: %v", err)
 			}
+
 			data, err := hex.DecodeString(tc.dataHex)
 			if err != nil {
 				t.Fatalf("hex decode data: %v", err)
@@ -996,9 +1025,11 @@ func TestSumMethodVsPackageSum(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			if len(tc.data) > 0 {
 				_, _ = h.Write(tc.data)
 			}
+
 			methodResult := h.Sum(nil)
 
 			if !bytes.Equal(pkgResult, methodResult) {
@@ -1041,6 +1072,7 @@ func TestWriteIncrementalVsSingleShot(t *testing.T) {
 				for i := range c {
 					c[i] = []byte{0x00}
 				}
+
 				return c
 			}(),
 			full: make([]byte, 33),
@@ -1055,6 +1087,7 @@ func TestWriteIncrementalVsSingleShot(t *testing.T) {
 			for _, chunk := range tc.chunks {
 				_, _ = h1.Write(chunk)
 			}
+
 			mac1 := h1.Sum(nil)
 
 			h2, _ := NewCMAC(key)
@@ -1105,6 +1138,7 @@ func TestDifferentKeysProduceDifferentMacs(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Sum with key1 error: %v", err)
 			}
+
 			mac2, err := Sum(key2, tc.data)
 			if err != nil {
 				t.Fatalf("Sum with key2 error: %v", err)
@@ -1200,10 +1234,12 @@ func TestSumOutputLength(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, tc.keySize)
 			data := make([]byte, tc.dataLen)
+
 			result, err := Sum(key, data)
 			if err != nil {
 				t.Fatalf("Sum error: %v", err)
 			}
+
 			if len(result) != 16 {
 				t.Fatalf("Sum output length = %d, want 16", len(result))
 			}
@@ -1233,10 +1269,12 @@ func TestSumNilData(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, tc.keySize)
+
 			result, err := Sum(key, nil)
 			if err != nil {
 				t.Fatalf("Sum(nil) unexpected error: %v", err)
 			}
+
 			if len(result) != 16 {
 				t.Fatalf("Sum(nil) output length = %d, want 16", len(result))
 			}
@@ -1276,6 +1314,7 @@ func TestSumNilDataMatchesNoWrite(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
+
 			methodResult := h.Sum(nil)
 
 			if !bytes.Equal(pkgResult, methodResult) {
@@ -1315,24 +1354,26 @@ func TestMultipleResets(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			key := make([]byte, 16)
+
 			h, err := NewCMAC(key)
 			if err != nil {
 				t.Fatalf("NewCMAC error: %v", err)
 			}
 
 			data := []byte{0x01, 0x02, 0x03}
+
 			var firstMac []byte
 
 			for i := 0; i < tc.numResets; i++ {
 				_, _ = h.Write(data)
+
 				mac := h.Sum(nil)
 				if i == 0 {
 					firstMac = mac
-				} else {
-					if !bytes.Equal(mac, firstMac) {
-						t.Fatalf("Reset #%d produced different MAC: %x != %x", i, mac, firstMac)
-					}
+				} else if !bytes.Equal(mac, firstMac) {
+					t.Fatalf("Reset #%d produced different MAC: %x != %x", i, mac, firstMac)
 				}
+
 				h.Reset()
 			}
 		})

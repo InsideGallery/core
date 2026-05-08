@@ -58,6 +58,7 @@ func TestNewBaseEntityWithID_Values(t *testing.T) {
 			if e.GetID() != tc.wantID {
 				t.Fatalf("GetID() = %d, want %d", e.GetID(), tc.wantID)
 			}
+
 			if e.GetVersion() != tc.wantVer {
 				t.Fatalf("GetVersion() = %d, want %d", e.GetVersion(), tc.wantVer)
 			}
@@ -98,12 +99,14 @@ func TestNewBaseEntity_Sequential(t *testing.T) {
 			for i := 0; i < tc.count; i++ {
 				entities[i] = NewBaseEntity()
 			}
+
 			for i := 1; i < tc.count; i++ {
 				if entities[i].GetID() <= entities[i-1].GetID() {
 					t.Fatalf("entity %d ID (%d) should be greater than entity %d ID (%d)",
 						i, entities[i].GetID(), i-1, entities[i-1].GetID())
 				}
 			}
+
 			for i := 0; i < tc.count; i++ {
 				if entities[i].GetVersion() != 1 {
 					t.Fatalf("entity %d version = %d, want 1", i, entities[i].GetVersion())
@@ -210,6 +213,7 @@ func TestSetID_UpdatesEntityID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(tc.initialID)
 			e.SetID(tc.newID)
+
 			if got := e.GetID(); got != tc.wantID {
 				t.Fatalf("after SetID(%d), GetID() = %d, want %d", tc.newID, got, tc.wantID)
 			}
@@ -249,9 +253,11 @@ func TestSetID_AdvancesStoreForNewEntities(t *testing.T) {
 			before := NewBaseEntity()
 			e := NewBaseEntityWithID(0)
 			e.SetID(tc.setID)
+
 			if got := e.GetID(); got != tc.setID {
 				t.Fatalf("after SetID(%d), GetID() = %d", tc.setID, got)
 			}
+
 			after := NewBaseEntity()
 			if after.GetID() <= before.GetID() {
 				t.Fatalf("after SetID(%d), next NewBaseEntity ID %d should be > previous %d",
@@ -306,11 +312,12 @@ func TestGetVersion_InitialAndAfterSet(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			e := NewBaseEntityWithID(0)
 			if tc.useSet {
 				e.SetVersion(tc.setVersion)
 			}
+
 			if got := e.GetVersion(); got != tc.wantVer {
 				t.Fatalf("GetVersion() = %d, want %d", got, tc.wantVer)
 			}
@@ -352,11 +359,12 @@ func TestUpVersion_FromDefault(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			e := NewBaseEntityWithID(0)
 			for i := 0; i < tc.upCount; i++ {
 				e.UpVersion()
 			}
+
 			if got := e.GetVersion(); got != tc.wantVer {
 				t.Fatalf("after %d UpVersion() calls, GetVersion() = %d, want %d",
 					tc.upCount, got, tc.wantVer)
@@ -408,9 +416,11 @@ func TestUpVersion_FromSetVersion(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(0)
 			e.SetVersion(tc.initialVer)
+
 			for i := 0; i < tc.upCount; i++ {
 				e.UpVersion()
 			}
+
 			if got := e.GetVersion(); got != tc.wantVer {
 				t.Fatalf("SetVersion(%d) then %d UpVersion() = %d, want %d",
 					tc.initialVer, tc.upCount, got, tc.wantVer)
@@ -461,6 +471,7 @@ func TestSetVersion_Values(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(0)
 			e.SetVersion(tc.version)
+
 			if got := e.GetVersion(); got != tc.want {
 				t.Fatalf("SetVersion(%d), GetVersion() = %d, want %d", tc.version, got, tc.want)
 			}
@@ -512,6 +523,7 @@ func TestSetVersion_Overwrites(t *testing.T) {
 			e := NewBaseEntityWithID(0)
 			e.SetVersion(tc.first)
 			e.SetVersion(tc.second)
+
 			if got := e.GetVersion(); got != tc.want {
 				t.Fatalf("after SetVersion(%d) then SetVersion(%d), GetVersion() = %d, want %d",
 					tc.first, tc.second, got, tc.want)
@@ -562,17 +574,22 @@ func TestUpVersion_Concurrent(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(0)
+
 			var wg sync.WaitGroup
 			wg.Add(tc.goroutines)
+
 			for g := 0; g < tc.goroutines; g++ {
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.perG; i++ {
 						e.UpVersion()
 					}
 				}()
 			}
+
 			wg.Wait()
+
 			if got := e.GetVersion(); got != tc.wantVer {
 				t.Fatalf("concurrent UpVersion: GetVersion() = %d, want %d", got, tc.wantVer)
 			}
@@ -610,6 +627,7 @@ func TestEntityInterface_Satisfaction(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(tc.id)
+
 			var iface Entity = e
 			if iface.GetID() != tc.id {
 				t.Fatalf("Entity interface GetID() = %d, want %d", iface.GetID(), tc.id)
@@ -654,10 +672,12 @@ func TestVersionableInterface_Satisfaction(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(0)
+
 			var iface Versionable = e
 			for i := 0; i < tc.upCount; i++ {
 				iface.UpVersion()
 			}
+
 			if got := iface.GetVersion(); got != tc.wantVer {
 				t.Fatalf("Versionable GetVersion() = %d, want %d", got, tc.wantVer)
 			}
@@ -717,14 +737,19 @@ func TestComponentInterface_Update(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &mockComponent{err: tc.err}
+
 			var c Component = m
+
 			err := c.Update(context.Background())
+
 			if m.called != tc.wantCalled {
 				t.Fatalf("called = %v, want %v", m.called, tc.wantCalled)
 			}
+
 			if tc.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}
+
 			if !tc.wantErr && err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -784,14 +809,19 @@ func TestSystemInterface_Update(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &mockSystem{err: tc.err}
+
 			var s System = m
+
 			err := s.Update(context.Background())
+
 			if m.called != tc.wantCalled {
 				t.Fatalf("called = %v, want %v", m.called, tc.wantCalled)
 			}
+
 			if tc.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}
+
 			if !tc.wantErr && err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -859,6 +889,7 @@ func TestSetID_DoesNotAffectVersion(t *testing.T) {
 			e.UpVersion()
 			ver := e.GetVersion()
 			e.SetID(tc.newID)
+
 			if e.GetVersion() != ver {
 				t.Fatalf("SetID changed version from %d to %d", ver, e.GetVersion())
 			}
@@ -883,6 +914,7 @@ func TestSetVersion_DoesNotAffectID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(tc.id)
 			e.SetVersion(tc.version)
+
 			if e.GetID() != tc.id {
 				t.Fatalf("SetVersion changed ID from %d to %d", tc.id, e.GetID())
 			}
@@ -911,15 +943,19 @@ func TestMultipleEntities_Independent(t *testing.T) {
 			e2 := NewBaseEntityWithID(tc.id2)
 			e1.SetVersion(tc.ver1Set)
 			e2.SetVersion(tc.ver2Set)
+
 			if e1.GetVersion() != tc.ver1Set {
 				t.Fatalf("e1 version = %d, want %d", e1.GetVersion(), tc.ver1Set)
 			}
+
 			if e2.GetVersion() != tc.ver2Set {
 				t.Fatalf("e2 version = %d, want %d", e2.GetVersion(), tc.ver2Set)
 			}
+
 			if e1.GetID() != tc.id1 {
 				t.Fatalf("e1 id = %d, want %d", e1.GetID(), tc.id1)
 			}
+
 			if e2.GetID() != tc.id2 {
 				t.Fatalf("e2 id = %d, want %d", e2.GetID(), tc.id2)
 			}
@@ -941,24 +977,29 @@ func TestConcurrentGetSetVersion(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			e := NewBaseEntityWithID(0)
+
 			var wg sync.WaitGroup
 			wg.Add(tc.goroutines * 2)
+
 			for g := 0; g < tc.goroutines; g++ {
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.iterations; i++ {
 						e.SetVersion(uint64(i))
 					}
 				}()
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.iterations; i++ {
 						_ = e.GetVersion()
 					}
 				}()
 			}
+
 			wg.Wait()
 		})
 	}
@@ -981,17 +1022,21 @@ func TestNewBaseEntity_ConcurrentUniqueIDs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			total := tc.goroutines * tc.perG
 			ids := make(chan uint64, total)
+
 			var wg sync.WaitGroup
 			wg.Add(tc.goroutines)
+
 			for g := 0; g < tc.goroutines; g++ {
 				go func() {
 					defer wg.Done()
+
 					for i := 0; i < tc.perG; i++ {
 						e := NewBaseEntity()
 						ids <- e.GetID()
 					}
 				}()
 			}
+
 			wg.Wait()
 			close(ids)
 
@@ -1000,8 +1045,10 @@ func TestNewBaseEntity_ConcurrentUniqueIDs(t *testing.T) {
 				if seen[id] {
 					t.Fatalf("duplicate ID: %d", id)
 				}
+
 				seen[id] = true
 			}
+
 			if len(seen) != total {
 				t.Fatalf("expected %d unique IDs, got %d", total, len(seen))
 			}
@@ -1027,9 +1074,11 @@ func TestVersionOverflow_Wrap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(0)
 			e.SetVersion(tc.initial)
+
 			for i := 0; i < tc.ups; i++ {
 				e.UpVersion()
 			}
+
 			if got := e.GetVersion(); got != tc.want {
 				t.Fatalf("version overflow: got %d, want %d", got, tc.want)
 			}
@@ -1053,6 +1102,7 @@ func TestNewBaseEntityWithID_DoesNotAffectGlobalCounter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			before := NewBaseEntity()
 			_ = NewBaseEntityWithID(tc.id)
+
 			after := NewBaseEntity()
 			if after.GetID() != before.GetID()+1 {
 				t.Fatalf("NewBaseEntityWithID(%d) affected global counter: before=%d, after=%d",
@@ -1081,6 +1131,7 @@ func TestSetID_MultipleCallsOnSameEntity(t *testing.T) {
 			for _, id := range tc.ids {
 				e.SetID(id)
 			}
+
 			if got := e.GetID(); got != tc.want {
 				t.Fatalf("after multiple SetID calls, GetID() = %d, want %d", got, tc.want)
 			}
@@ -1109,10 +1160,13 @@ func TestUpVersion_ThenSetVersion_ThenUpVersion(t *testing.T) {
 			for i := 0; i < tc.ups1; i++ {
 				e.UpVersion()
 			}
+
 			e.SetVersion(tc.setTo)
+
 			for i := 0; i < tc.ups2; i++ {
 				e.UpVersion()
 			}
+
 			if got := e.GetVersion(); got != tc.wantFinal {
 				t.Fatalf("got version %d, want %d", got, tc.wantFinal)
 			}
@@ -1158,14 +1212,19 @@ func TestBothInterfaces_OnSameEntity(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := NewBaseEntityWithID(tc.id)
+
 			var ent Entity = e
+
 			var ver Versionable = e
+
 			for i := 0; i < tc.upCount; i++ {
 				ver.UpVersion()
 			}
+
 			if ent.GetID() != tc.id {
 				t.Fatalf("Entity.GetID() = %d, want %d", ent.GetID(), tc.id)
 			}
+
 			wantVer := uint64(1) + uint64(tc.upCount)
 			if ver.GetVersion() != wantVer {
 				t.Fatalf("Versionable.GetVersion() = %d, want %d", ver.GetVersion(), wantVer)

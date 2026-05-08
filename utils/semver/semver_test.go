@@ -1,7 +1,6 @@
 package semver
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -52,29 +51,21 @@ func TestMalformedVersions(t *testing.T) {
 	}
 }
 
-func ExampleSemVersion_Num() {
+func TestSemVersionNumComparison(t *testing.T) {
 	vs3, err := New("3")
-	if err != nil {
-		// that means we are not able to parse version, for example
-	}
+	require.NoError(t, err)
 
 	vs2, err := New("2")
-	if err != nil {
-		// that means we are not able to parse version, for example
-	}
+	require.NoError(t, err)
 
-	fmt.Println(vs3.Num().Cmp(vs2.Num()))
-	// Output: 1
+	assert.Equal(t, 1, vs3.Num().Cmp(vs2.Num()))
 }
 
-func ExampleSemVersion_Hex() {
+func TestSemVersionHex(t *testing.T) {
 	vs3, err := New("3")
-	if err != nil {
-		// that means we are not able to parse version
-	}
+	require.NoError(t, err)
 
-	fmt.Println(vs3.Hex())
-	// Output: 000300000000ffff0000000000000000
+	assert.Equal(t, "000300000000ffff0000000000000000", vs3.Hex())
 }
 
 func TestSemver(t *testing.T) {

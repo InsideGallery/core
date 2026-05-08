@@ -1,15 +1,17 @@
-package errors
+package errors_test
 
 import (
 	nativeErrors "errors"
 	"testing"
+
+	coreerrors "github.com/InsideGallery/core/errors"
 )
 
 var (
-	errA = New("error A")
-	errB = New("error B")
-	errC = New("error C")
-	errD = New("error D")
+	errA = coreerrors.New("error A")
+	errB = coreerrors.New("error B")
+	errC = coreerrors.New("error C")
+	errD = coreerrors.New("error D")
 )
 
 type customError struct {
@@ -31,10 +33,10 @@ func (a *anotherCustomError) Error() string {
 
 func TestCombine(t *testing.T) {
 	cases := []struct {
-		name      string
-		input     []error
-		wantNil   bool
-		wantMsg   string
+		name    string
+		input   []error
+		wantNil bool
+		wantMsg string
 	}{
 		{
 			name:    "no arguments returns nil",
@@ -82,7 +84,7 @@ func TestCombine(t *testing.T) {
 		},
 		{
 			name:    "same error twice deduplicates by message",
-			input:   []error{errA, New("error A")},
+			input:   []error{errA, coreerrors.New("error A")},
 			wantNil: false,
 			wantMsg: "error A",
 		},
@@ -108,16 +110,19 @@ func TestCombine(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := Combine(tc.input...)
+			got := coreerrors.Combine(tc.input...)
 			if tc.wantNil {
 				if got != nil {
 					t.Fatalf("expected nil, got %v", got)
 				}
+
 				return
 			}
+
 			if got == nil {
 				t.Fatal("expected non-nil error, got nil")
 			}
+
 			if got.Error() != tc.wantMsg {
 				t.Fatalf("expected %q, got %q", tc.wantMsg, got.Error())
 			}
@@ -156,7 +161,7 @@ func TestWrap(t *testing.T) {
 		{
 			name:    "same message deduplicates to cause",
 			cause:   errA,
-			effect:  New("error A"),
+			effect:  coreerrors.New("error A"),
 			wantNil: false,
 			wantMsg: "error A",
 		},
@@ -168,7 +173,7 @@ func TestWrap(t *testing.T) {
 			wantMsg: "error A",
 		},
 		{
-			name:    "distinct errors produce MultipleError",
+			name:    "distinct errors produce coreerrors.MultipleError",
 			cause:   errA,
 			effect:  errB,
 			wantNil: false,
@@ -176,14 +181,14 @@ func TestWrap(t *testing.T) {
 		},
 		{
 			name:    "wrapping already-wrapped error nests further",
-			cause:   Wrap(errA, errB),
+			cause:   coreerrors.Wrap(errA, errB),
 			effect:  errC,
 			wantNil: false,
 			wantMsg: "error A: error B: error C",
 		},
 		{
 			name:    "deeply nested wrap",
-			cause:   Wrap(Wrap(errA, errB), errC),
+			cause:   coreerrors.Wrap(coreerrors.Wrap(errA, errB), errC),
 			effect:  errD,
 			wantNil: false,
 			wantMsg: "error A: error B: error C: error D",
@@ -199,16 +204,19 @@ func TestWrap(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := Wrap(tc.cause, tc.effect)
+			got := coreerrors.Wrap(tc.cause, tc.effect)
 			if tc.wantNil {
 				if got != nil {
 					t.Fatalf("expected nil, got %v", got)
 				}
+
 				return
 			}
+
 			if got == nil {
 				t.Fatal("expected non-nil error, got nil")
 			}
+
 			if got.Error() != tc.wantMsg {
 				t.Fatalf("expected %q, got %q", tc.wantMsg, got.Error())
 			}
@@ -283,16 +291,19 @@ func TestWrapf(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := Wrapf(tc.err, tc.format, tc.args...)
+			got := coreerrors.Wrapf(tc.err, tc.format, tc.args...)
 			if tc.wantNil {
 				if got != nil {
 					t.Fatalf("expected nil, got %v", got)
 				}
+
 				return
 			}
+
 			if got == nil {
 				t.Fatal("expected non-nil error, got nil")
 			}
+
 			if got.Error() != tc.wantMsg {
 				t.Fatalf("expected %q, got %q", tc.wantMsg, got.Error())
 			}
@@ -317,12 +328,13 @@ func TestWrapfReturnsPointerMultipleError(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := Wrapf(tc.err, "context")
+			got := coreerrors.Wrapf(tc.err, "context")
 			if got == nil {
 				t.Fatal("expected non-nil")
 			}
-			if _, ok := got.(*MultipleError); !ok {
-				t.Fatalf("expected *MultipleError, got %T", got)
+
+			if _, ok := got.(*coreerrors.MultipleError); !ok {
+				t.Fatalf("expected *coreerrors.MultipleError, got %T", got)
 			}
 		})
 	}
@@ -331,32 +343,32 @@ func TestWrapfReturnsPointerMultipleError(t *testing.T) {
 func TestMultipleErrorError(t *testing.T) {
 	cases := []struct {
 		name    string
-		me      MultipleError
+		me      coreerrors.MultipleError
 		wantMsg string
 	}{
 		{
 			name:    "simple cause and effect",
-			me:      MultipleError{Cause: errA, Effect: errB},
+			me:      coreerrors.MultipleError{Cause: errA, Effect: errB},
 			wantMsg: "error A: error B",
 		},
 		{
 			name:    "nested cause",
-			me:      MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC},
+			me:      coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC},
 			wantMsg: "error A: error B: error C",
 		},
 		{
 			name:    "custom error types",
-			me:      MultipleError{Cause: &customError{Code: 1, Msg: "c1"}, Effect: &customError{Code: 2, Msg: "c2"}},
+			me:      coreerrors.MultipleError{Cause: &customError{Code: 1, Msg: "c1"}, Effect: &customError{Code: 2, Msg: "c2"}},
 			wantMsg: "c1: c2",
 		},
 		{
 			name:    "deeply nested cause chain",
-			me:      MultipleError{Cause: MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC}, Effect: errD},
+			me:      coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC}, Effect: errD},
 			wantMsg: "error A: error B: error C: error D",
 		},
 		{
 			name:    "same message cause and effect",
-			me:      MultipleError{Cause: New("same"), Effect: New("same")},
+			me:      coreerrors.MultipleError{Cause: coreerrors.New("same"), Effect: coreerrors.New("same")},
 			wantMsg: "same: same",
 		},
 	}
@@ -374,32 +386,32 @@ func TestMultipleErrorError(t *testing.T) {
 func TestMultipleErrorUnwrap(t *testing.T) {
 	cases := []struct {
 		name      string
-		me        MultipleError
+		me        coreerrors.MultipleError
 		wantCause error
 	}{
 		{
 			name:      "unwrap returns cause",
-			me:        MultipleError{Cause: errA, Effect: errB},
+			me:        coreerrors.MultipleError{Cause: errA, Effect: errB},
 			wantCause: errA,
 		},
 		{
-			name:      "unwrap nested returns inner MultipleError",
-			me:        MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC},
-			wantCause: MultipleError{Cause: errA, Effect: errB},
+			name:      "unwrap nested returns inner coreerrors.MultipleError",
+			me:        coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC},
+			wantCause: coreerrors.MultipleError{Cause: errA, Effect: errB},
 		},
 		{
 			name:      "unwrap custom error cause",
-			me:        MultipleError{Cause: &customError{Code: 1, Msg: "x"}, Effect: errA},
+			me:        coreerrors.MultipleError{Cause: &customError{Code: 1, Msg: "x"}, Effect: errA},
 			wantCause: &customError{Code: 1, Msg: "x"},
 		},
 		{
 			name:      "unwrap twice reaches root",
-			me:        MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC},
-			wantCause: MultipleError{Cause: errA, Effect: errB},
+			me:        coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC},
+			wantCause: coreerrors.MultipleError{Cause: errA, Effect: errB},
 		},
 		{
 			name:      "unwrap via nativeErrors.Unwrap",
-			me:        MultipleError{Cause: errA, Effect: errB},
+			me:        coreerrors.MultipleError{Cause: errA, Effect: errB},
 			wantCause: errA,
 		},
 	}
@@ -410,6 +422,7 @@ func TestMultipleErrorUnwrap(t *testing.T) {
 			if got == nil {
 				t.Fatal("expected non-nil unwrap result")
 			}
+
 			if got.Error() != tc.wantCause.Error() {
 				t.Fatalf("expected unwrap %q, got %q", tc.wantCause.Error(), got.Error())
 			}
@@ -426,31 +439,31 @@ func TestMultipleErrorUnwrapChain(t *testing.T) {
 	}{
 		{
 			name:  "single wrap unwrap once reaches base",
-			err:   Wrap(errA, errB),
+			err:   coreerrors.Wrap(errA, errB),
 			depth: 1,
 			want:  "error A",
 		},
 		{
 			name:  "double wrap unwrap once",
-			err:   Wrap(Wrap(errA, errB), errC),
+			err:   coreerrors.Wrap(coreerrors.Wrap(errA, errB), errC),
 			depth: 1,
 			want:  "error A: error B",
 		},
 		{
 			name:  "double wrap unwrap twice reaches base",
-			err:   Wrap(Wrap(errA, errB), errC),
+			err:   coreerrors.Wrap(coreerrors.Wrap(errA, errB), errC),
 			depth: 2,
 			want:  "error A",
 		},
 		{
 			name:  "triple wrap unwrap three times reaches base",
-			err:   Wrap(Wrap(Wrap(errA, errB), errC), errD),
+			err:   coreerrors.Wrap(coreerrors.Wrap(coreerrors.Wrap(errA, errB), errC), errD),
 			depth: 3,
 			want:  "error A",
 		},
 		{
 			name:  "triple wrap unwrap once",
-			err:   Wrap(Wrap(Wrap(errA, errB), errC), errD),
+			err:   coreerrors.Wrap(coreerrors.Wrap(coreerrors.Wrap(errA, errB), errC), errD),
 			depth: 1,
 			want:  "error A: error B: error C",
 		},
@@ -465,6 +478,7 @@ func TestMultipleErrorUnwrapChain(t *testing.T) {
 					t.Fatalf("unwrap returned nil at depth %d", i+1)
 				}
 			}
+
 			if cur.Error() != tc.want {
 				t.Fatalf("at depth %d: expected %q, got %q", tc.depth, tc.want, cur.Error())
 			}
@@ -473,9 +487,9 @@ func TestMultipleErrorUnwrapChain(t *testing.T) {
 }
 
 func TestMultipleErrorIs(t *testing.T) {
-	wrapped := Wrap(errA, errB)
-	deepWrapped := Wrap(Wrap(errA, errB), errC)
-	tripleWrapped := Wrap(Wrap(Wrap(errA, errB), errC), errD)
+	wrapped := coreerrors.Wrap(errA, errB)
+	deepWrapped := coreerrors.Wrap(coreerrors.Wrap(errA, errB), errC)
+	tripleWrapped := coreerrors.Wrap(coreerrors.Wrap(coreerrors.Wrap(errA, errB), errC), errD)
 
 	cases := []struct {
 		name   string
@@ -544,9 +558,9 @@ func TestMultipleErrorIs(t *testing.T) {
 			want:   true,
 		},
 		{
-			name:   "error matches equivalent MultipleError",
-			err:    Wrap(errA, errB),
-			target: Wrap(errA, errB),
+			name:   "error matches equivalent coreerrors.MultipleError",
+			err:    coreerrors.Wrap(errA, errB),
+			target: coreerrors.Wrap(errA, errB),
 			want:   true,
 		},
 		{
@@ -572,32 +586,32 @@ func TestMultipleErrorAs(t *testing.T) {
 
 	cases := []struct {
 		name      string
-		me        MultipleError
+		me        coreerrors.MultipleError
 		wantMatch bool
 	}{
 		{
 			name:      "As returns true when cause is non-nil",
-			me:        MultipleError{Cause: errA, Effect: errB},
+			me:        coreerrors.MultipleError{Cause: errA, Effect: errB},
 			wantMatch: true,
 		},
 		{
 			name:      "As returns true when cause is custom error",
-			me:        MultipleError{Cause: ce, Effect: errA},
+			me:        coreerrors.MultipleError{Cause: ce, Effect: errA},
 			wantMatch: true,
 		},
 		{
-			name:      "As returns true with nested MultipleError cause",
-			me:        MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC},
+			name:      "As returns true with nested coreerrors.MultipleError cause",
+			me:        coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC},
 			wantMatch: true,
 		},
 		{
 			name:      "As returns true when effect is custom error",
-			me:        MultipleError{Cause: errA, Effect: ce},
+			me:        coreerrors.MultipleError{Cause: errA, Effect: ce},
 			wantMatch: true,
 		},
 		{
 			name:      "As returns true with deeply nested cause chain",
-			me:        MultipleError{Cause: MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC}, Effect: errD},
+			me:        coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC}, Effect: errD},
 			wantMatch: true,
 		},
 	}
@@ -605,9 +619,10 @@ func TestMultipleErrorAs(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var target *customError
+
 			got := tc.me.As(&target)
 			if got != tc.wantMatch {
-				t.Fatalf("MultipleError.As() = %v, want %v", got, tc.wantMatch)
+				t.Fatalf("coreerrors.MultipleError.As() = %v, want %v", got, tc.wantMatch)
 			}
 		})
 	}
@@ -655,10 +670,12 @@ func TestNativeErrorsAsCustomError(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var target *customError
+
 			got := nativeErrors.As(tc.err, &target)
 			if got != tc.wantMatch {
 				t.Fatalf("nativeErrors.As = %v, want %v", got, tc.wantMatch)
 			}
+
 			if got && target.Code != tc.wantCode {
 				t.Fatalf("expected Code %d, got %d", tc.wantCode, target.Code)
 			}
@@ -673,50 +690,51 @@ func TestNativeErrorsAsMultipleErrorPointer(t *testing.T) {
 		wantMatch bool
 	}{
 		{
-			name:      "Wrapf result is *MultipleError and matches",
-			err:       Wrapf(errA, "ctx"),
+			name:      "Wrapf result is *coreerrors.MultipleError and matches",
+			err:       coreerrors.Wrapf(errA, "ctx"),
 			wantMatch: true,
 		},
 		{
-			name:      "plain error does not match *MultipleError",
+			name:      "plain error does not match *coreerrors.MultipleError",
 			err:       errA,
 			wantMatch: false,
 		},
 		{
-			name:      "nil does not match *MultipleError",
+			name:      "nil does not match *coreerrors.MultipleError",
 			err:       nil,
 			wantMatch: false,
 		},
 		{
-			name:      "nested Wrapf matches *MultipleError",
-			err:       Wrapf(Wrapf(errA, "inner"), "outer"),
+			name:      "nested Wrapf matches *coreerrors.MultipleError",
+			err:       coreerrors.Wrapf(coreerrors.Wrapf(errA, "inner"), "outer"),
 			wantMatch: true,
 		},
 		{
-			name:      "Wrapf with custom error matches *MultipleError",
-			err:       Wrapf(&customError{Code: 1, Msg: "x"}, "ctx"),
+			name:      "Wrapf with custom error matches *coreerrors.MultipleError",
+			err:       coreerrors.Wrapf(&customError{Code: 1, Msg: "x"}, "ctx"),
 			wantMatch: true,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var target *MultipleError
+			var target *coreerrors.MultipleError
+
 			got := nativeErrors.As(tc.err, &target)
 			if got != tc.wantMatch {
-				t.Fatalf("nativeErrors.As(*MultipleError) = %v, want %v", got, tc.wantMatch)
+				t.Fatalf("nativeErrors.As(*coreerrors.MultipleError) = %v, want %v", got, tc.wantMatch)
 			}
 		})
 	}
 }
 
 func TestMultipleErrorIsDirectMethod(t *testing.T) {
-	me := MultipleError{Cause: errA, Effect: errB}
-	nested := MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC}
+	me := coreerrors.MultipleError{Cause: errA, Effect: errB}
+	nested := coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC}
 
 	cases := []struct {
 		name   string
-		me     MultipleError
+		me     coreerrors.MultipleError
 		target error
 		want   bool
 	}{
@@ -762,7 +780,7 @@ func TestMultipleErrorIsDirectMethod(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := tc.me.Is(tc.target)
 			if got != tc.want {
-				t.Fatalf("MultipleError.Is(%v) = %v, want %v", tc.target, got, tc.want)
+				t.Fatalf("coreerrors.MultipleError.Is(%v) = %v, want %v", tc.target, got, tc.want)
 			}
 		})
 	}
@@ -774,19 +792,20 @@ func TestMultipleErrorAsDirectMethod(t *testing.T) {
 
 	cases := []struct {
 		name      string
-		me        MultipleError
+		me        coreerrors.MultipleError
 		wantMatch bool
-		verify    func(t *testing.T, me MultipleError)
+		verify    func(t *testing.T, me coreerrors.MultipleError)
 	}{
 		{
 			name:      "As finds custom error in cause via nativeErrors.As",
-			me:        MultipleError{Cause: ce, Effect: errA},
+			me:        coreerrors.MultipleError{Cause: ce, Effect: errA},
 			wantMatch: true,
-			verify: func(t *testing.T, me MultipleError) {
+			verify: func(t *testing.T, me coreerrors.MultipleError) {
 				var target *customError
 				if !nativeErrors.As(me.Cause, &target) {
 					t.Fatal("expected As to match cause")
 				}
+
 				if target.Code != 99 {
 					t.Fatalf("expected Code 99, got %d", target.Code)
 				}
@@ -794,13 +813,14 @@ func TestMultipleErrorAsDirectMethod(t *testing.T) {
 		},
 		{
 			name:      "As finds anotherCustomError in effect via nativeErrors.As",
-			me:        MultipleError{Cause: errA, Effect: ace},
+			me:        coreerrors.MultipleError{Cause: errA, Effect: ace},
 			wantMatch: true,
-			verify: func(t *testing.T, me MultipleError) {
+			verify: func(t *testing.T, me coreerrors.MultipleError) {
 				var target *anotherCustomError
 				if !nativeErrors.As(me.Effect, &target) {
 					t.Fatal("expected As to match effect")
 				}
+
 				if target.Detail != "direct-another" {
 					t.Fatalf("expected Detail 'direct-another', got %q", target.Detail)
 				}
@@ -808,9 +828,9 @@ func TestMultipleErrorAsDirectMethod(t *testing.T) {
 		},
 		{
 			name:      "As no match in cause for custom error",
-			me:        MultipleError{Cause: errA, Effect: errB},
+			me:        coreerrors.MultipleError{Cause: errA, Effect: errB},
 			wantMatch: false,
-			verify: func(t *testing.T, me MultipleError) {
+			verify: func(t *testing.T, me coreerrors.MultipleError) {
 				var target *customError
 				if nativeErrors.As(me.Cause, &target) {
 					t.Fatal("expected As to not match cause")
@@ -819,9 +839,9 @@ func TestMultipleErrorAsDirectMethod(t *testing.T) {
 		},
 		{
 			name:      "As finds nested custom error in cause chain",
-			me:        MultipleError{Cause: MultipleError{Cause: ce, Effect: errA}, Effect: errB},
+			me:        coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: ce, Effect: errA}, Effect: errB},
 			wantMatch: true,
-			verify: func(t *testing.T, me MultipleError) {
+			verify: func(t *testing.T, me coreerrors.MultipleError) {
 				var target *customError
 				if !nativeErrors.As(me.Cause, &target) {
 					t.Fatal("expected As to match nested cause")
@@ -829,13 +849,13 @@ func TestMultipleErrorAsDirectMethod(t *testing.T) {
 			},
 		},
 		{
-			name:      "As finds MultipleError type in cause",
-			me:        MultipleError{Cause: MultipleError{Cause: errA, Effect: errB}, Effect: errC},
+			name:      "As finds coreerrors.MultipleError type in cause",
+			me:        coreerrors.MultipleError{Cause: coreerrors.MultipleError{Cause: errA, Effect: errB}, Effect: errC},
 			wantMatch: true,
-			verify: func(t *testing.T, me MultipleError) {
-				var target MultipleError
+			verify: func(t *testing.T, me coreerrors.MultipleError) {
+				var target coreerrors.MultipleError
 				if !nativeErrors.As(me.Cause, &target) {
-					t.Fatal("expected As to match MultipleError in cause")
+					t.Fatal("expected As to match coreerrors.MultipleError in cause")
 				}
 			},
 		},
@@ -877,10 +897,11 @@ func TestNew(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := New(tc.text)
+			err := coreerrors.New(tc.text)
 			if err == nil {
 				t.Fatal("expected non-nil error")
 			}
+
 			if err.Error() != tc.text {
 				t.Fatalf("expected %q, got %q", tc.text, err.Error())
 			}
@@ -890,14 +911,14 @@ func TestNew(t *testing.T) {
 
 func TestWrapReturnTypes(t *testing.T) {
 	cases := []struct {
-		name           string
-		cause          error
-		effect         error
-		wantMultiple   bool
-		wantIdentity   bool
+		name         string
+		cause        error
+		effect       error
+		wantMultiple bool
+		wantIdentity bool
 	}{
 		{
-			name:         "distinct errors return MultipleError value",
+			name:         "distinct errors return coreerrors.MultipleError value",
 			cause:        errA,
 			effect:       errB,
 			wantMultiple: true,
@@ -917,12 +938,12 @@ func TestWrapReturnTypes(t *testing.T) {
 		{
 			name:         "same message returns cause identity",
 			cause:        errA,
-			effect:       New("error A"),
+			effect:       coreerrors.New("error A"),
 			wantIdentity: true,
 		},
 		{
-			name:         "nested wrap produces MultipleError",
-			cause:        Wrap(errA, errB),
+			name:         "nested wrap produces coreerrors.MultipleError",
+			cause:        coreerrors.Wrap(errA, errB),
 			effect:       errC,
 			wantMultiple: true,
 		},
@@ -930,18 +951,20 @@ func TestWrapReturnTypes(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := Wrap(tc.cause, tc.effect)
+			got := coreerrors.Wrap(tc.cause, tc.effect)
 			if tc.wantMultiple {
-				if _, ok := got.(MultipleError); !ok {
-					t.Fatalf("expected MultipleError, got %T", got)
+				if _, ok := got.(coreerrors.MultipleError); !ok {
+					t.Fatalf("expected coreerrors.MultipleError, got %T", got)
 				}
 			}
+
 			if tc.wantIdentity {
 				if got == nil {
 					return
 				}
-				if _, ok := got.(MultipleError); ok {
-					t.Fatalf("did not expect MultipleError for identity case, got %T", got)
+
+				if _, ok := got.(coreerrors.MultipleError); ok {
+					t.Fatalf("did not expect coreerrors.MultipleError for identity case, got %T", got)
 				}
 			}
 		})
@@ -989,10 +1012,11 @@ func TestCombinePreservesIsChain(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			combined := Combine(tc.input...)
+			combined := coreerrors.Combine(tc.input...)
+
 			got := nativeErrors.Is(combined, tc.target)
 			if got != tc.want {
-				t.Fatalf("errors.Is(Combine(...), %v) = %v, want %v", tc.target, got, tc.want)
+				t.Fatalf("errors.Is(coreerrors.Combine(...), %v) = %v, want %v", tc.target, got, tc.want)
 			}
 		})
 	}
@@ -1022,7 +1046,7 @@ func TestWrapfUnwrap(t *testing.T) {
 		},
 		{
 			name:      "unwrap wrapf with nested error",
-			err:       Wrap(errA, errB),
+			err:       coreerrors.Wrap(errA, errB),
 			format:    "outer",
 			args:      nil,
 			wantCause: "error A: error B",
@@ -1045,17 +1069,20 @@ func TestWrapfUnwrap(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			wrapped := Wrapf(tc.err, tc.format, tc.args...)
+			wrapped := coreerrors.Wrapf(tc.err, tc.format, tc.args...)
 			if wrapped == nil {
 				t.Fatal("expected non-nil")
 			}
+
 			unwrapped := nativeErrors.Unwrap(wrapped)
 			if unwrapped == nil {
 				t.Fatal("unwrap returned nil")
 			}
+
 			if unwrapped.Error() != tc.wantCause {
 				t.Fatalf("expected %q, got %q", tc.wantCause, unwrapped.Error())
 			}
+
 			if !nativeErrors.Is(wrapped, tc.err) {
 				t.Fatalf("expected Is to match original error")
 			}
@@ -1084,30 +1111,31 @@ func TestWrapSymmetryAndEdgeCases(t *testing.T) {
 		},
 		{
 			name:    "wrap with empty string error",
-			cause:   New(""),
-			effect:  New("x"),
+			cause:   coreerrors.New(""),
+			effect:  coreerrors.New("x"),
 			wantMsg: ": x",
 		},
 		{
 			name:    "wrap both empty string errors deduplicates",
-			cause:   New(""),
-			effect:  New(""),
+			cause:   coreerrors.New(""),
+			effect:  coreerrors.New(""),
 			wantMsg: "",
 		},
 		{
 			name:    "wrap with colon in message",
-			cause:   New("a: b"),
-			effect:  New("c"),
+			cause:   coreerrors.New("a: b"),
+			effect:  coreerrors.New("c"),
 			wantMsg: "a: b: c",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := Wrap(tc.cause, tc.effect)
+			got := coreerrors.Wrap(tc.cause, tc.effect)
 			if got == nil {
 				t.Fatal("expected non-nil")
 			}
+
 			if got.Error() != tc.wantMsg {
 				t.Fatalf("expected %q, got %q", tc.wantMsg, got.Error())
 			}

@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	_ "github.com/InsideGallery/core/fastlog/handlers/stderr"
-
 	"github.com/InsideGallery/core/metrics"
 	"github.com/InsideGallery/core/queue/nats/middleware"
 	"github.com/InsideGallery/core/queue/nats/subscriber"

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/InsideGallery/core/memory/registry"
 	"github.com/InsideGallery/core/multiproc/worker"
 )
 
@@ -15,8 +14,6 @@ const (
 	maxWorkersCount     = 5
 	defaultWorkersCount = 4
 )
-
-var store = registry.NewRegistry[string, string, any]()
 
 // EventHandlerFunc event handler like function
 type EventHandlerFunc func(ctx context.Context)
@@ -65,7 +62,7 @@ func (e *EventManager) Subscribe(event string, handler EventHandler) uint64 {
 		e.subscribers[event] = make(map[uint64]EventHandler)
 	}
 
-	id := store.NextID()
+	id := e.NextID()
 	e.subscribers[event][id] = handler
 
 	return id
@@ -136,9 +133,60 @@ func (e *EventManager) Call(ctx context.Context, event string) {
 	})
 }
 
-var eventManager = NewEventManager(defaultWorkersCount)
+var (
+	defaultEventManagerMu sync.RWMutex
+	defaultEventManager   = NewEventManager(defaultWorkersCount)
+)
+
+// DefaultEventManager returns the package-level compatibility event manager.
+func DefaultEventManager() *EventManager {
+	defaultEventManagerMu.RLock()
+	defer defaultEventManagerMu.RUnlock()
+
+	return defaultEventManager
+}
+
+// DefaultEventManagerHandle restores a previous package-level event manager.
+type DefaultEventManagerHandle struct {
+	previous *EventManager
+	once     sync.Once
+}
+
+// InstallDefaultEventManager installs a scoped package-level event manager.
+func InstallDefaultEventManager(manager *EventManager) *DefaultEventManagerHandle {
+	defaultEventManagerMu.Lock()
+	defer defaultEventManagerMu.Unlock()
+
+	if manager == nil {
+		manager = NewEventManager(defaultWorkersCount)
+	}
+
+	previous := defaultEventManager
+	defaultEventManager = manager
+
+	return &DefaultEventManagerHandle{
+		previous: previous,
+	}
+}
+
+// Close restores the previous package-level event manager.
+func (h *DefaultEventManagerHandle) Close() error {
+	if h == nil {
+		return nil
+	}
+
+	h.once.Do(func() {
+		defaultEventManagerMu.Lock()
+		defaultEventManager = h.previous
+		defaultEventManagerMu.Unlock()
+	})
+
+	return nil
+}
 
 // GetEventManager return default event manager
+//
+// Deprecated: use NewEventManager for explicit ownership or DefaultEventManager for compatibility.
 func GetEventManager() *EventManager {
-	return eventManager
+	return DefaultEventManager()
 }

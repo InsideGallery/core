@@ -17,6 +17,7 @@ func CallerMiddleware(ctx context.Context, record slog.Record, next func(context
 		attrs = append(attrs, attr)
 		return true
 	})
+
 	attrs = append(attrs, slog.String("caller", Caller(depth)))
 
 	// new record with formatted error

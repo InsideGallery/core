@@ -25,7 +25,7 @@ func NewScopeMiddleware(ctx context.Context) *ScopeMiddleware {
 }
 
 func (m *ScopeMiddleware) CheckScope(c fiber.Ctx) error {
-	claims, err := coreJWT.DecodeClaims(c)
+	claims, err := coreJWT.DecodeClaims(c) //nolint:staticcheck // Fiber middleware needs the legacy claims shim
 	if err != nil {
 		slog.Default().Error("Decode JWT claims", "err", err)
 		return c.Status(http.StatusBadRequest).JSON(webserver.GetResponseWithError(err, 0))

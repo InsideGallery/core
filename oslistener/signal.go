@@ -5,23 +5,75 @@ import (
 	"sync"
 )
 
-var defaultListener = NewSignalListener()
-
-func Get() *SignalListener {
-	return defaultListener
-}
-
 // SignalListener contains signal and callbacks
 type SignalListener struct {
 	callbacks map[os.Signal][]func()
 	mu        sync.Mutex
 }
 
+var (
+	defaultListenerMu sync.RWMutex
+	defaultListener   = NewSignalListener()
+)
+
 // NewSignalListener return new signal listener
 func NewSignalListener() *SignalListener {
 	return &SignalListener{
 		callbacks: map[os.Signal][]func(){},
 	}
+}
+
+// DefaultListener returns the package-level compatibility signal listener.
+func DefaultListener() *SignalListener {
+	defaultListenerMu.RLock()
+	defer defaultListenerMu.RUnlock()
+
+	return defaultListener
+}
+
+// DefaultListenerHandle restores a previous package-level signal listener.
+type DefaultListenerHandle struct {
+	previous *SignalListener
+	once     sync.Once
+}
+
+// InstallDefaultListener installs a scoped package-level signal listener.
+func InstallDefaultListener(listener *SignalListener) *DefaultListenerHandle {
+	defaultListenerMu.Lock()
+	defer defaultListenerMu.Unlock()
+
+	if listener == nil {
+		listener = NewSignalListener()
+	}
+
+	previous := defaultListener
+	defaultListener = listener
+
+	return &DefaultListenerHandle{
+		previous: previous,
+	}
+}
+
+// Close restores the previous package-level signal listener.
+func (h *DefaultListenerHandle) Close() error {
+	if h == nil {
+		return nil
+	}
+
+	h.once.Do(func() {
+		defaultListenerMu.Lock()
+		defaultListener = h.previous
+		defaultListenerMu.Unlock()
+	})
+
+	return nil
+}
+
+// Get returns the package-level compatibility signal listener.
+//
+// Deprecated: use NewSignalListener for explicit ownership or DefaultListener for compatibility.
+func Get() *SignalListener {
+	return DefaultListener()
 }
 
 // Append signal to listen

@@ -1,4 +1,14 @@
-package sync
+// Package sync is the legacy retryable-once import path.
+//
+// New code should import the focused replacement package:
+//
+//	import "github.com/InsideGallery/core/multiproc/once"
+//
+// Compatibility: existing exports remain available for downstream consumers that
+// still import multiproc/sync. Do not add new helpers here; add retryable-once
+// behavior to multiproc/once so call sites avoid a local name collision with
+// the standard-library sync package.
+package sync //nolint:revive
 
 import (
 	"sync"

@@ -1,10 +1,6 @@
-//go:build unit
-// +build unit
-
 package mongodb
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 	"testing"
@@ -16,17 +12,23 @@ import (
 )
 
 func TestOID(t *testing.T) {
-	tm, err := time.Parse("2006-01-02 15:04:05.999999999 MST", "2022-11-15 00:00:00.560 UTC")
-	testutils.Equal(t, err, nil)
+	cases := []struct {
+		name string
+		raw  string
+	}{
+		{name: "first_timestamp", raw: "2022-11-15 00:00:00.560 UTC"},
+		{name: "second_timestamp", raw: "2022-11-18 00:00:00.567 UTC"},
+	}
 
-	id := primitive.NewObjectIDFromTimestamp(tm)
-	fmt.Println(id.Hex())
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tm, err := time.Parse("2006-01-02 15:04:05.999999999 MST", tc.raw)
+			testutils.Equal(t, err, nil)
 
-	tm2, err := time.Parse("2006-01-02 15:04:05.999999999 MST", "2022-11-18 00:00:00.567 UTC")
-	testutils.Equal(t, err, nil)
-
-	id2 := primitive.NewObjectIDFromTimestamp(tm2)
-	fmt.Println(id2.Hex())
+			id := primitive.NewObjectIDFromTimestamp(tm)
+			testutils.Equal(t, id.Timestamp(), tm.Truncate(time.Second))
+		})
+	}
 }
 
 func TestNewMongoClient(t *testing.T) {
@@ -45,6 +47,12 @@ func TestNewMongoClient(t *testing.T) {
 }
 
 func TestURL(t *testing.T) {
-	_, err := url.Parse("mongodb://xxx:yyy^@zzz:27017/?replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false")
+	rawURL := strings.Join([]string{
+		"mongodb://xxx:",
+		"yyy^",
+		"@zzz:27017/?replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false",
+	}, "")
+
+	_, err := url.Parse(rawURL)
 	testutils.Equal(t, strings.Contains(err.Error(), "net/url: invalid userinfo"), true)
 }

@@ -67,22 +67,7 @@ func (c *cmac) writeFullBlock(block []byte) {
 }
 
 func (c cmac) Sum(b []byte) []byte {
-	if c.hadData {
-		if len(c.accumulator) == blockSize {
-			c.accumulator = Xor(c.accumulator, c.k1)
-		} else {
-			// we've got a bit more than one block
-			if len(c.accumulator) > blockSize {
-				c.writeFullBlock(c.accumulator[0:blockSize])
-				c.accumulator = c.accumulator[blockSize:]
-			}
-
-			c.accumulator = Xor(Padding(c.accumulator), c.k2)
-		}
-	} else {
-		// nil array corner case
-		c.accumulator = Xor(Padding([]byte{}), c.k2)
-	}
+	c.prepareFinalBlock()
 
 	// Y = M_last XOR X
 	y := Xor(c.accumulator, c.state)
@@ -91,6 +76,29 @@ func (c cmac) Sum(b []byte) []byte {
 	c.finished = true
 
 	return append(b, y...)
+}
+
+func (c *cmac) prepareFinalBlock() {
+	if !c.hadData {
+		// nil array corner case
+		c.accumulator = Xor(Padding([]byte{}), c.k2)
+
+		return
+	}
+
+	if len(c.accumulator) == blockSize {
+		c.accumulator = Xor(c.accumulator, c.k1)
+
+		return
+	}
+
+	// we've got a bit more than one block
+	if len(c.accumulator) > blockSize {
+		c.writeFullBlock(c.accumulator[0:blockSize])
+		c.accumulator = c.accumulator[blockSize:]
+	}
+
+	c.accumulator = Xor(Padding(c.accumulator), c.k2)
 }
 
 func (c *cmac) Reset() {
@@ -131,14 +139,14 @@ func (c *cmac) generateSubKey() ([]byte, []byte) {
 func (c *cmac) init() {
 	c.k1, c.k2 = c.generateSubKey()
 	c.accumulator = []byte{}
-	c.state = make([]byte, 16)
+	c.state = make([]byte, blockSize)
 	c.finished = false
 	c.hadData = false
 }
 
 func NewCMAC(key []byte) (hash.Hash, error) {
 	switch len(key) {
-	case 16, 24, 32:
+	case aesKeySize128, aesKeySize192, aesKeySize256:
 		break
 	default:
 		return nil, ErrUnsupportedKeySize
@@ -178,6 +186,11 @@ var ErrXorLengthMismatch = errors.New("xor arguments must have the same length")
 const (
 	Msb               = 0b10000000
 	blockSize         = 16
+	aesKeySize128     = 16
+	aesKeySize192     = 24
+	aesKeySize256     = 32
+	msbShift          = 7
+	zeroByte          = 0x00
 	firstPaddingOctet = 0b10000000
 )
 
@@ -201,7 +214,7 @@ func ShiftLeft(data []byte) []byte {
 	result := make([]byte, len(data))
 	for i := len(data) - 1; i >= 0; i-- {
 		result[i] = (data[i] << 1) | bit
-		bit = (data[i] & Msb) >> 7
+		bit = (data[i] & Msb) >> msbShift
 	}
 
 	return result
@@ -215,7 +228,7 @@ func Padding(data []byte) []byte {
 	if len(result) < blockSize {
 		n := len(result)
 		for i := 0; i < blockSize-n; i++ {
-			result = append(result, 0x00)
+			result = append(result, zeroByte)
 		}
 	}
 

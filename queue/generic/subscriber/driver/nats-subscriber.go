@@ -1,4 +1,8 @@
-package driver
+// Package driver is the legacy NATS subscriber adapter import path.
+//
+// New code should prefer github.com/InsideGallery/core/queue/generic/subscriber/nats.
+// Existing exports remain for compatibility.
+package driver //nolint:revive
 
 import (
 	"context"
@@ -15,8 +19,13 @@ type NATSMsg struct {
 	*nats.Msg
 }
 
+func (m *NATSMsg) Subject() string {
+	return m.GetSubject()
+}
+
+// Deprecated: use Subject.
 func (m *NATSMsg) GetSubject() string {
-	return m.Subject
+	return m.Msg.Subject
 }
 
 func (m *NATSMsg) IsReply() bool {
@@ -30,8 +39,8 @@ func (m *NATSMsg) ReplyTo() string {
 func (m *NATSMsg) Copy(subject string) interfaces.Msg {
 	return &NATSMsg{
 		Msg: &nats.Msg{
-			Data:    m.GetData(),
-			Header:  m.GetHeader(),
+			Data:    m.Data(),
+			Header:  m.Header(),
 			Reply:   m.ReplyTo(),
 			Subject: subject,
 			Sub:     m.Sub,
@@ -40,31 +49,41 @@ func (m *NATSMsg) Copy(subject string) interfaces.Msg {
 }
 
 func (m *NATSMsg) SetHeader(key, value string) {
-	if m.Header == nil {
-		m.Header = nats.Header{}
+	if m.Msg.Header == nil {
+		m.Msg.Header = nats.Header{}
 	}
 
-	m.Header.Set(key, value)
+	m.Msg.Header.Set(key, value)
 }
 
 func (m *NATSMsg) Respond(data []byte) error {
 	return m.Msg.Respond(data)
 }
 
-func (m *NATSMsg) GetHeader() map[string][]string {
-	return m.Header
+func (m *NATSMsg) Header() map[string][]string {
+	return m.GetHeader()
 }
 
+// Deprecated: use Header.
+func (m *NATSMsg) GetHeader() map[string][]string {
+	return m.Msg.Header
+}
+
+func (m *NATSMsg) Data() []byte {
+	return m.GetData()
+}
+
+// Deprecated: use Data.
 func (m *NATSMsg) GetData() []byte {
-	return m.Data
+	return m.Msg.Data
 }
 
 func (m *NATSMsg) RespondMsg(msg interfaces.Msg) error {
 	return m.Msg.RespondMsg(&nats.Msg{
-		Data:    msg.GetData(),
-		Header:  msg.GetHeader(),
+		Data:    interfaces.Data(msg),
+		Header:  interfaces.Header(msg),
 		Reply:   msg.ReplyTo(),
-		Subject: msg.GetSubject(),
+		Subject: interfaces.Subject(msg),
 	})
 }
 
@@ -85,8 +104,13 @@ func (s *NATSSubscription) Drain() error {
 	return s.Subscription.Drain()
 }
 
+func (s *NATSSubscription) Subject() string {
+	return s.GetSubject()
+}
+
+// Deprecated: use Subject.
 func (s *NATSSubscription) GetSubject() string {
-	return s.Subject
+	return s.Subscription.Subject
 }
 
 func (s *NATSSubscription) Pending() (int64, int64, error) {
@@ -107,16 +131,31 @@ type NATSConfig struct {
 	*client.Config
 }
 
+func (c *NATSConfig) ReadTimeout() time.Duration {
+	return c.GetReadTimeout()
+}
+
+// Deprecated: use ReadTimeout.
 func (c *NATSConfig) GetReadTimeout() time.Duration {
-	return c.ReadTimeout
+	return c.Config.ReadTimeout
 }
 
+func (c *NATSConfig) MaxConcurrentSize() uint64 {
+	return c.GetMaxConcurrentSize()
+}
+
+// Deprecated: use MaxConcurrentSize.
 func (c *NATSConfig) GetMaxConcurrentSize() uint64 {
-	return c.MaxConcurrentSize
+	return c.Config.MaxConcurrentSize
 }
 
+func (c *NATSConfig) ConcurrentSize() int {
+	return c.GetConcurrentSize()
+}
+
+// Deprecated: use ConcurrentSize.
 func (c *NATSConfig) GetConcurrentSize() int {
-	return c.ConcurrentSize
+	return c.Config.ConcurrentSize
 }
 
 type NATSSubscriber struct {

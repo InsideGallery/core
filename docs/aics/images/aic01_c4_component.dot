@@ -1,0 +1,95 @@
+digraph C4_Component_Core {
+    graph [
+        label="Component Diagram\nInsideGallery Core Package Families"
+        labelloc=t
+        fontsize=18
+        fontname="Helvetica"
+        rankdir=TB
+        compound=true
+        nodesep=0.7
+        ranksep=0.9
+        pad=0.5
+    ]
+    node [shape=box style="filled,rounded" fontname="Helvetica" fontsize=10]
+    edge [fontname="Helvetica" fontsize=8]
+
+    consumer [
+        label="Consumer Code\n[Go Application]\n\nImports packages,\npasses config/context,\nhandles errors,\nowns shutdown."
+        fillcolor="#08427B" fontcolor=white
+    ]
+    tests [
+        label="Package Tests\n[go test]\n\nTable-driven tests,\nfixtures, mocks,\nrace validation."
+        fillcolor="#08427B" fontcolor=white
+    ]
+
+    subgraph cluster_core {
+        label="github.com/InsideGallery/core"
+        style=dashed
+        color="#1168BD"
+        fontname="Helvetica"
+        fontsize=14
+
+        dataconv [
+            label="Data Conversion\n[dataconv]\n\nBinary encode/decode,\nIP helpers,\nmerge utilities."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        utils [
+            label="General Utilities\n[utils, mathutils,\nerrors]\n\nStrings, bytes,\nslices, hashes,\nsemver, errors."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        memory [
+            label="In-Memory Structures\n[memory/*]\n\nSorted sets, B-trees,\nBloom/HLL, LRU,\nregistries, stacks."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        pki [
+            label="PKI and Security\n[pki/*, server/jwt]\n\nAES, RSA, ciphers,\nJWT, password helpers."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        runtime [
+            label="Runtime Coordination\n[multiproc, ticker,\noslistener, commands, ecs]\n\nWorkers, timers,\nsignals, events,\nECS components."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        db [
+            label="Database Adapters\n[db/*]\n\nAerospike, BuntDB,\nElasticsearch, Gremlin,\nMongoDB, Neo4j,\nPostgres, Redis."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        queue [
+            label="Queue Adapters\n[queue/*]\n\nGeneric subscriber\ncontracts and NATS\ndriver support."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        obs [
+            label="Observability\n[fastlog, metrics,\nprofiler]\n\nslog handlers,\nmetrics processors,\nprofiling helpers."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        server [
+            label="Server Support\n[app, server]\n\nWeb helpers, SSE,\nJWT, templates,\nbackoff, throughput."
+            fillcolor="#438DD5" fontcolor=white
+        ]
+        testutils [
+            label="Test Support\n[testutils, fixtures,\nembedded]\n\nAssertions, fixtures,\nembedded resources."
+            fillcolor="#85BBF0" fontcolor=black
+        ]
+        vendor [
+            label="Third-Party SDKs\n[External Libraries]\n\nUsed by optional\nadapter packages only\nwhere practical."
+            fillcolor="#999999" fontcolor=white
+        ]
+    }
+
+    consumer -> dataconv [label="Call pure APIs"]
+    consumer -> utils [label="Call pure APIs"]
+    consumer -> memory [label="Instantiate structures"]
+    consumer -> pki [label="Encrypt/sign/validate"]
+    consumer -> runtime [label="Coordinate work"]
+    consumer -> db [label="Configure clients"]
+    consumer -> queue [label="Configure subscribers"]
+    consumer -> obs [label="Configure sinks"]
+    consumer -> server [label="Compose app server"]
+    tests -> testutils [label="Use helpers"]
+    tests -> dataconv [label="Exercise packages" style=dashed]
+    tests -> memory [label="Exercise packages" style=dashed]
+
+    db -> vendor [label="Wrap database SDKs"]
+    queue -> vendor [label="Wrap NATS SDK"]
+    obs -> vendor [label="Wrap telemetry SDKs"]
+    server -> vendor [label="Wrap web/JWT deps"]
+}

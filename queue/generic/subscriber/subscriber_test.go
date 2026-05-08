@@ -46,7 +46,7 @@ func TestSubscriber(t *testing.T) {
 	s := NewSubscriber(clMock)
 
 	s.Subscribe(subject1, "test", func(ctx context.Context, msg interfaces.Msg) error {
-		slog.Info("Received message", "data", string(msg.GetData()))
+		slog.Info("Received message", "data", string(interfaces.Data(msg)))
 		time.Sleep(time.Millisecond * 2)
 		ch <- struct{}{}
 		return nil

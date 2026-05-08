@@ -1,5 +1,3 @@
-//go:build unit
-
 package mathutils
 
 import (
@@ -451,10 +449,10 @@ func TestWeightIndexDistribution(t *testing.T) {
 
 func TestIntStringToBigIntExtended(t *testing.T) {
 	cases := []struct {
-		name string
-		str  string
-		want *big.Int
-		nil_ bool
+		name    string
+		str     string
+		want    *big.Int
+		wantNil bool
 	}{
 		{
 			name: "zero",
@@ -480,19 +478,19 @@ func TestIntStringToBigIntExtended(t *testing.T) {
 			}(),
 		},
 		{
-			name: "invalid_hex_string",
-			str:  "0xDEAD",
-			nil_: true,
+			name:    "invalid_hex_string",
+			str:     "0xDEAD",
+			wantNil: true,
 		},
 		{
-			name: "alpha_string",
-			str:  "abc",
-			nil_: true,
+			name:    "alpha_string",
+			str:     "abc",
+			wantNil: true,
 		},
 		{
-			name: "empty_string",
-			str:  "",
-			nil_: true,
+			name:    "empty_string",
+			str:     "",
+			wantNil: true,
 		},
 		{
 			name: "max_int64",
@@ -512,7 +510,7 @@ func TestIntStringToBigIntExtended(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := IntStringToBigInt(tc.str)
-			if tc.nil_ {
+			if tc.wantNil {
 				if got != nil {
 					t.Fatalf("IntStringToBigInt(%q) = %v, want nil", tc.str, got)
 				}

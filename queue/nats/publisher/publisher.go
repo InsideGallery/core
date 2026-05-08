@@ -78,7 +78,11 @@ func (p *Publisher) PublishWithContext(ctx context.Context, subj string, msg []b
 		if err = conn.FlushWithContext(ctx); err != nil {
 			return err
 		}
-	} else if err = conn.FlushTimeout(DefaultPublishTimeout); err != nil {
+
+		return conn.LastError()
+	}
+
+	if err = conn.FlushTimeout(DefaultPublishTimeout); err != nil {
 		return err
 	}
 

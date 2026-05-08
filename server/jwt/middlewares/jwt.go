@@ -13,7 +13,7 @@ import (
 
 func NewJWT(jwtService *jwtCore.Service) fiber.Handler {
 	return jwtware.New(jwtware.Config{
-		SigningKey: jwtService.GetSigningKey(),
+		SigningKey: jwtService.GetSigningKey(), //nolint:staticcheck // Fiber middleware needs the legacy signing key shim
 		ErrorHandler: func(c fiber.Ctx, err error) error {
 			if errors.Is(err, extractors.ErrNotFound) {
 				return c.Status(fiber.StatusBadRequest).

@@ -1,13 +1,9 @@
-//go:build unit
-// +build unit
-
 package dataconv
 
 import (
 	"testing"
 
 	"dario.cat/mergo"
-
 	"github.com/AlekSi/pointer"
 
 	"github.com/InsideGallery/core/testutils"
@@ -27,11 +23,18 @@ type InputRecord struct {
 	Nested        Nested
 }
 
+const (
+	mergeSessionID = "ses123"
+	mergeRequestID = "req123"
+	mergeEventID   = "evt123"
+	mergeUserID    = "user123"
+)
+
 func TestMergeStruct(t *testing.T) {
-	sesID := "ses123"
-	reqID := "req123"
-	entID := "evt123"
-	usrID := "user123"
+	sesID := mergeSessionID
+	reqID := mergeRequestID
+	entID := mergeEventID
+	usrID := mergeUserID
 	rec := &InputRecord{
 		SessionID: &sesID,
 		EventID:   &entID,
@@ -58,10 +61,10 @@ func TestMergeStruct(t *testing.T) {
 }
 
 func TestMerge(t *testing.T) {
-	sesID := "ses123"
-	reqID := "req123"
-	entID := "evt123"
-	usrID := "user123"
+	sesID := mergeSessionID
+	reqID := mergeRequestID
+	entID := mergeEventID
+	usrID := mergeUserID
 	rec := InputRecord{
 		SessionID: &sesID,
 		EventID:   &entID,

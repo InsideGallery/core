@@ -7,7 +7,7 @@ import (
 )
 
 type Operation struct {
-	client     aerospike.Namespace
+	client     aerospike.Namespace //nolint:staticcheck // legacy entity operations keep the namespace shim
 	pk         interface{}
 	setName    string
 	expiration uint32
@@ -15,7 +15,7 @@ type Operation struct {
 }
 
 func NewOperation(
-	client aerospike.Namespace,
+	client aerospike.Namespace, //nolint:staticcheck // legacy entity operations keep the namespace shim
 	setName string,
 	pk interface{},
 	sendKey bool,
@@ -43,6 +43,7 @@ func (h *Operation) Execute(operations []*as.Operation) error {
 	return err
 }
 
+//nolint:staticcheck // legacy entity operations keep the namespace shim
 func (h *Operation) GetNamespace() aerospike.Namespace {
 	return h.client
 }

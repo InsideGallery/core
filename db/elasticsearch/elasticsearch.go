@@ -1,9 +1,7 @@
 package elasticsearch
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/elastic/go-elasticsearch/v8"
@@ -29,29 +27,35 @@ func prepareKeyValues(keyValues ...string) (map[string][]string, error) {
 	return attributes, nil
 }
 
+// Client is the legacy Elasticsearch SDK-shaped client.
+//
+// Deprecated: use SearchClient and core-owned option/result types for new code.
 type Client struct {
 	*elasticsearch.Client
 }
 
+// NewClient creates the legacy Elasticsearch SDK-shaped client.
+//
+// Deprecated: use NewSearchClient for new code.
 func NewClient() (*Client, error) {
 	es, err := elasticsearch.NewDefaultClient()
 	if err != nil {
-		return nil, fmt.Errorf("error creating the client: %w", err)
+		return nil, fmt.Errorf("create client: %w", err)
 	}
 
 	res, err := es.Info()
 	if err != nil {
-		return nil, fmt.Errorf("error getting response: %w", err)
+		return nil, fmt.Errorf("get response: %w", err)
 	}
 
 	err = res.Body.Close()
 	if err != nil {
-		return nil, fmt.Errorf("error closing response: %w", err)
+		return nil, fmt.Errorf("close response: %w", err)
 	}
 
 	// Check response status
 	if res.IsError() {
-		return nil, fmt.Errorf("error response info: %w", ErrWrongResponse)
+		return nil, fmt.Errorf("response info: %w", ErrWrongResponse)
 	}
 
 	return &Client{
@@ -77,43 +81,5 @@ func (c *Client) SearchByIndex(
 	indexes []string,
 	query map[string]interface{},
 ) (map[string]interface{}, error) {
-	r := map[string]interface{}{}
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		return r, fmt.Errorf("error encoding query: %w", err)
-	}
-
-	// Perform the search request.
-	res, err := c.Search(
-		c.Search.WithContext(ctx),
-		c.Search.WithIndex(indexes...),
-		c.Search.WithBody(&buf),
-		c.Search.WithTrackTotalHits(true),
-		c.Search.WithPretty(),
-	)
-	if err != nil {
-		return r, fmt.Errorf("error getting response: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		var e map[string]interface{}
-		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return r, fmt.Errorf("error parsing the response body: %w", err)
-		}
-
-		return r, fmt.Errorf("[%s] %s: %s: %w",
-			res.Status(),
-			e["error"].(map[string]interface{})["type"],
-			e["error"].(map[string]interface{})["reason"],
-			ErrWrongResponse,
-		)
-	}
-
-	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-		return r, fmt.Errorf("error parsing the response body: %w", err)
-	}
-
-	return r, nil
+	return searchByIndex(ctx, c.Search, indexes, query)
 }

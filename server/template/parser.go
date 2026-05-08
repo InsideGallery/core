@@ -1,4 +1,14 @@
-package template
+// Package template is the legacy server HTML-template import path.
+//
+// New code should import the focused replacement package:
+//
+//	import "github.com/InsideGallery/core/server/view"
+//
+// Compatibility: existing template exports remain available for downstream
+// consumers that still import server/template. Prefer server/view.NewWithDir or
+// server/view.NewFromOptions so template directory configuration is explicit and
+// call sites avoid a local name collision with html/template.
+package template //nolint:revive
 
 import (
 	"bytes"
@@ -23,6 +33,8 @@ var (
 )
 
 // GetDefaultTemplateDir return default template dir
+//
+// Deprecated: pass the directory to NewTemplateWithDir or NewTemplateFromOptions.
 func GetDefaultTemplateDir(prefix string) string {
 	dir := os.Getenv(strings.Join([]string{DefaultTemplateDir, prefix}, ""))
 
@@ -35,10 +47,12 @@ func GetDefaultTemplateDir(prefix string) string {
 }
 
 // SetDefaultTemplateDir set default template dir
+//
+// Deprecated: pass the directory to NewTemplateWithDir or NewTemplateFromOptions.
 func SetDefaultTemplateDir(prefix string, d string) {
 	err := os.Setenv(strings.Join([]string{DefaultTemplateDir, prefix}, ""), d)
 	if err != nil {
-		slog.Default().Error("Can not et default template dir")
+		slog.Default().Error("can not set default template dir", "err", err)
 	}
 }
 
@@ -48,15 +62,25 @@ type Template struct {
 	Name string
 }
 
-// NewTemplate return new template
-func NewTemplate(name, prefix string, fs fs.FS, files ...string) (*Template, error) {
-	dir := GetDefaultTemplateDir(prefix)
+// Options configures template parsing without environment state.
+type Options struct {
+	Name  string
+	Dir   string
+	Files []string
+	FS    fs.FS
+}
 
-	for i, f := range files {
-		files[i] = strings.Join([]string{dir, "/", f}, "")
+// NewTemplateFromOptions returns a new template from explicit options.
+func NewTemplateFromOptions(options Options) (*Template, error) {
+	return NewTemplateWithDir(options.Name, options.Dir, options.FS, options.Files...)
+}
+
+// NewTemplateWithDir returns a new template using an explicit base directory.
+func NewTemplateWithDir(name, dir string, source fs.FS, files ...string) (*Template, error) {
+	tmpl, err := template.New(name).ParseFS(source, templateFiles(dir, files)...)
+	if err != nil {
+		return nil, err
 	}
-
-	tmpl := template.Must(template.New(name).ParseFS(fs, files...))
 
 	tmpl.Option("missingkey=error")
 
@@ -64,6 +88,13 @@ func NewTemplate(name, prefix string, fs fs.FS, files ...string) (*Template, err
 		Name:     name,
 		Template: tmpl,
 	}, nil
+}
+
+// NewTemplate return new template
+//
+// Deprecated: use NewTemplateWithDir or NewTemplateFromOptions with explicit directory config.
+func NewTemplate(name, prefix string, source fs.FS, files ...string) (*Template, error) {
+	return NewTemplateWithDir(name, GetDefaultTemplateDir(prefix), source, files...)
 }
 
 // NewTemplateBySource return new template bu source
@@ -121,4 +152,17 @@ func (e *Engine) Execute(name string, data interface{}) ([]byte, error) {
 	}
 
 	return []byte{}, ErrNotFoundTemplate
+}
+
+func templateFiles(dir string, files []string) []string {
+	resolved := append([]string(nil), files...)
+	if dir == "" {
+		return resolved
+	}
+
+	for i, file := range resolved {
+		resolved[i] = strings.Join([]string{dir, "/", file}, "")
+	}
+
+	return resolved
 }

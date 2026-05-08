@@ -9,10 +9,16 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Connection is the legacy Redis SDK wrapper.
+//
+// Deprecated: use KeyValueStore and core-owned option/result types for new code.
 type Connection struct {
 	*redis.Client
 }
 
+// NewRedisClient creates the legacy Redis SDK wrapper.
+//
+// Deprecated: use KeyValueStore methods on Connection for new code.
 func NewRedisClient(config *ConnectionConfig) *Connection {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     strings.Join([]string{config.Host, config.Port}, ":"),

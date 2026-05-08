@@ -1,6 +1,3 @@
-//go:build unit
-// +build unit
-
 package model
 
 import (
@@ -440,6 +437,16 @@ func TestScopeFrom(t *testing.T) {
 			name:  "normal",
 			scope: "read:service:",
 			want:  Scope{AccessType: "read", Service: "service", Action: ""},
+		},
+		{
+			name:  "empty scope",
+			scope: "",
+			want:  Scope{AccessType: ""},
+		},
+		{
+			name:  "too many tokens",
+			scope: "read:service:action:extra",
+			want:  Scope{},
 		},
 	}
 	for _, tt := range tests {

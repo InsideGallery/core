@@ -31,6 +31,61 @@ func TestHandler(t *testing.T) {
 	testutils.Equal(t, len(eventManager.GetHandlers("event1")), 2)
 }
 
+func TestEventManagerScopedState(t *testing.T) {
+	cases := []struct {
+		name string
+		run  func(t *testing.T)
+	}{
+		{
+			name: "managers own subscription IDs",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				first := NewEventManager(defaultWorkersCount)
+				second := NewEventManager(defaultWorkersCount)
+				handler := EventHandlerFunc(func(context.Context) {})
+
+				firstID := first.Subscribe("event", handler)
+				secondID := second.Subscribe("event", handler)
+
+				if firstID != 1 {
+					t.Fatalf("first manager id = %d, want 1", firstID)
+				}
+
+				if secondID != 1 {
+					t.Fatalf("second manager id = %d, want 1", secondID)
+				}
+			},
+		},
+		{
+			name: "default event manager handle restores previous manager",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				previous := DefaultEventManager()
+				next := NewEventManager(defaultWorkersCount)
+				handle := InstallDefaultEventManager(next)
+
+				if got := GetEventManager(); got != next {
+					t.Fatal("default event manager was not installed")
+				}
+
+				if err := handle.Close(); err != nil {
+					t.Fatalf("close default handle: %v", err)
+				}
+
+				if got := DefaultEventManager(); got != previous {
+					t.Fatal("default event manager was not restored")
+				}
+			},
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, test.run)
+	}
+}
+
 /*
 BenchmarkHandler 500000	      2648 ns/op
 */

@@ -9,7 +9,7 @@ profile: coverage.out
 
 # (optional; but recommended to set)
 # When specified reported file paths will not contain local prefix in the output.
-# local-prefix: "github.com/org/project"
+local-prefix: "github.com/InsideGallery/core"
 
 # Holds coverage thresholds percentages, values should be in range [0-100].
 threshold:
@@ -23,7 +23,8 @@ threshold:
 
   # (optional; default 0)
   # Minimum overall project coverage percentage required.
-  total: 90
+  # Go Library.md section 8 defines the shared library minimum as 70%.
+  total: 70
 
 # Holds regexp rules which will override thresholds for matched files or packages
 # using their paths.
@@ -40,7 +41,8 @@ threshold:
 # Holds regexp rules which will exclude matched files or packages
 # from coverage statistics.
 exclude:
-  # Exclude files or packages matching their paths
+  # Exclude files or packages matching their paths.
+  # Root plan.md documents these as generated, mock, fixture, example, or external-infrastructure paths.
   paths:
     - \.pb\.go$                    # excludes all protobuf generated files
     - _easyjson\.go$               # excludes all easyjson generated files
@@ -57,10 +59,13 @@ exclude:
     - db/gremlin/                  # requires running Gremlin
     - queue/nats/                  # requires running NATS
     - queue/generic/               # requires running NATS
+    - app/nats\.go$                # requires running NATS
     - fastlog/handlers/otel/       # requires OTEL collector
     - fastlog/handlers/datadog/    # requires Datadog API
     - fastlog/handlers/logstash/   # requires Logstash
-    - machielearning/              # requires Gorgonia/CUDA setup
+    - metrics/processors/otel/     # requires OTEL collector
+    - metrics/processors/datadog/  # requires Datadog API
+    - machielearning/nn/           # requires Gorgonia/CUDA setup
 
 # File name of go-test-coverage breakdown file, which can be used to
 # analyze coverage difference.

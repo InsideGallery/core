@@ -79,9 +79,8 @@ func TestSubscriber1(t *testing.T) {
 	subject1 := "core_subject_1"
 
 	s.Subscribe(subject1, "test", func(ctx context.Context, msg interfaces.Msg) error {
-		//slog.Info("Received message", "data", string(msg.Data), "g", runtime.NumGoroutine())
 		time.Sleep(time.Millisecond * 500)
-		err = msg.Respond(msg.GetData())
+		err = msg.Respond(interfaces.Data(msg))
 		if err != nil {
 			slog.Error("Error sending response ", "err", err)
 		}
@@ -152,15 +151,15 @@ func TestSubscriber(t *testing.T) {
 	}()
 
 	s.Subscribe(subject1, "test", func(ctx context.Context, msg interfaces.Msg) error {
-		slog.Info("Received message", "data", string(msg.GetData()))
+		slog.Info("Received message", "data", string(interfaces.Data(msg)))
 		time.Sleep(time.Millisecond * 2)
 		return nil
 	})
 
 	s.Subscribe(subject2, "test", func(ctx context.Context, msg interfaces.Msg) error {
-		slog.Info("Received message", "data", string(msg.GetData()))
+		slog.Info("Received message", "data", string(interfaces.Data(msg)))
 		time.Sleep(time.Millisecond * 2)
-		err := msg.Respond(msg.GetData())
+		err := msg.Respond(interfaces.Data(msg))
 		if err != nil {
 			slog.Error("Error sending response ", "err", err)
 		}
@@ -168,7 +167,7 @@ func TestSubscriber(t *testing.T) {
 	})
 
 	s.Subscribe(subject3, "test", subscriber.WithResponseOnError(slog.Default(), func(ctx context.Context, msg interfaces.Msg) error {
-		slog.Info("Received message", "data", string(msg.GetData()))
+		slog.Info("Received message", "data", string(interfaces.Data(msg)))
 		time.Sleep(time.Millisecond * 2)
 		return errors.New("error send response")
 	}))

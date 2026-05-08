@@ -1,1 +1,64 @@
-/.idea
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace
+go.work
+
+# Binary output
+/server
+/bin/
+!/bin/run.sh
+/build/
+
+# Certificates
+/certs/
+
+# IDE
+/.idea/
+.vscode/
+
+# Environment
+.env
+.env.local
+/env/
+/tmp
+
+# Claude Code
+.claude
+
+# Agent files (local only)
+agent.log
+agent.out
+agent.err
+agent-codex.log
+agent-codex.out
+agent-codex.err
+
+# Dumps
+dump/*.backup
+
+# Coverage artifacts
+coverage.*
+
+# Benchmark artifacts
+benchmarks/*.txt
+!benchmarks/baseline.txt
+benchmarks/gen-*
+
+# Local-only docs
+docs/source/
+!docs/source/README.md
+!docs/source/AIC Template.md
+!docs/source/Go Server Useful Packages.md
+
+# AIC story files are tracked.
+.codex
+.gocache*
+.tmp
+.gotmp
