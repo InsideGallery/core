@@ -281,7 +281,7 @@ Smoke benchmarks are available through `make bench`; the target writes
 locally and in GitHub Actions.
 
 Coverage must not decrease in a merge request. The repository coverage gate is
-defined in `.testcoverage.yml`; the current total threshold is `90%`, with
+defined in `.testcoverage.yml`; the current total threshold is `70%`, with
 generated files, mocks, fixtures, and external-service-heavy packages excluded
 there.
 
