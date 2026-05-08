@@ -304,6 +304,7 @@ func (s *State) executeHealthChecks() error {
 				m.Lock()
 
 				errs = append(errs, err)
+
 				m.Unlock()
 			}
 		}()

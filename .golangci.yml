@@ -42,6 +42,7 @@ linters:
         - empty
         - stdlib
         - generic
+        - github.com/InsideGallery/core/metrics.Processor
         - github.com/InsideGallery/core/queue/nats.Pool
         - github.com/InsideGallery/core/db/aerospike.Namespace
         - github.com/InsideGallery/core/db/mongodb.Client

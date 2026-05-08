@@ -107,7 +107,9 @@ func (h *DefaultRegistryHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultRegistryMu.Lock()
+
 		defaultRegistry = h.previous
+
 		defaultRegistryMu.Unlock()
 	})
 
@@ -177,7 +179,6 @@ func (r *Registry) New(cfg Config, service string) (*Client, error) {
 	return c, nil
 }
 
-//nolint:ireturn // registry boundary returns the abstraction by design
 func (r *Registry) newProcessor(kind string, cfg Config, service string) (Processor, error) {
 	normalized := normalizeKind(kind)
 
@@ -276,7 +277,9 @@ func (h *DefaultHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultMu.Lock()
+
 		defaultClient = h.previous
+
 		defaultMu.Unlock()
 
 		h.err = h.client.Close()

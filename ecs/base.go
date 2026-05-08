@@ -83,7 +83,9 @@ func (h *DefaultEntityFactoryHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultRegistryMu.Lock()
+
 		Default = h.previous
+
 		defaultRegistryMu.Unlock()
 	})
 

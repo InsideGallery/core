@@ -79,7 +79,9 @@ func (h *DefaultRegistryHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultRegistryMu.Lock()
+
 		defaultRegistry = h.previous
+
 		defaultRegistryMu.Unlock()
 	})
 

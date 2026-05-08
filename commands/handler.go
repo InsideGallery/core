@@ -177,7 +177,9 @@ func (h *DefaultEventManagerHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultEventManagerMu.Lock()
+
 		defaultEventManager = h.previous
+
 		defaultEventManagerMu.Unlock()
 	})
 
