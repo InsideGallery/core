@@ -1,19 +1,8 @@
 // Package metrics provides backend-agnostic service instrumentation.
 //
-// New code should create clients from explicit registries and pass the resulting
-// Recorder or *Client through application composition:
-//
-//	import "github.com/InsideGallery/core/metrics"
-//
-//	registry := metrics.NewRegistry()
-//	client, err := metrics.NewFromOptions(metrics.Options{Service: "api", Registry: registry})
-//
-// Prefer Recorder, Metric, RecordResult, NewRegistry, NewWithRegistry, and
-// InstallDefault when a scoped compatibility default is still needed.
-//
-// Compatibility: Register, RegisteredProcessors, SetDefault, Default, and New
-// remain available for existing package-level wiring. New code should avoid
-// hidden process state and pass clients explicitly.
+// Services record metrics through Client or the Processor interface. Concrete
+// exporters live in pkg/metrics/processors/* and register themselves at init,
+// following the same plugin pattern used by pkg/fastlog.
 package metrics //nolint:revive // intentional: "metrics" is a domain name, not stdlib's runtime/metrics
 
 import (
@@ -36,101 +25,35 @@ type Processor interface {
 // Factory creates a concrete metrics processor for a service.
 type Factory func(Config, string) (Processor, error)
 
-// HealthChecker is implemented by processors that can verify exporter health.
-type HealthChecker interface {
-	HealthCheck() error
-}
-
 // Client fans metric calls out to configured processors.
 type Client struct {
 	processors []Processor
 	service    string
 }
 
-// Registry owns metrics processor factories for explicit application composition.
-type Registry struct {
-	mu        sync.RWMutex
-	factories map[string]Factory
-}
-
 var (
-	defaultMu     sync.RWMutex //nolint:gochecknoglobals // process-wide service metrics client
-	defaultClient *Client      //nolint:gochecknoglobals // nil means metrics are disabled
+	defaultMu     sync.RWMutex
+	defaultClient *Client
 
-	defaultRegistryMu sync.RWMutex    //nolint:gochecknoglobals // protects compatibility registry swaps
-	defaultRegistry   = NewRegistry() //nolint:gochecknoglobals // compatibility registry for processor init hooks
+	registryMu sync.RWMutex
+	registry   = map[string]Factory{}
 )
 
-// DefaultRegistry returns the package-level compatibility processor registry.
-func DefaultRegistry() *Registry {
-	defaultRegistryMu.RLock()
-	defer defaultRegistryMu.RUnlock()
+// Register makes a metrics processor available by kind.
+func Register(kind string, factory Factory) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
 
-	return defaultRegistry
+	registry[strings.ToLower(strings.TrimSpace(kind))] = factory
 }
 
-// NewRegistry creates an isolated metrics processor registry.
-func NewRegistry() *Registry {
-	return &Registry{
-		factories: make(map[string]Factory),
-	}
-}
+// RegisteredProcessors returns all registered processor names.
+func RegisteredProcessors() []string {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
 
-// DefaultRegistryHandle restores a previous package-level processor registry.
-type DefaultRegistryHandle struct {
-	previous *Registry
-	once     sync.Once
-}
-
-// InstallDefaultRegistry installs a scoped package-level processor registry.
-func InstallDefaultRegistry(registry *Registry) *DefaultRegistryHandle {
-	defaultRegistryMu.Lock()
-	defer defaultRegistryMu.Unlock()
-
-	if registry == nil {
-		registry = NewRegistry()
-	}
-
-	previous := defaultRegistry
-	defaultRegistry = registry
-
-	return &DefaultRegistryHandle{
-		previous: previous,
-	}
-}
-
-// Close restores the previous package-level processor registry.
-func (h *DefaultRegistryHandle) Close() error {
-	if h == nil {
-		return nil
-	}
-
-	h.once.Do(func() {
-		defaultRegistryMu.Lock()
-
-		defaultRegistry = h.previous
-
-		defaultRegistryMu.Unlock()
-	})
-
-	return nil
-}
-
-// Register makes a metrics processor available by kind on this registry.
-func (r *Registry) Register(kind string, factory Factory) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.factories[normalizeKind(kind)] = factory
-}
-
-// RegisteredProcessors returns all processor names registered on this registry.
-func (r *Registry) RegisteredProcessors() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	names := make([]string, 0, len(r.factories))
-	for name := range r.factories {
+	names := make([]string, 0, len(registry))
+	for name := range registry {
 		names = append(names, name)
 	}
 
@@ -139,88 +62,7 @@ func (r *Registry) RegisteredProcessors() []string {
 	return names
 }
 
-// New creates a metrics client from this registry and configured processors.
-// Returns nil if cfg is not enabled.
-func (r *Registry) New(cfg Config, service string) (*Client, error) {
-	kinds := cfg.EnabledProcessors()
-	if len(kinds) == 0 {
-		return nil, nil //nolint:nilnil // nil means disabled
-	}
-
-	var errs []error
-
-	processors := make([]Processor, 0, len(kinds))
-
-	for _, kind := range kinds {
-		processor, err := r.newProcessor(kind, cfg, service)
-		if err != nil {
-			errs = append(errs, err)
-
-			continue
-		}
-
-		if processor != nil {
-			processors = append(processors, processor)
-		}
-	}
-
-	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
-	}
-
-	if len(processors) == 0 {
-		return nil, nil //nolint:nilnil // all configured processors resolved to no-op
-	}
-
-	c := &Client{processors: processors, service: service}
-
-	slog.Default().Info("Metrics enabled", "processors", kinds, "service", service)
-
-	return c, nil
-}
-
-func (r *Registry) newProcessor(kind string, cfg Config, service string) (Processor, error) {
-	normalized := normalizeKind(kind)
-
-	factory, ok := r.registeredFactory(normalized)
-	if !ok {
-		return nil, fmt.Errorf("metrics processor %q is not registered", normalized)
-	}
-
-	processor, err := factory(cfg, service)
-	if err != nil {
-		return nil, fmt.Errorf("metrics processor %q: %w", normalized, err)
-	}
-
-	return processor, nil
-}
-
-func (r *Registry) registeredFactory(kind string) (Factory, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	factory, ok := r.factories[kind]
-
-	return factory, ok
-}
-
-// Register makes a metrics processor available by kind.
-//
-// Deprecated: use NewRegistry and register processors on the explicit registry.
-func Register(kind string, factory Factory) {
-	DefaultRegistry().Register(kind, factory)
-}
-
-// RegisteredProcessors returns all registered processor names.
-//
-// Deprecated: use Registry.RegisteredProcessors on an explicit registry.
-func RegisteredProcessors() []string {
-	return DefaultRegistry().RegisteredProcessors()
-}
-
 // SetDefault stores the process-wide metrics client for service-specific instrumentation.
-//
-// Deprecated: pass *Client explicitly or use InstallDefault for a scoped compatibility default.
 func SetDefault(c *Client) {
 	defaultMu.Lock()
 	defer defaultMu.Unlock()
@@ -229,8 +71,6 @@ func SetDefault(c *Client) {
 }
 
 // Default returns the process-wide metrics client, or nil when metrics are disabled.
-//
-// Deprecated: pass *Client explicitly instead of reading package-level state.
 func Default() *Client {
 	defaultMu.RLock()
 	defer defaultMu.RUnlock()
@@ -277,9 +117,7 @@ func (h *DefaultHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultMu.Lock()
-
 		defaultClient = h.previous
-
 		defaultMu.Unlock()
 
 		h.err = h.client.Close()
@@ -290,23 +128,69 @@ func (h *DefaultHandle) Close() error {
 
 // New creates a metrics client from configured processors.
 // Returns nil if cfg is not enabled.
-//
-// Deprecated: use NewWithRegistry or Registry.New with an explicit registry.
 func New(cfg Config, service string) (*Client, error) {
-	return NewWithRegistry(nil, cfg, service)
-}
-
-// NewWithRegistry creates a metrics client from an explicit processor registry.
-func NewWithRegistry(registry *Registry, cfg Config, service string) (*Client, error) {
-	if registry == nil {
-		registry = DefaultRegistry()
+	kinds := cfg.EnabledProcessors()
+	if len(kinds) == 0 {
+		return nil, nil
 	}
 
-	return registry.New(cfg, service)
+	var errs []error
+
+	processors := make([]Processor, 0, len(kinds))
+
+	for _, kind := range kinds {
+		processor, err := newProcessor(kind, cfg, service)
+		if err != nil {
+			errs = append(errs, err)
+
+			continue
+		}
+
+		if processor != nil {
+			processors = append(processors, processor)
+		}
+	}
+
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+
+	if len(processors) == 0 {
+		return nil, nil
+	}
+
+	c := &Client{processors: processors, service: service}
+
+	slog.Info("Metrics enabled", "processors", kinds, "service", service)
+
+	return c, nil
 }
 
-func normalizeKind(kind string) string {
-	return strings.ToLower(strings.TrimSpace(kind))
+//nolint:ireturn // registry boundary returns the abstraction by design
+func newProcessor(kind string, cfg Config, service string) (Processor, error) {
+	normalized := strings.ToLower(strings.TrimSpace(kind))
+
+	factory, ok := registeredFactory(normalized)
+
+	if !ok {
+		return nil, fmt.Errorf("metrics processor %q is not registered", normalized)
+	}
+
+	processor, err := factory(cfg, service)
+	if err != nil {
+		return nil, fmt.Errorf("metrics processor %q: %w", normalized, err)
+	}
+
+	return processor, nil
+}
+
+func registeredFactory(kind string) (Factory, bool) {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+
+	factory, ok := registry[kind]
+
+	return factory, ok
 }
 
 // Close flushes pending metrics and closes all processors.
@@ -323,28 +207,6 @@ func (c *Client) Close() error {
 		}
 
 		if err := processor.Close(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
-// HealthCheck verifies all processors that expose a health check.
-func (c *Client) HealthCheck() error {
-	if c == nil {
-		return nil
-	}
-
-	var errs []error
-
-	for _, processor := range c.processors {
-		checker, ok := processor.(HealthChecker)
-		if !ok {
-			continue
-		}
-
-		if err := checker.HealthCheck(); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -423,7 +285,7 @@ func NormalizeTags(tags []string) []string {
 	return normalized
 }
 
-// TagSet returns a stable tag-set string for processors that cannot model arbitrary labels.
+// TagSet returns a stable tag-set strings for processors that cannot model arbitrary labels.
 func TagSet(tags []string) string {
 	return strings.Join(NormalizeTags(tags), ",")
 }

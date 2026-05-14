@@ -3,34 +3,27 @@ package otel
 import (
 	"log/slog"
 
-	"github.com/agoda-com/opentelemetry-go/otelslog"
 	"github.com/caarlos0/env/v10"
 )
 
-const EnvPrefix = "OTEL"
+const envPrefix = "OTEL"
 
-type Config struct {
-	ServiceName    string     `env:"_SERVICE_NAME" envDefault:"fastlog"`
+type config struct {
+	ServiceName    string     `env:"_SERVICE_NAME"    envDefault:"ptolemy"`
 	ServiceVersion string     `env:"_SERVICE_VERSION" envDefault:"v1.0.0"`
-	Namespace      string     `env:"_NAMESPACE" envDefault:"none"`
-	Level          slog.Level `env:"_LEVEL" envDefault:"INFO"`
+	Namespace      string     `env:"_NAMESPACE"       envDefault:"default"`
+	Level          slog.Level `env:"_LEVEL"           envDefault:"INFO"`
 }
 
-func GetConfigFromEnv() (*Config, error) {
-	c := new(Config)
+func getConfigFromEnv() (*config, error) {
+	c := new(config)
 
 	err := env.ParseWithOptions(c, env.Options{
-		Prefix: EnvPrefix,
+		Prefix: envPrefix,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return c, nil
-}
-
-func (c *Config) GetOptions() *otelslog.HandlerOptions {
-	return &otelslog.HandlerOptions{
-		Level: c.Level,
-	}
 }

@@ -23,19 +23,19 @@ import (
 	coreerrors "github.com/InsideGallery/core/errors"
 )
 
-// GetOptions is the core-owned input for reading a Redis string value.
+// GetOptions is the core-owned input for reading a Redis strings value.
 type GetOptions struct {
 	Key string
 }
 
-// SetOptions is the core-owned input for writing a Redis string value.
+// SetOptions is the core-owned input for writing a Redis strings value.
 type SetOptions struct {
 	Key   string
 	Value string
 	TTL   time.Duration
 }
 
-// StringResult is the core-owned result for Redis string reads.
+// StringResult is the core-owned result for Redis strings reads.
 type StringResult struct {
 	Key     string
 	Value   string
@@ -54,7 +54,7 @@ type KeyValueStore interface {
 	Stop() error
 }
 
-// GetValue reads a Redis string value with core-owned options.
+// GetValue reads a Redis strings value with core-owned options.
 func (c Connection) GetValue(ctx context.Context, options GetOptions) (StringResult, error) {
 	value, present, err := c.Get(ctx, options.Key)
 	if err != nil {
@@ -68,7 +68,7 @@ func (c Connection) GetValue(ctx context.Context, options GetOptions) (StringRes
 	}, nil
 }
 
-// SetValue writes a Redis string value with core-owned options.
+// SetValue writes a Redis strings value with core-owned options.
 func (c Connection) SetValue(ctx context.Context, options SetOptions) (CommandResult, error) {
 	if err := c.Set(ctx, options.Key, options.Value, options.TTL); err != nil {
 		return CommandResult{}, coreerrors.WrapBoundary("redis", "set value", err)

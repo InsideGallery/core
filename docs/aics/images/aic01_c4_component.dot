@@ -34,7 +34,7 @@ digraph C4_Component_Core {
             fillcolor="#438DD5" fontcolor=white
         ]
         utils [
-            label="General Utilities\n[utils, mathutils,\nerrors]\n\nStrings, bytes,\nslices, hashes,\nsemver, errors."
+            label="General Utilities\n[utils, mathutils,\nerrors]\n\nStrings, bytes,\nslices, hashes,\nerrors."
             fillcolor="#438DD5" fontcolor=white
         ]
         memory [
@@ -50,11 +50,11 @@ digraph C4_Component_Core {
             fillcolor="#438DD5" fontcolor=white
         ]
         db [
-            label="Database Adapters\n[db/*]\n\nAerospike, BuntDB,\nElasticsearch, Gremlin,\nMongoDB, Neo4j,\nPostgres, Redis."
+            label="Database Adapters\n[db/*]\n\nAerospike, BuntDB,\nElasticsearch, FrogoDB,\nGremlin, MongoDB,\nNeo4j, Postgres, Redis."
             fillcolor="#438DD5" fontcolor=white
         ]
         queue [
-            label="Queue Adapters\n[queue/*]\n\nGeneric subscriber\ncontracts and NATS\ndriver support."
+            label="Queue Worker Bootstrap\n[app.NATSMain]\n\nUses mq-balancer\nfor subscriber balancing."
             fillcolor="#438DD5" fontcolor=white
         ]
         obs [
@@ -65,8 +65,8 @@ digraph C4_Component_Core {
             label="Server Support\n[app, server]\n\nWeb helpers, SSE,\nJWT, templates,\nbackoff, throughput."
             fillcolor="#438DD5" fontcolor=white
         ]
-        testutils [
-            label="Test Support\n[testutils, fixtures,\nembedded]\n\nAssertions, fixtures,\nembedded resources."
+        fixtures [
+            label="Test Support\n[fixtures]\n\nFixtures and\nexternal assertions."
             fillcolor="#85BBF0" fontcolor=black
         ]
         vendor [
@@ -84,12 +84,12 @@ digraph C4_Component_Core {
     consumer -> queue [label="Configure subscribers"]
     consumer -> obs [label="Configure sinks"]
     consumer -> server [label="Compose app server"]
-    tests -> testutils [label="Use helpers"]
+    tests -> fixtures [label="Use fixtures"]
     tests -> dataconv [label="Exercise packages" style=dashed]
     tests -> memory [label="Exercise packages" style=dashed]
 
     db -> vendor [label="Wrap database SDKs"]
-    queue -> vendor [label="Wrap NATS SDK"]
+    queue -> vendor [label="Use mq-balancer"]
     obs -> vendor [label="Wrap telemetry SDKs"]
     server -> vendor [label="Wrap web/JWT deps"]
 }

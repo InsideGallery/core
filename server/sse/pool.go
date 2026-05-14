@@ -5,15 +5,16 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/InsideGallery/core/memory/set"
-	"github.com/InsideGallery/core/utils"
+	"github.com/FrogoAI/set"
+
+	"github.com/InsideGallery/core/stdx/strings"
 )
 
 const defaultBufferSize = 1000
 
 // Describe all context keys
 var (
-	ContextUserID utils.ContextKey = "userID"
+	ContextUserID strings.ContextKey = "userID"
 )
 
 // Pool contains all connections and could delivery messages

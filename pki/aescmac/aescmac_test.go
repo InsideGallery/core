@@ -86,7 +86,7 @@ func TestShiftLeft(t *testing.T) {
 		expected []byte
 	}{
 		{
-			name:     "empty slice",
+			name:     "empty slices",
 			data:     []byte{},
 			expected: []byte{},
 		},
@@ -845,7 +845,7 @@ func TestSumMethodWithPrefix(t *testing.T) {
 		},
 		{
 			name:   "non-empty prefix",
-			prefix: []byte("test string"),
+			prefix: []byte("test strings"),
 			data:   []byte{0x01},
 		},
 		{

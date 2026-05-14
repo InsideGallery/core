@@ -9,12 +9,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 	"github.com/spf13/cast"
-
-	"gorgonia.org/tensor"
-
 	"gorgonia.org/gorgonia"
+	"gorgonia.org/tensor"
 )
 
 func TestLn(t *testing.T) {

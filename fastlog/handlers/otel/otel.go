@@ -10,7 +10,7 @@ import (
 
 	"github.com/agoda-com/opentelemetry-go/otelslog"
 	"github.com/agoda-com/opentelemetry-logs-go/exporters/otlp/otlplogs"
-	sdk "github.com/agoda-com/opentelemetry-logs-go/sdk/logs"
+	sdklog "github.com/agoda-com/opentelemetry-logs-go/sdk/logs"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -19,204 +19,160 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/InsideGallery/core/fastlog/handlers"
-	"github.com/InsideGallery/core/server/instance"
 )
 
+// OutKind is the registry key for the otel handler.
 const OutKind = "otel"
 
 func init() {
-	// Deprecated: call Setup with an explicit registry and handler factory.
-	err := Setup(handlers.DefaultRegistry(), legacyHandlerFactory(context.Background()))
-	if err != nil {
-		slog.Default().Error("setup otel handler", "err", err)
-	}
+	handlers.RegisterHandlerFunc(OutKind, newHandler)
+}
+
+// LoggerProvider holds OTEL log and trace providers.
+type LoggerProvider struct {
+	logProvider   *sdklog.LoggerProvider
+	traceProvider *sdktrace.TracerProvider
 }
 
 var (
-	loggerProvider *LoggerProvider
-	options        = &otelslog.HandlerOptions{}
-	mu             sync.Mutex
+	provider *LoggerProvider
+	once     sync.Once
 )
 
-// Setup registers the OpenTelemetry handler factory on an explicit registry.
-func Setup(registry *handlers.Registry, factory handlers.HandlerFactory) error {
-	if registry == nil {
-		return errors.New("handler registry is nil")
-	}
-
-	if factory == nil {
-		return errors.New("handler factory is nil")
-	}
-
-	registry.RegisterHandlerFactory(OutKind, factory)
-
-	return nil
-}
-
-// NewHandlerFactory creates a handler factory from explicit OpenTelemetry dependencies.
-func NewHandlerFactory(provider *LoggerProvider, opts *otelslog.HandlerOptions) handlers.HandlerFactory {
-	return func() slog.Handler {
-		return NewHandler(provider, opts)
-	}
-}
-
-func legacyHandlerFactory(ctx context.Context) handlers.HandlerFactory {
-	return func() slog.Handler {
-		return Handler(ctx)
-	}
-}
-
-// Default returns the package-level OpenTelemetry logger provider.
-//
-// Deprecated: use NewProviderFromConfig and pass the provider explicitly.
+// Default returns the singleton LoggerProvider, initializing it on first call.
 func Default(ctx context.Context) *LoggerProvider {
-	mu.Lock()
-	defer mu.Unlock()
+	once.Do(func() {
+		p, err := NewProvider(ctx)
+		if err != nil {
+			slog.Error("Failed to init OTEL provider", "err", err)
 
-	if loggerProvider == nil {
-		loggerProvider, options = NewProvider(ctx)
-	}
+			provider = &LoggerProvider{}
 
-	return loggerProvider
+			return
+		}
+
+		provider = p
+	})
+
+	return provider
 }
 
-// Handler returns a slog handler from the package-level OpenTelemetry logger provider.
-//
-// Deprecated: use NewHandler with an explicit provider.
-func Handler(ctx context.Context) slog.Handler {
-	mu.Lock()
-	defer mu.Unlock()
-
-	if loggerProvider == nil {
-		loggerProvider, options = NewProvider(ctx)
-	}
-
-	return otelslog.NewOtelHandler(loggerProvider, options)
-}
-
-type LoggerProvider struct {
-	ctx context.Context
-	*sdk.LoggerProvider
-	TracerProvider *sdktrace.TracerProvider
-}
-
-// NewProviderFromConfig creates an OpenTelemetry logger provider from explicit config.
-func NewProviderFromConfig(ctx context.Context, cfg Config) (*LoggerProvider, *otelslog.HandlerOptions, error) {
-	logExporter, err := otlplogs.NewExporter(ctx)
+// NewProvider creates OTEL log and trace providers from env config.
+func NewProvider(ctx context.Context) (*LoggerProvider, error) {
+	cfg, err := getConfigFromEnv()
 	if err != nil {
-		return nil, nil, fmt.Errorf("get otel logger provider exporter: %w", err)
+		return nil, err
 	}
 
-	exp, err := otlptracegrpc.New(ctx)
+	hostname, err := os.Hostname()
 	if err != nil {
-		return nil, nil, fmt.Errorf("get otlptracegrpc logger: %w", err)
+		return nil, fmt.Errorf("get hostname: %w", err)
 	}
 
-	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exp),
-		sdktrace.WithResource(newResource(&cfg)),
+	res := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceName(cfg.ServiceName),
+		semconv.ServiceVersion(cfg.ServiceVersion),
+		semconv.ServiceNamespace(cfg.Namespace),
+		semconv.ServiceInstanceID(hostname),
 	)
 
-	otel.SetTracerProvider(tracerProvider)
+	logExporter, err := otlplogs.NewExporter(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create otel log exporter: %w", err)
+	}
+
+	logProv := sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithBatcher(logExporter),
+	)
+
+	traceExporter, err := otlptracegrpc.New(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create otel trace exporter: %w", err)
+	}
+
+	traceProv := sdktrace.NewTracerProvider(
+		sdktrace.WithResource(res),
+		sdktrace.WithBatcher(traceExporter),
+	)
+
+	otel.SetTracerProvider(traceProv)
 
 	return &LoggerProvider{
-		ctx: ctx,
-		LoggerProvider: sdk.NewLoggerProvider(
-			sdk.WithBatcher(logExporter),
-			sdk.WithResource(newResource(&cfg)),
-		),
-		TracerProvider: tracerProvider,
-	}, cfg.GetOptions(), nil
+		logProvider:   logProv,
+		traceProvider: traceProv,
+	}, nil
 }
 
-// NewProvider creates an OpenTelemetry provider from environment config.
-//
-// Deprecated: use NewProviderFromConfig with explicit config ownership.
-func NewProvider(ctx context.Context) (*LoggerProvider, *otelslog.HandlerOptions) {
-	cfg, err := GetConfigFromEnv()
-	if err != nil {
-		slog.Default().Error("get otel logger provider config", "err", err)
-		return nil, nil
-	}
-
-	provider, opts, err := NewProviderFromConfig(ctx, *cfg)
-	if err != nil {
-		slog.Default().Error("create otel logger provider", "err", err)
-		return nil, nil
-	}
-
-	return provider, opts
-}
-
-// NewHandler creates an OpenTelemetry slog handler from an explicit provider.
-func NewHandler(provider *LoggerProvider, opts *otelslog.HandlerOptions) slog.Handler {
-	return otelslog.NewOtelHandler(provider, opts)
-}
-
-func (l *LoggerProvider) Shutdown() {
-	if err := l.Close(); err != nil {
-		slog.Default().Error("shutdown logger provider", "err", err)
-	}
-}
-
-// Close shuts down OpenTelemetry logger and tracer providers.
-func (l *LoggerProvider) Close() error {
-	if l == nil || l.ctx == nil {
-		return nil
-	}
+// Shutdown gracefully shuts down both providers.
+func (p *LoggerProvider) Shutdown() {
+	ctx := context.Background()
 
 	var errs []error
 
-	if l.LoggerProvider != nil {
-		if err := l.LoggerProvider.Shutdown(l.ctx); err != nil {
-			errs = append(errs, fmt.Errorf("shutdown logger provider: %w", err))
+	if p.logProvider != nil {
+		if err := p.logProvider.Shutdown(ctx); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	if l.TracerProvider != nil {
-		if err := l.TracerProvider.Shutdown(l.ctx); err != nil {
-			errs = append(errs, fmt.Errorf("shutdown tracer provider: %w", err))
+	if p.traceProvider != nil {
+		if err := p.traceProvider.Shutdown(ctx); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return errors.Join(errs...)
+	if err := errors.Join(errs...); err != nil {
+		slog.Error("OTEL shutdown errors", "err", err)
+	}
 }
 
-func (l *LoggerProvider) Tracer(
-	ctx context.Context, name, spanName string, kind trace.SpanKind,
+// Tracer starts a span from the global OpenTelemetry tracer provider.
+func (p *LoggerProvider) Tracer(
+	ctx context.Context,
+	name string,
+	spanName string,
+	kind trace.SpanKind,
 ) (context.Context, trace.Span) {
 	tracer := otel.Tracer(name)
+
 	return tracer.Start(ctx, spanName, trace.WithSpanKind(kind))
 }
 
-func (l *LoggerProvider) TracerEnd(span trace.Span) {
+// TracerEnd ends a span with stack trace recording enabled.
+func (p *LoggerProvider) TracerEnd(span trace.Span) {
 	span.End(trace.WithStackTrace(true))
 }
 
-func (l *LoggerProvider) TracerWrapper(
+// TracerWrapper runs fn inside an OpenTelemetry span.
+func (p *LoggerProvider) TracerWrapper(
 	ctx context.Context,
-	name, spanName string,
+	name string,
+	spanName string,
 	kind trace.SpanKind,
 	fn func(ctx context.Context, span trace.Span),
 ) {
-	ctx, span := l.Tracer(ctx, name, spanName, kind)
-	defer l.TracerEnd(span)
+	ctx, span := p.Tracer(ctx, name, spanName, kind)
+	defer p.TracerEnd(span)
 
 	if fn != nil {
 		fn(ctx, span)
 	}
 }
 
-// configure common attributes for all logs
-func newResource(cfg *Config) *resource.Resource {
-	hostName, _ := os.Hostname()
+func newHandler() (slog.Handler, error) {
+	cfg, err := getConfigFromEnv()
+	if err != nil {
+		return nil, err
+	}
 
-	return resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceName(cfg.ServiceName),
-		semconv.ServiceVersion(cfg.ServiceVersion),
-		semconv.HostName(hostName),
-		semconv.ServiceNamespace(cfg.Namespace),
-		semconv.ServiceInstanceID(instance.GetInstanceID()),
-	)
+	provider := Default(context.Background())
+	if provider == nil || provider.logProvider == nil {
+		return nil, errors.New("otel provider is not initialized")
+	}
+
+	return otelslog.NewOtelHandler(provider.logProvider, &otelslog.HandlerOptions{
+		Level: cfg.Level,
+	}), nil
 }

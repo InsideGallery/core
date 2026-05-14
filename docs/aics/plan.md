@@ -115,12 +115,11 @@ infrastructure) and are not part of these tasks.
   `// Deprecated: use <NewName>` so consumers can migrate without a breaking change. Affected callsites within the
   module must use the new names.
 - WHERE:
-  Layer `domain`: `queue/generic/subscriber/driver/nats-subscriber.go`,
-  `queue/generic/subscriber/interfaces/config.go`, `embedded/resources.go`, `ticker/ticker.go`.
+  Layer `domain`: `github.com/FrogoAI/mq-balancer/subscriber/driver`,
+  `github.com/FrogoAI/mq-balancer/subscriber/mq`, `embedded/resources.go`, `ticker/ticker.go`.
   Layer `repository`: n/a (vendor library).
   Layer `handler`: n/a (vendor library).
-  Tests: `queue/generic/subscriber/driver/nats-subscriber_test.go`,
-  `queue/generic/subscriber/interfaces/config_test.go`, `embedded/resources_test.go`,
+  Tests: `github.com/FrogoAI/mq-balancer` subscriber tests, `embedded/resources_test.go`,
   `ticker/ticker_test.go`.
   Swagger/docs: n/a (vendor library).
 - WHY: Naming consistency is enforced by Clean Code G11 and Go Best Practice §2. Adding aliases avoids breaking
@@ -134,16 +133,16 @@ infrastructure) and are not part of these tasks.
 
 - WHAT: Convert silent fallbacks/log-and-continue paths into returned errors at package boundaries while preserving
   the current default-success path via wrapper helpers (e.g. `MustX` callers stay, but the lower-level function
-  surfaces the error). Specifically: `queue/nats/proxy/storage/redis.go::LockOrWait` returns an error after retry
-  exhaustion; `queue/nats/client/config.go` auth path returns wrapped errors instead of logging and continuing;
+  surfaces the error). Specifically: the removed local NATS proxy no longer owns Redis lock retries;
+  `github.com/FrogoAI/mq-balancer/subscriber/driver/client` owns NATS auth option construction;
   `pki/aes/aes.go::NewAES` returns `(*AES, error)` for unknown sizes (keep `NewAES` signature, add `NewAESStrict`
   as the explicit-error variant).
 - WHERE:
-  Layer `domain`: `queue/nats/proxy/storage/redis.go`, `queue/nats/client/config.go`,
+  Layer `domain`: `github.com/FrogoAI/mq-balancer/subscriber/driver/client`,
   `pki/aes/aes.go`.
   Layer `repository`: n/a (vendor library).
   Layer `handler`: n/a (vendor library).
-  Tests: `queue/nats/proxy/storage/redis_test.go`, `queue/nats/client/config_test.go`,
+  Tests: `github.com/FrogoAI/mq-balancer` client tests,
   `pki/aes/aes_test.go`.
   Swagger/docs: n/a (vendor library).
 - WHY: Clean Code §2 (Error Handling), Go Best Practice §10, and SOLID LSP all require that contracts be honored;
@@ -255,14 +254,12 @@ infrastructure) and are not part of these tasks.
 - WHAT: Apply Go Best Practice §3 to the call sites flagged in the root-level review:
   `dataconv/ip.go:162`, `memory/fuzzysearch/levenshtein.go:38-45`,
   `memory/linkedlist/list.go:52-56`, `mathutils/helper.go:25-34`,
-  `queue/nats/middleware/trace.go:55-60`, `queue/nats/client/config.go:114-120`,
-  `queue/nats/publisher/publisher.go:77-86`, `fastlog/middlewares/gdpr.go:45-46`,
+  `fastlog/middlewares/gdpr.go:45-46`,
   `fastlog/middlewares/error.go:33-38`, `pki/aescmac/aescmac.go:73,82`. Each `if … return` block drops its `else`
   and the happy path stays left-aligned.
 - WHERE:
   Layer `domain`: `dataconv/ip.go`, `memory/fuzzysearch/levenshtein.go`,
-  `memory/linkedlist/list.go`, `mathutils/helper.go`, `queue/nats/middleware/trace.go`,
-  `queue/nats/client/config.go`, `queue/nats/publisher/publisher.go`,
+  `memory/linkedlist/list.go`, `mathutils/helper.go`,
   `fastlog/middlewares/gdpr.go`, `fastlog/middlewares/error.go`,
   `pki/aescmac/aescmac.go`.
   Layer `repository`: n/a (vendor library).
@@ -305,11 +302,11 @@ infrastructure) and are not part of these tasks.
 
 - WHAT: Delete the commented-out validation block in `server/jwt/model/scope.go:62-73` (or implement it under a
   documented contract and add a unit test). Delete the commented-out `SetFilter` calls in
-  `queue/nats/proxy/storage/aerospike.go:58-60,93-95,140-142` and `utils/bytes.go:72-73`. Each removed block stays
+  the removed local NATS proxy storage and `utils/bytes.go:72-73`. Each removed block stays
   documented in git history per Clean Code C5 — no inline TODO comments left behind without a tracking ticket.
 - WHERE:
   Layer `domain`: `server/jwt/model/scope.go`,
-  `queue/nats/proxy/storage/aerospike.go`, `utils/bytes.go`.
+  `utils/bytes.go`.
   Layer `repository`: n/a (vendor library).
   Layer `handler`: n/a (vendor library).
   Tests: `server/jwt/model/scope_test.go` (covers any newly-implemented validation),

@@ -56,7 +56,7 @@ The architecturally significant requirements are:
 | Library, not application | No `main()`, no `cmd/`, no process manager, no owned listener, no fixed port, no Docker/Kubernetes contract in this repository. |
 | Consumer-owned composition | Applications decide which packages to instantiate and how to inject configs, loggers, clients, and contexts. |
 | Public package compatibility | Exported symbols are compatibility commitments unless replaced through an additive path before deprecation. |
-| Optional infrastructure packages | Packages under `db/`, `queue/`, `metrics/`, `fastlog/`, `app/`, and `server/` are helpers and adapters, not a deployed platform. |
+| Optional infrastructure packages | Packages under `db/`, `metrics/`, `fastlog/`, `app/`, and `server/` are helpers and adapters, not a deployed platform. |
 | Third-party dependency wrapping | New contracts should prefer core-owned types and interfaces over leaking vendor SDK types through public APIs. |
 | Environment-driven runtime config | Packages may help parse or hold config, but deploy-specific values and secrets belong to the consuming application environment. |
 | Strict local verification | Changes are expected to run `go test ./...`, `go test -race -count=1 ./...`, and `golangci-lint run ./...`. |
@@ -68,7 +68,7 @@ The architecturally significant requirements are:
 | External actor/system | Interaction with `core` |
 |-----------------------|--------------------------|
 | InsideGallery Go services | Import selected packages for shared utilities, clients, middleware, metrics, logging, PKI, and server support. |
-| Test suites | Reuse `testassert/`, legacy `testutils/`, `fixtures/`, and in-memory packages to keep tests repeatable. |
+| Test suites | Reuse `fixtures/`, `github.com/FrogoAI/testutils`, and in-memory packages to keep tests repeatable. |
 | Backing services | Are contacted only when a consumer chooses an adapter package such as Aerospike, MongoDB, Postgres, Redis, NATS, or metrics exporters. |
 | Observability stacks | Receive logs or metrics through consumer-configured `fastlog/` and `metrics/` packages. |
 | Maintainers | Evolve shared APIs while preserving compatibility and keeping drift out of architecture docs. |
@@ -83,11 +83,11 @@ Source: [images/c4_context.dot](images/c4_context.dot)
 |-----------|------------|-----------------|-------|
 | Library import | Go modules | `github.com/InsideGallery/core/...` | Consumers import packages directly; this repository does not expose a network service. |
 | Configuration | Structs and environment parsing where package-specific helpers exist | Consumer process | Secrets, URLs, credentials, and bind addresses are supplied by the application. |
-| Database adapters | Aerospike, BuntDB, Elasticsearch, Gremlin, MongoDB, Neo4j, Postgres, Redis | Consumer-provided endpoints | Adapters wrap client setup and common operations. |
-| Queue adapters | NATS and generic subscriber abstractions | Consumer-provided endpoints | Consumers own subjects, connection lifecycle, and process behavior. |
+| Database adapters | Aerospike, BuntDB, Elasticsearch, FrogoDB, Gremlin, MongoDB, Neo4j, Postgres, Redis | Consumer-provided endpoints | Adapters wrap client setup and common operations. |
+| Queue worker bootstrap | `github.com/FrogoAI/mq-balancer` | Consumer-provided endpoints | Consumers own subjects, connection lifecycle, and process behavior. |
 | Server support | Fiber/webserver, JWT, SSE, templates, backoff, throughput helpers | Consumer-owned ports/routes | `core` supplies helpers; the application binds ports and routes. |
 | Observability | `log/slog`, Datadog, Prometheus, OpenTelemetry, StatsD-related packages | Consumer-owned exporters/backends | No repository-owned dashboard or metrics endpoint contract. |
-| Pure helpers | Standard Go APIs plus local packages | In-process calls | Conversion, math, memory structures, crypto, strings, slices, semver, and related utilities. |
+| Pure helpers | Standard Go APIs plus local packages | In-process calls | Conversion, math, memory structures, crypto, strings, slices, and related utilities. |
 
 ### 3.3 Repository Boundary
 
@@ -127,14 +127,14 @@ It intentionally excludes:
 
 | Building block | Location | Responsibility |
 |----------------|----------|----------------|
-| Core utilities | `dataconv/`, `errors/`, `mathx/`, legacy `mathutils/`, legacy `utils/` | Binary conversion, IP/string/slice/hash helpers, semantic versioning, random/math helpers, and error utilities. |
+| Core utilities | `dataconv/`, `errors/`, `mathutils/`, legacy `utils/` | Binary conversion, IP/string/slice/hash helpers, semantic versioning, random/math helpers, and error utilities. |
 | In-memory structures | `memory/` | Bloom filters, B-trees, HLL, linked lists, LRU, ordered maps, registries, sets, sorted sets, stacks, fuzzy search, safe containers, and ordering helpers. |
 | Security and PKI | `pki/cryptor/`, `pki/aesgcm/`, `pki/rsaoaep/`, legacy `pki/`, `server/jwt/` | AES/RSA helpers, cipher abstractions, JWT support, password helpers, and related cryptographic utilities. |
 | Runtime coordination | `multiproc/`, `oslistener/`, `ticker/`, `commands/`, `ecs/`, `antibot/` | Worker pools, retryable once execution, signal listening, timers, command/event helpers, ECS primitives, and proof-of-work utilities. |
-| Data and service adapters | `db/`, `queue/` | Optional clients, generic subscriber contracts, and NATS adapters selected by a consumer application. |
+| Data and service adapters | `db/` | Optional clients selected by a consumer application. Queue worker balancing is delegated to `github.com/FrogoAI/mq-balancer` through `app.NATSMain`. |
 | Observability | `fastlog/`, `metrics/`, `profiler/` | Structured logging handlers/middleware, metrics clients/processors, and profiling helpers. |
 | Server support | `app/`, `server/` | Web, JWT, SSE, view/template, backoff, throughput, instance, honeypot, and profiler support for applications that choose to use them. |
-| Test and embedded support | `testassert/`, legacy `testutils/`, `fixtures/`, `embedded/` | Shared assertions, service fixtures, and embedded resources. |
+| Test support | `fixtures/` plus `github.com/FrogoAI/testutils` | Shared assertions and service fixtures. |
 
 ![C4 Container](images/c4_container.png)
 
@@ -144,11 +144,11 @@ Source: [images/c4_container.dot](images/c4_container.dot)
 
 | Component | Main responsibilities | Boundary rule |
 |-----------|-----------------------|---------------|
-| Pure helpers | Stateless conversion, math, bytes, strings, hashes, semver parsing, and collection utilities. | Should stay independent of infrastructure SDKs and process lifecycle. |
+| Pure helpers | Stateless conversion, math, bytes, strings, hashes, and collection utilities. | Should stay independent of infrastructure SDKs and process lifecycle. |
 | Memory packages | Reusable in-process data structures and probabilistic structures. | Must not assume persistence or distributed ownership. |
 | PKI and security helpers | Encryption, signing, JWT, ciphers, and password support. | Must return errors to callers; consumers own key storage and rotation policy. |
 | Database adapters | Client setup/configuration helpers for supported databases. | Consumers own endpoints, credentials, lifecycle, migrations, and operational SLAs. |
-| Queue adapters | Generic subscriber contracts and NATS driver support. | Consumers own subjects, retries, idempotency, and worker process formation. |
+| Queue worker bootstrap | `app.NATSMain` wiring to `github.com/FrogoAI/mq-balancer`. | Consumers own subjects, retries, idempotency, and worker process formation. |
 | Server helpers | Middleware, templates, SSE, JWT, webserver and app bootstrap helpers. | Consumers own routes, ports, TLS, auth policy, and graceful shutdown semantics. |
 | Observability helpers | `slog` handlers, metrics processors, and profiler support. | Consumers own destinations, sampling, dashboards, and alert rules. |
 
@@ -178,7 +178,7 @@ flows that call into imported packages.
 
 ### 6.3 Adapter Use
 
-1. The consumer selects an adapter package such as `db/postgres`, `db/redis`, `queue/nats`, `metrics`, or `fastlog`.
+1. The consumer selects an adapter package such as `db/frogodb`, `db/postgres`, `db/redis`, `metrics`, or `fastlog`, or uses `app.NATSMain` for `mq-balancer` subscriber workers.
 2. The consumer supplies endpoint, credential, timeout, and runtime settings from its own environment/config layer.
 3. The package creates or wraps a third-party client where supported.
 4. The consumer owns context cancellation, retries, transactions, shutdown, and observability policy.
@@ -245,16 +245,16 @@ exports remain available for compatibility; new consumers should depend on the
 core-owned option, result, and error wrapper types.
 
 CORE-API-02 completes the same additive boundary pattern for remaining helper
-surfaces: NATS subscriber and message middleware callbacks, generic subscriber
-aliases, Gremlin edge/traversal helpers, Aerospike entity and HLL helpers,
-MongoDB filter/sort helpers, Postgres construction options, Redis proxy storage
-options, and Fiber route initialization and middleware callbacks. Legacy
+surfaces: Gremlin edge/traversal helpers, Aerospike entity and HLL helpers,
+MongoDB filter/sort helpers, Postgres construction options, and Fiber route
+initialization and middleware callbacks. Queue subscriber contracts moved to
+`github.com/FrogoAI/mq-balancer`. Legacy
 SDK-shaped helper APIs remain available as compatibility shims.
 
 CORE-STATE-01 adds explicit runtime-state ownership for the remaining legacy
 defaults: command event managers, ECS entity ID factories, signal listeners,
 profiler health/probe state, metrics processor registries and scoped defaults,
-database client stores, NATS config-based connection construction, fastlog
+database client stores, mq-balancer connection construction, fastlog
 logger and handler constructors, Gremlin syntax state, and template directory
 configuration.
 Package-level `Default`, `Set`, `Get`, and env-reading helpers remain only as

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	stdprom "github.com/prometheus/client_golang/prometheus"
+	promcollectors "github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/InsideGallery/core/metrics"
@@ -18,10 +19,11 @@ const ProcessorName = "prometheus"
 
 const (
 	contentType = "text/plain; version=0.0.4; charset=utf-8"
+	serviceKey  = "service"
 )
 
 func init() {
-	metrics.DefaultRegistry().Register(ProcessorName, New)
+	metrics.Register(ProcessorName, New)
 }
 
 type processor struct {
@@ -48,8 +50,8 @@ type labelSet struct {
 }
 
 var (
-	activeMu        sync.RWMutex //nolint:gochecknoglobals // profiler scrape handler reads active processor
-	activeProcessor *processor   //nolint:gochecknoglobals // nil means no Prometheus metrics are active
+	activeMu        sync.RWMutex
+	activeProcessor *processor
 )
 
 // New creates a Prometheus scrape processor.
@@ -62,6 +64,10 @@ func New(_ metrics.Config, service string) (metrics.Processor, error) {
 	}
 
 	registry := stdprom.NewRegistry()
+	if err := registerStandardCollectors(registry, service); err != nil {
+		return nil, err
+	}
+
 	p := &processor{
 		service:    service,
 		cfg:        cfg,
@@ -75,6 +81,31 @@ func New(_ metrics.Config, service string) (metrics.Processor, error) {
 	setActiveProcessor(p)
 
 	return p, nil
+}
+
+func registerStandardCollectors(registry *stdprom.Registry, service string) error {
+	registerer := stdprom.WrapRegistererWith(stdprom.Labels{serviceKey: service}, registry)
+	standardCollectors := []struct {
+		name      string
+		collector stdprom.Collector
+	}{
+		{
+			name:      "go runtime",
+			collector: promcollectors.NewGoCollector(),
+		},
+		{
+			name:      "process",
+			collector: promcollectors.NewProcessCollector(promcollectors.ProcessCollectorOpts{}),
+		},
+	}
+
+	for _, standardCollector := range standardCollectors {
+		if err := registerer.Register(standardCollector.collector); err != nil {
+			return fmt.Errorf("register %s collector: %w", standardCollector.name, err)
+		}
+	}
+
+	return nil
 }
 
 func (p *processor) Close() error {
@@ -148,7 +179,7 @@ func (p *processor) counter(name string, tags []string) (*stdprom.CounterVec, la
 	collector := stdprom.NewCounterVec(stdprom.CounterOpts{
 		Name:        normalized,
 		Help:        helpText(normalized),
-		ConstLabels: stdprom.Labels{"service": p.service},
+		ConstLabels: stdprom.Labels{serviceKey: p.service},
 	}, labels.names)
 
 	if err := p.registry.Register(collector); err != nil {
@@ -175,7 +206,7 @@ func (p *processor) gauge(name string, tags []string) (*stdprom.GaugeVec, labelS
 	collector := stdprom.NewGaugeVec(stdprom.GaugeOpts{
 		Name:        normalized,
 		Help:        helpText(normalized),
-		ConstLabels: stdprom.Labels{"service": p.service},
+		ConstLabels: stdprom.Labels{serviceKey: p.service},
 	}, labels.names)
 
 	if err := p.registry.Register(collector); err != nil {
@@ -202,7 +233,7 @@ func (p *processor) histogram(name string, tags []string) (*stdprom.HistogramVec
 	collector := stdprom.NewHistogramVec(stdprom.HistogramOpts{
 		Name:                            normalized,
 		Help:                            helpText(normalized),
-		ConstLabels:                     stdprom.Labels{"service": p.service},
+		ConstLabels:                     stdprom.Labels{serviceKey: p.service},
 		Buckets:                         p.cfg.classicBuckets,
 		NativeHistogramBucketFactor:     p.cfg.NativeHistogramBucketFactor,
 		NativeHistogramZeroThreshold:    p.cfg.NativeHistogramZeroThreshold,

@@ -29,7 +29,7 @@ func GetConfigFromEnv() (*Config, error) {
 
 func (c Config) GetPrivateKey() ([]byte, error) {
 	if !strings.HasPrefix(c.PrivateKey, "-----") {
-		data, err := os.ReadFile(c.PrivateKey)
+		data, err := os.ReadFile(c.PrivateKey) //nolint:gosec // path comes from caller-owned JWT config
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +42,7 @@ func (c Config) GetPrivateKey() ([]byte, error) {
 
 func (c Config) GetPublicKey() ([]byte, error) {
 	if !strings.HasPrefix(c.PublicKey, "-----") {
-		data, err := os.ReadFile(c.PublicKey)
+		data, err := os.ReadFile(c.PublicKey) //nolint:gosec // path comes from caller-owned JWT config
 		if err != nil {
 			return nil, err
 		}

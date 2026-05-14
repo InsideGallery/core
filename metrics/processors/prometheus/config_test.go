@@ -51,6 +51,24 @@ func TestGetConfigFromEnv(t *testing.T) {
 	}
 }
 
+func TestGetConfigFromEnvUsesPrometheusOnlyDeploymentDefaults(t *testing.T) {
+	t.Setenv("DD_STATSD_ADDR", "datadog:8125")
+	t.Setenv("METRICS_DATADOG_ADDR", "datadog:8125")
+
+	cfg, err := getConfigFromEnv()
+	if err != nil {
+		t.Fatalf("getConfigFromEnv() error: %v", err)
+	}
+
+	if len(cfg.classicBuckets) != 0 {
+		t.Fatalf("classicBuckets = %v, want empty", cfg.classicBuckets)
+	}
+
+	if cfg.NativeHistogramBucketFactor != 1.1 {
+		t.Fatalf("NativeHistogramBucketFactor = %v, want 1.1", cfg.NativeHistogramBucketFactor)
+	}
+}
+
 func TestGetConfigFromEnvRejectsInvalidNativeFactor(t *testing.T) {
 	t.Setenv("METRICS_PROMETHEUS_NATIVE_BUCKET_FACTOR", "1")
 

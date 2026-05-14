@@ -1,6 +1,6 @@
 module github.com/InsideGallery/core
 
-go 1.26.1
+go 1.26.3
 
 retract (
 	v1.0.2 // Remove miss-use of mongo config hosts
@@ -10,22 +10,28 @@ retract (
 require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/nats-io/nats.go v1.34.1
+	github.com/nats-io/nats.go v1.49.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/tidwall/buntdb v1.3.0
 	github.com/valyala/fasthttp v1.69.0
-	go.mongodb.org/mongo-driver v1.15.0
+	go.mongodb.org/mongo-driver v1.17.6
 	go.uber.org/atomic v1.11.0
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
 )
 
 require (
-	dario.cat/mergo v1.0.1
+	dario.cat/mergo v1.0.2
 	github.com/AlekSi/pointer v1.2.0
 	github.com/DataDog/datadog-api-client-go/v2 v2.44.0
 	github.com/DataDog/datadog-go/v5 v5.8.3
+	github.com/FrogoAI/fdb-client v1.2.1
+	github.com/FrogoAI/memory v0.0.0-20260120150654-ca52f307f29e
+	github.com/FrogoAI/mq-balancer v1.1.0
+	github.com/FrogoAI/set v1.1.0
+	github.com/FrogoAI/testutils v0.0.0-20260120234612-cf743e4bd16a
+	github.com/FrogoAI/tokenizer v0.0.0-20260121000201-0062cc551053
 	github.com/aerospike/aerospike-client-go/v7 v7.2.1
 	github.com/agoda-com/opentelemetry-go/otelslog v0.1.1
 	github.com/agoda-com/opentelemetry-logs-go v0.5.0
@@ -37,7 +43,6 @@ require (
 	github.com/elastic/go-elasticsearch/v8 v8.16.0
 	github.com/go-faster/xor v1.0.0
 	github.com/go-jose/go-jose/v3 v3.0.4
-	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/gofiber/contrib/v3/jwt v1.1.0
 	github.com/gofiber/fiber/v3 v3.1.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -46,18 +51,14 @@ require (
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/mailru/easyjson v0.7.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
-	github.com/nats-io/nkeys v0.4.7
 	github.com/neo4j/neo4j-go-driver/v5 v5.20.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	github.com/redis/go-redis/v9 v9.5.5
-	github.com/samber/lo v1.47.0
 	github.com/samber/slog-datadog/v2 v2.8.0
 	github.com/samber/slog-multi v1.0.3
-	github.com/samber/slog-otel v0.1.0
-	github.com/segmentio/go-hll v1.0.1
 	github.com/sirbu/golang-common v0.0.0-20170403140351-21d4febd4bca
-	github.com/spf13/cast v1.6.0
+	github.com/spf13/cast v1.10.0
 	github.com/stretchr/testify v1.11.1
 	github.com/sugarme/tokenizer v0.3.0
 	github.com/tink-crypto/tink-go/v2 v2.5.0
@@ -68,7 +69,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0
 	go.opentelemetry.io/otel/sdk v1.27.0
 	go.opentelemetry.io/otel/trace v1.28.0
-	go.uber.org/mock v0.5.0
+	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.48.0
 	golang.org/x/text v0.34.0
 	gorgonia.org/gorgonia v0.9.18
@@ -77,6 +78,7 @@ require (
 
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
+	github.com/FrogoAI/multiproc v1.0.0 // indirect
 	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
@@ -100,7 +102,6 @@ require (
 	github.com/gofiber/utils/v2 v2.0.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
@@ -117,8 +118,9 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
-	github.com/montanaflynn/stats v0.6.6 // indirect
+	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/nats-io/nkeys v0.4.15 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.4.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -128,6 +130,7 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/samber/lo v1.47.0 // indirect
 	github.com/samber/slog-common v0.17.0 // indirect
 	github.com/schollz/progressbar/v2 v2.15.0 // indirect
 	github.com/sugarme/regexpset v0.0.0-20200920021344-4d4ec8eaf93c // indirect
@@ -140,11 +143,13 @@ require (
 	github.com/tidwall/tinyqueue v0.1.1 // indirect
 	github.com/tinylib/msgp v1.6.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/xtgo/set v1.0.0 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.27.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.2.0 // indirect
@@ -154,7 +159,7 @@ require (
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	gonum.org/v1/gonum v0.11.0 // indirect
+	gonum.org/v1/gonum v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect

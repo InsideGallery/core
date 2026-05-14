@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/InsideGallery/core/memory/registry"
+	"github.com/FrogoAI/memory/registry"
 )
 
 var store = registry.NewRegistry[string, string, any]()

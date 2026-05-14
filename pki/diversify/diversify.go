@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/InsideGallery/core/pki/aescmac"
-	"github.com/InsideGallery/core/utils"
+	"github.com/InsideGallery/core/stdx/bytes"
 )
 
 var (
@@ -51,7 +51,7 @@ func Key(masterKey, diversificationData []byte) ([]byte, error) {
 
 		keyData := make([]byte, 0, aesKeySize192)
 		keyData = append(keyData, a[:cmacHalfBlockLen]...)
-		keyData = append(keyData, utils.XOR(a[cmacHalfBlockLen:], b[:cmacHalfBlockLen])...)
+		keyData = append(keyData, bytes.XOR(a[cmacHalfBlockLen:], b[:cmacHalfBlockLen])...)
 		keyData = append(keyData, b[cmacHalfBlockLen:]...)
 
 		return keyData, nil

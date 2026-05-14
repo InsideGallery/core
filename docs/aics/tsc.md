@@ -32,9 +32,9 @@ repository-owned deployment.
 |--------------|-----------------------|
 | Module path | `github.com/InsideGallery/core`. |
 | Go version | `go.mod` currently declares Go `1.26.1`. |
-| Public package families | Utilities, data structures, DB adapters, queue adapters, metrics, logging, PKI, server support, multiprocessing, ECS, fixtures, and test helpers. |
+| Public package families | Utilities, data structures, DB adapters, mq-balancer bootstrap, metrics, logging, PKI, server support, multiprocessing, ECS, fixtures, and test helpers. |
 | Database adapter families | Aerospike, BuntDB, Elasticsearch, Gremlin, MongoDB, Neo4j, Postgres, Redis. |
-| Queue adapter families | Generic subscriber abstractions and NATS support. |
+| Queue worker balancing | Delegated to `github.com/FrogoAI/mq-balancer`; core keeps `app.NATSMain` bootstrap wiring. |
 | Fixed network ports | `0`; all ports belong to consumers. |
 | Deployment artifacts | `0`; this repository does not define containers, Kubernetes manifests, or process formation. |
 
@@ -55,15 +55,15 @@ repository-owned deployment.
 
 | Package family | Location | Role |
 |----------------|----------|------|
-| Pure utility packages | `dataconv/`, `errors/`, `mathx/`, legacy `mathutils/`, legacy `utils/` | Conversion, hashing, string/slice/byte helpers, semver, probability/math helpers, and error utilities. |
+| Pure utility packages | `dataconv/`, `errors/`, `mathutils/`, legacy `utils/` | Conversion, hashing, string/slice/byte helpers, probability/math helpers, and error utilities. |
 | Memory and algorithms | `memory/`, `antibot/` | In-process data structures, probabilistic structures, fuzzy search, safe containers, ordering helpers, and proof-of-work helpers. |
 | Security | `pki/cryptor/`, `pki/aesgcm/`, `pki/rsaoaep/`, legacy `pki/`, `server/jwt/` | AES/RSA/cipher helpers, JWT support, and password helpers. |
 | Runtime coordination | `multiproc/`, `oslistener/`, `ticker/`, `commands/`, `ecs/` | Worker pools, retryable once execution, signal handling, tickers, command/event dispatch, and ECS primitives. |
 | Data adapters | `db/` | Optional clients and helpers for selected backing services. |
-| Queue adapters | `queue/` | Generic subscriber contracts and NATS adapter support. |
+| Queue worker balancing | `github.com/FrogoAI/mq-balancer` via `app/` | External subscriber contracts and NATS worker balancing used by `app.NATSMain`. |
 | Observability | `fastlog/`, `metrics/`, `profiler/` | `slog` event-stream handlers, metrics processors, middleware, and profiling helpers. |
 | Server support | `app/`, `server/` | Webserver, SSE, JWT, views/templates, backoff, throughput, honeypot, and app bootstrap helpers. |
-| Test and resources | `testassert/`, legacy `testutils/`, `fixtures/`, `embedded/` | Shared assertions, fixtures, and embedded resources. |
+| Test and resources | `fixtures/` plus `github.com/FrogoAI/testutils` | Shared assertions and fixtures. |
 
 ### Architecture Representation
 
@@ -78,7 +78,7 @@ Consumer Go application
         v
 github.com/InsideGallery/core
    |
-   +-- pure helpers: dataconv, mathx, memory, pki/cryptor, legacy mathutils, legacy utils
+   +-- pure helpers: dataconv, mathutils, memory, pki/cryptor, legacy utils
    +-- runtime helpers: multiproc, ticker, oslistener, commands, ecs
    +-- optional adapters: db, queue, metrics, fastlog, app, server
         |
@@ -135,7 +135,7 @@ consumer shutdown -> helper/client: close resources where applicable
 | Language | Go `1.26.1` from `go.mod` | Entire library implementation. |
 | Module system | Go modules | Import and version management through `github.com/InsideGallery/core`. |
 | HTTP/server support | Go HTTP ecosystem and Fiber-related packages where used | Helpers for consumer-owned servers. |
-| Queue support | NATS and generic subscriber interfaces | Optional queue clients and subscriber helpers. |
+| Queue support | `github.com/FrogoAI/mq-balancer` subscriber interfaces | Optional NATS worker bootstrap through `app.NATSMain`. |
 | Database clients | Aerospike, BuntDB, Elasticsearch, Gremlin, MongoDB, Neo4j, Postgres, Redis dependencies | Optional adapter packages. |
 | Logging | `log/slog`, Datadog, OpenTelemetry-related handlers | Structured logging helpers and handlers. |
 | Metrics | Prometheus, Datadog, OpenTelemetry, StatsD-related packages | Optional metrics client/processor packages. |
@@ -161,11 +161,11 @@ consumer shutdown -> helper/client: close resources where applicable
 |-------------------|--------|
 | Go package API | Implemented through exported package paths under the module. |
 | Database integrations | Adapter packages exist under `db/`; endpoints and credentials are consumer-owned. |
-| Queue integrations | Generic subscriber interfaces and NATS adapter support exist under `queue/`. |
+| Queue integrations | Subscriber balancing is delegated to `github.com/FrogoAI/mq-balancer`; core wires it through `app.NATSMain`. |
 | Metrics integrations | Metrics client/processors exist under `metrics/`; exporters and dashboards are consumer-owned. |
 | Logging integrations | `fastlog/` defaults to structured `stderr` event streams; `stdout` is built in, and file logging is legacy opt-in compatibility. |
 | Web/server integrations | `app/` and `server/` provide helpers; routes, listeners, TLS, auth policy, and error handling are consumer-owned. |
-| Test helpers | `testassert/`, legacy `testutils/`, and `fixtures/` support package and consumer tests. |
+| Test helpers | `github.com/FrogoAI/testutils` and `fixtures/` support package and consumer tests. |
 
 ### Security and Compliance
 

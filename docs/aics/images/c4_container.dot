@@ -29,7 +29,7 @@ digraph C4_Container {
         fontsize=14
 
         pure_helpers [
-            label="Pure Utility Packages\n[dataconv, errors,\nmathutils, utils]\n\nConversion, strings,\nbytes, hashes, semver,\nmath, and error helpers."
+            label="Pure Utility Packages\n[dataconv, errors,\nmathutils, utils]\n\nConversion, strings,\nbytes, hashes,\nmath, and error helpers."
             fillcolor="#438DD5" fontcolor=white
         ]
         memory [
@@ -57,7 +57,7 @@ digraph C4_Container {
             fillcolor="#438DD5" fontcolor=white
         ]
         tests [
-            label="Test and Fixture Support\n[testutils, fixtures,\nembedded]\n\nAssertions, fixtures,\nembedded resources."
+            label="Test and Fixture Support\n[fixtures]\n\nFixtures and\nexternal assertions."
             fillcolor="#438DD5" fontcolor=white
         ]
     }

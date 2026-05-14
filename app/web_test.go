@@ -1,26 +1,38 @@
 package app
 
-import (
-	"context"
-	"testing"
+import "testing"
 
-	"github.com/InsideGallery/core/metrics"
-	"github.com/InsideGallery/core/queue/nats/middleware"
-	"github.com/InsideGallery/core/queue/nats/subscriber"
-)
+func TestAppMetricsConfigUsesConfiguredProcessors(t *testing.T) {
+	t.Setenv("METRICS_PROCESSORS", "datadog,statsd")
 
-func TestWeb(t *testing.T) {
-	t.Skip() // test for validate how apps works
+	cfg, err := appMetricsConfig()
+	if err != nil {
+		t.Fatalf("appMetricsConfig() error: %v", err)
+	}
 
-	ctx := context.Background()
-	WebMain(ctx, ":8090", "Test Server", nil)
+	got := cfg.EnabledProcessors()
+	want := []string{"datadog", "statsd"}
+
+	if len(got) != len(want) {
+		t.Fatalf("processors = %v, want %v", got, want)
+	}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("processors = %v, want %v", got, want)
+		}
+	}
 }
 
-func TestNATS(t *testing.T) {
-	t.Skip() // test for validate how apps works
+func TestAppMetricsConfigKeepsMetricsDisabled(t *testing.T) {
+	t.Setenv("METRICS_PROCESSORS", "none")
 
-	ctx := context.Background()
-	NATSMain(ctx, func(_ context.Context, _ *metrics.Client, _ *middleware.Middleware, _ *subscriber.Subscriber) error {
-		panic("test")
-	})
+	cfg, err := appMetricsConfig()
+	if err != nil {
+		t.Fatalf("appMetricsConfig() error: %v", err)
+	}
+
+	if cfg.Enabled() {
+		t.Fatal("expected disabled metrics")
+	}
 }

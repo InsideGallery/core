@@ -19,3 +19,16 @@ func TestGetConfigFromEnv(t *testing.T) {
 		t.Fatalf("namespacePrefix() = %q", got)
 	}
 }
+
+func TestGetConfigFromEnvUsesDefaultNamespaceWhenBlank(t *testing.T) {
+	t.Setenv("METRICS_STATSD_NAMESPACE", " ")
+
+	cfg, err := getConfigFromEnv()
+	if err != nil {
+		t.Fatalf("getConfigFromEnv() error: %v", err)
+	}
+
+	if got := cfg.namespacePrefix(); got != "ptolemy." {
+		t.Fatalf("namespacePrefix() = %q, want ptolemy.", got)
+	}
+}

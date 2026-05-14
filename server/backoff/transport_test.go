@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 func TestHTTPTransport_RoundTrip(t *testing.T) {

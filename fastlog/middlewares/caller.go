@@ -4,33 +4,34 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"path"
+	"path/filepath"
 	"runtime"
 )
 
-const depth = 4
+const callerDepth = 4
 
+// CallerMiddleware adds source file and line information to log records.
 func CallerMiddleware(ctx context.Context, record slog.Record, next func(context.Context, slog.Record) error) error {
 	var attrs []slog.Attr
 
-	record.Attrs(func(attr slog.Attr) bool {
-		attrs = append(attrs, attr)
+	record.Attrs(func(a slog.Attr) bool {
+		attrs = append(attrs, a)
 		return true
 	})
 
-	attrs = append(attrs, slog.String("caller", Caller(depth)))
+	attrs = append(attrs, slog.String("caller", caller(callerDepth)))
 
-	// new record with formatted error
-	record = slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
-	record.AddAttrs(attrs...)
+	newRecord := slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
+	newRecord.AddAttrs(attrs...)
 
-	return next(ctx, record)
+	return next(ctx, newRecord)
 }
 
-func Caller(depth int) (fileAndLine string) {
-	if _, file, line, ok := runtime.Caller(depth + 1); ok {
-		fileAndLine = fmt.Sprintf("%s:%d", path.Base(file), line)
+func caller(depth int) string {
+	_, file, line, ok := runtime.Caller(depth + 1)
+	if !ok {
+		return "unknown"
 	}
 
-	return
+	return fmt.Sprintf("%s:%d", filepath.Base(file), line)
 }

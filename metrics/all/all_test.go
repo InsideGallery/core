@@ -10,26 +10,13 @@ import (
 	"github.com/InsideGallery/core/metrics"
 )
 
-func TestMetricsAllRegistersProcessors(t *testing.T) {
-	t.Parallel()
+func TestAllRegistersMetricsProcessors(t *testing.T) {
+	registered := registeredProcessors(metrics.RegisteredProcessors())
 
-	registered := registeredProcessors(metrics.DefaultRegistry().RegisteredProcessors())
-	cases := []struct {
-		name      string
-		processor string
-	}{
-		{name: "datadog", processor: "datadog"},
-		{name: "otel", processor: "otel"},
-		{name: "prometheus", processor: "prometheus"},
-		{name: "statsd", processor: "statsd"},
-	}
-
-	for _, test := range cases {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			if _, ok := registered[test.processor]; !ok {
-				t.Fatalf("registered processors missing %q", test.processor)
+	for _, processor := range []string{"datadog", "otel", "prometheus", "statsd"} {
+		t.Run(processor, func(t *testing.T) {
+			if _, ok := registered[processor]; !ok {
+				t.Fatalf("registered processors missing %q", processor)
 			}
 		})
 	}

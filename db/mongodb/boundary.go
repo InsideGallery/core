@@ -30,6 +30,11 @@ import (
 // ErrDocumentTargetIsNotSet reports a missing decode target for document reads.
 var ErrDocumentTargetIsNotSet = errors.New("document target is not set")
 
+const (
+	mongoIDKey  = "_id"
+	mongoSetKey = "$set"
+)
+
 // FindOptions is the core-owned input for MongoDB read operations.
 type FindOptions struct {
 	Collection string
@@ -250,5 +255,5 @@ func normalizeUpdate(update any) any {
 		return update
 	}
 
-	return bson.D{{Key: "$set", Value: update}}
+	return bson.D{{Key: mongoSetKey, Value: update}}
 }

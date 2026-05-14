@@ -17,7 +17,7 @@ digraph C4_Context {
         fillcolor="#08427B" fontcolor=white
     ]
     test_suites [
-        label="Consumer and Package Tests\n[Go Test]\n\nUse fixtures, testutils,\nin-memory structures,\nand package APIs."
+        label="Consumer and Package Tests\n[Go Test]\n\nUse fixtures,\nexternal assertions,\nin-memory structures,\nand package APIs."
         fillcolor="#08427B" fontcolor=white
     ]
     maintainers [

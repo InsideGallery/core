@@ -51,7 +51,7 @@ func IPFromRequest(c fiber.Ctx) (net.IP, error) {
 	return net.ParseIP(xRealIP), nil
 }
 
-// IPStringFromRequest returns the request IP as a string.
+// IPStringFromRequest returns the request IP as a strings.
 func IPStringFromRequest(c fiber.Ctx) string {
 	ip, err := IPFromRequest(c)
 	if err != nil || ip == nil {

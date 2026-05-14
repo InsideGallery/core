@@ -6,7 +6,7 @@ package postgres
 import (
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 func TestDefault(t *testing.T) {

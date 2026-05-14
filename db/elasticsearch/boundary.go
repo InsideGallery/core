@@ -5,7 +5,7 @@
 //	import "github.com/InsideGallery/core/db/elasticsearch"
 //
 //	client, err := elasticsearch.NewSearchClient(elasticsearch.Options{
-//		Addresses: []string{"http://localhost:9200"},
+//		Addresses: []strings{"http://localhost:9200"},
 //	})
 //
 // Use Searcher, SearchOptions, and SearchResult for consumer-facing code that

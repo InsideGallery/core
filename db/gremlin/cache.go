@@ -4,9 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/FrogoAI/memory/registry"
 	gremlingo "github.com/apache/tinkerpop/gremlin-go/v3/driver"
-
-	"github.com/InsideGallery/core/memory/registry"
 )
 
 var ErrCastType = errors.New("error cast type")

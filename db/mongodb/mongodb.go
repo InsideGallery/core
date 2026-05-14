@@ -151,7 +151,7 @@ func (m *MongoClient) FindOneByID(
 	id interface{},
 	opts ...*options.FindOneOptions,
 ) error {
-	filter := bson.D{{Key: "_id", Value: id}}
+	filter := bson.D{{Key: mongoIDKey, Value: id}}
 	result := m.Collection(collection).FindOne(ctx, filter, opts...)
 
 	return result.Decode(value)
@@ -229,8 +229,8 @@ func (m *MongoClient) UpsertMany(
 			models,
 			mongo.
 				NewUpdateOneModel().
-				SetFilter(bson.D{{Key: "_id", Value: key}}).
-				SetUpdate(bson.D{{Key: "$set", Value: documents[i]}}).
+				SetFilter(bson.D{{Key: mongoIDKey, Value: key}}).
+				SetUpdate(bson.D{{Key: mongoSetKey, Value: documents[i]}}).
 				SetUpsert(true),
 		)
 	}
@@ -261,7 +261,7 @@ func (m *MongoClient) UpsertManyByFilter(
 			mongo.
 				NewUpdateOneModel().
 				SetFilter(bson.D{{Key: filterBy, Value: key}}).
-				SetUpdate(bson.D{{Key: "$set", Value: documents[i]}}).
+				SetUpdate(bson.D{{Key: mongoSetKey, Value: documents[i]}}).
 				SetUpsert(true),
 		)
 	}
@@ -285,7 +285,7 @@ func (m *MongoClient) BatchUpdateByID(ctx context.Context, collection string, da
 			mongo.
 				NewUpdateOneModel().
 				SetFilter(bson.D{{Key: "_id", Value: id}}).
-				SetUpdate(bson.D{{Key: "$set", Value: v}}),
+				SetUpdate(bson.D{{Key: mongoSetKey, Value: v}}),
 		)
 	}
 
@@ -310,7 +310,7 @@ func (m *MongoClient) UpdateByObject(
 	o := options.Update()
 	o.SetUpsert(true)
 	opts = append(opts, o)
-	update := bson.D{{Key: "$set", Value: value}}
+	update := bson.D{{Key: mongoSetKey, Value: value}}
 	_, err := m.Collection(collection).UpdateOne(ctx, filter, update, opts...)
 
 	return err

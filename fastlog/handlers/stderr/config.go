@@ -6,17 +6,17 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
-const EnvPrefix = "STDERR"
+const envPrefix = "STDERR"
 
-type Config struct {
+type config struct {
 	Level slog.Level `env:"_LEVEL" envDefault:"INFO"`
 }
 
-func GetConfigFromEnv() (*Config, error) {
-	c := new(Config)
+func getConfigFromEnv() (*config, error) {
+	c := new(config)
 
 	err := env.ParseWithOptions(c, env.Options{
-		Prefix: EnvPrefix,
+		Prefix: envPrefix,
 	})
 	if err != nil {
 		return nil, err

@@ -3,15 +3,16 @@ package rsa_test
 import (
 	"testing"
 
+	"github.com/FrogoAI/testutils"
+
 	corersa "github.com/InsideGallery/core/pki/rsa"
-	"github.com/InsideGallery/core/testutils"
 )
 
 func TestRSACipher(t *testing.T) {
 	a, err := corersa.NewRSA(corersa.DefaultBitsSize)
 	testutils.Equal(t, err, nil)
 
-	val := []byte("test string")
+	val := []byte("test strings")
 	res, err := a.Encrypt(val)
 	testutils.Equal(t, err, nil)
 
@@ -31,7 +32,7 @@ func TestRSACipherRestore(t *testing.T) {
 	c, err := a.FromBinary(raw)
 	testutils.Equal(t, err, nil)
 
-	val := []byte("test string")
+	val := []byte("test strings")
 	res, err := c.Encrypt(val)
 	testutils.Equal(t, err, nil)
 

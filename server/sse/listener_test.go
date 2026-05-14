@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 func TestListener(t *testing.T) {

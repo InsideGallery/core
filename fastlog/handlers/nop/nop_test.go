@@ -1,36 +1,36 @@
 package nop
 
-import (
-	"testing"
+import "testing"
 
-	"github.com/InsideGallery/core/testutils"
-)
+func TestNoopWriterReportsBytesWritten(t *testing.T) {
+	w := W{}
 
-func TestWriterWriteCountsBytes(t *testing.T) {
-	cases := []struct {
-		name    string
-		payload []byte
-	}{
-		{
-			name:    "nil payload",
-			payload: nil,
-		},
-		{
-			name:    "text payload",
-			payload: []byte("discarded log event"),
-		},
+	n, err := w.Write([]byte("discarded"))
+	if err != nil {
+		t.Fatalf("Write() error: %v", err)
 	}
 
-	for _, test := range cases {
-		t.Run(test.name, func(t *testing.T) {
-			w := W{}
+	if n != len("discarded") {
+		t.Fatalf("Write() bytes = %d, want %d", n, len("discarded"))
+	}
+}
 
-			written, err := w.Write(test.payload)
-			if err != nil {
-				t.Fatalf("write: %v", err)
-			}
+func TestNewReturnsNoopWriter(t *testing.T) {
+	writer, opts, err := New()
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
 
-			testutils.Equal(t, written, len(test.payload))
-		})
+	if opts == nil {
+		t.Fatal("expected handler options")
+	}
+
+	n, err := writer.Write([]byte("discarded"))
+	if err != nil {
+		t.Fatalf("Write() error: %v", err)
+	}
+
+	if n != len("discarded") {
+		t.Fatalf("Write() bytes = %d, want %d", n, len("discarded"))
 	}
 }

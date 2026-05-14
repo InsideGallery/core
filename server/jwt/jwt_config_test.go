@@ -3,7 +3,7 @@ package jwt
 import (
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 func TestJWTConfig_filepath(t *testing.T) {

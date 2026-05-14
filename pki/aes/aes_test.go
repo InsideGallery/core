@@ -4,15 +4,16 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/FrogoAI/testutils"
+
 	coreaes "github.com/InsideGallery/core/pki/aes"
-	"github.com/InsideGallery/core/testutils"
 )
 
 func TestAESCipher(t *testing.T) {
 	a, err := coreaes.NewAES(coreaes.AES32)
 	testutils.Equal(t, err, nil)
 
-	val := []byte("test string")
+	val := []byte("test strings")
 	res, err := a.Encrypt(val)
 	testutils.Equal(t, err, nil)
 
@@ -80,7 +81,7 @@ func TestAESCipherRestore(t *testing.T) {
 	c, err := a.FromBinary(raw)
 	testutils.Equal(t, err, nil)
 
-	val := []byte("test string")
+	val := []byte("test strings")
 	res, err := c.Encrypt(val)
 	testutils.Equal(t, err, nil)
 

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
+	as "github.com/aerospike/aerospike-client-go/v7"
+
 	aero "github.com/InsideGallery/core/db/aerospike"
 	"github.com/InsideGallery/core/db/aerospike/testfixtures"
-	"github.com/InsideGallery/core/mathutils"
-	as "github.com/aerospike/aerospike-client-go/v7"
 )
 
 var hllPolicy = as.NewHLLPolicy(as.HLLWriteFlagsDefault | as.HLLWriteFlagsNoFail)
@@ -372,7 +372,7 @@ func BenchmarkCountIntersection_5ValuesLen20(b *testing.B) {
 
 	var values []as.Value
 	for i := 0; i < 5; i++ {
-		values = append(values, as.StringValue(mathutils.RandomDigitString(20)))
+		values = append(values, as.StringValue(math.RandomDigitString(20)))
 	}
 
 	var ops []*as.Operation
@@ -414,7 +414,7 @@ func BenchmarkCountIntersection_5ValuesLen3(b *testing.B) {
 
 	var values []as.Value
 	for i := 0; i < 5; i++ {
-		values = append(values, as.StringValue(mathutils.RandomDigitString(3)))
+		values = append(values, as.StringValue(math.RandomDigitString(3)))
 	}
 
 	var ops []*as.Operation
@@ -456,7 +456,7 @@ func BenchmarkCountIntersection_MillionValuesLen20(b *testing.B) {
 
 	var values []as.Value
 	for i := 0; i < 1000000; i++ {
-		values = append(values, as.StringValue(mathutils.RandomDigitString(20)))
+		values = append(values, as.StringValue(math.RandomDigitString(20)))
 	}
 
 	var ops []*as.Operation
@@ -498,7 +498,7 @@ func BenchmarkCountIntersection_MillionValuesLen3(b *testing.B) {
 
 	var values []as.Value
 	for i := 0; i < 1000000; i++ {
-		values = append(values, as.StringValue(mathutils.RandomDigitString(3)))
+		values = append(values, as.StringValue(math.RandomDigitString(3)))
 	}
 
 	var ops []*as.Operation

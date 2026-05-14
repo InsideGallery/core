@@ -3,7 +3,7 @@ package geospatial
 import (
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 func TestPoint(t *testing.T) {

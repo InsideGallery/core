@@ -11,6 +11,8 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
+// Prometheus processor config uses METRICS_PROMETHEUS_* only for histogram tuning. Scraping is exposed by the profiler
+// /metrics endpoint; Datadog and DogStatsD environment variables are intentionally not part of this config.
 const envPrefix = "METRICS_PROMETHEUS"
 
 type config struct {

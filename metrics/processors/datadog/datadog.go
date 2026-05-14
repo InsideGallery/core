@@ -13,7 +13,7 @@ import (
 const ProcessorName = "datadog"
 
 func init() {
-	metrics.DefaultRegistry().Register(ProcessorName, New)
+	metrics.Register(ProcessorName, New)
 }
 
 type processor struct {
@@ -40,17 +40,13 @@ func New(_ metrics.Config, service string) (metrics.Processor, error) {
 		return nil, fmt.Errorf("connect to %s: %w", cfg.Addr, err)
 	}
 
-	slog.Default().Info("Datadog metrics enabled", "addr", cfg.Addr, "service", service)
+	slog.Info("Datadog metrics enabled", "addr", cfg.Addr, "service", service)
 
 	return &processor{client: client}, nil
 }
 
 func (p *processor) Close() error {
 	return p.client.Close()
-}
-
-func (p *processor) HealthCheck() error {
-	return p.client.Flush()
 }
 
 func (p *processor) Count(name string, value int64, tags []string) error {

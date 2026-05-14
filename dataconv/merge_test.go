@@ -5,8 +5,7 @@ import (
 
 	"dario.cat/mergo"
 	"github.com/AlekSi/pointer"
-
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 type Nested struct {

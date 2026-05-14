@@ -2,10 +2,12 @@ package middlewares
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"reflect"
 )
 
+// ErrorFormattingMiddleware converts error attributes into structured groups
+// with "type" and "message" fields.
 func ErrorFormattingMiddleware(
 	ctx context.Context,
 	record slog.Record,
@@ -13,36 +15,23 @@ func ErrorFormattingMiddleware(
 ) error {
 	var attrs []slog.Attr
 
-	record.Attrs(func(attr slog.Attr) bool {
-		key := attr.Key
-		value := attr.Value
-		kind := attr.Value.Kind()
-
-		if key == "error" && kind == slog.KindAny {
-			if err, ok := value.Any().(error); ok {
-				errType := reflect.TypeOf(err).String()
-				msg := err.Error()
-
-				attrs = append(
-					attrs,
-					slog.Group("error",
-						slog.String("type", errType),
-						slog.String("message", msg),
-					),
+	record.Attrs(func(a slog.Attr) bool {
+		if a.Key == "error" && a.Value.Kind() == slog.KindAny {
+			if err, ok := a.Value.Any().(error); ok {
+				a = slog.Group("error",
+					slog.String("type", fmt.Sprintf("%T", err)),
+					slog.String("message", err.Error()),
 				)
-
-				return true
 			}
 		}
 
-		attrs = append(attrs, attr)
+		attrs = append(attrs, a)
 
 		return true
 	})
 
-	// new record with formatted error
-	record = slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
-	record.AddAttrs(attrs...)
+	newRecord := slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
+	newRecord.AddAttrs(attrs...)
 
-	return next(ctx, record)
+	return next(ctx, newRecord)
 }

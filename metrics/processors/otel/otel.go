@@ -17,7 +17,7 @@ import (
 const ProcessorName = "otel"
 
 func init() {
-	metrics.DefaultRegistry().Register(ProcessorName, New)
+	metrics.Register(ProcessorName, New)
 }
 
 type processor struct {

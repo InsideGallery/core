@@ -6,9 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FrogoAI/testutils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"github.com/InsideGallery/core/testutils"
 )
 
 func TestOID(t *testing.T) {

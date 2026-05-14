@@ -4,10 +4,10 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/FrogoAI/testutils"
 	gremlingo "github.com/apache/tinkerpop/gremlin-go/v3/driver"
 
-	"github.com/InsideGallery/core/testutils"
-	"github.com/InsideGallery/core/utils"
+	"github.com/InsideGallery/core/stdx/strings"
 )
 
 func TestGremlin(t *testing.T) {
@@ -27,9 +27,9 @@ func TestGremlin(t *testing.T) {
 	}
 	defer c.Close()
 
-	id1, err := utils.GetShortID()
+	id1, err := strings.GetShortID()
 	testutils.Equal(t, err, nil)
-	id2, err := utils.GetShortID()
+	id2, err := strings.GetShortID()
 	testutils.Equal(t, err, nil)
 
 	slog.Info("gremlin ids", "id1", string(id1), "id2", string(id2))

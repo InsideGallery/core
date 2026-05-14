@@ -4,41 +4,42 @@ import (
 	"log/slog"
 	"os"
 	"testing"
-
-	"github.com/InsideGallery/core/testutils"
 )
 
-func TestNewFromConfigWriterIdentity(t *testing.T) {
-	cases := []struct {
-		name      string
-		cfg       Config
-		wantLevel slog.Level
-	}{
-		{
-			name: "returns stderr with configured level",
-			cfg: Config{
-				Level: slog.LevelWarn,
-			},
-			wantLevel: slog.LevelWarn,
-		},
+func TestNewReturnsStderrWithConfiguredLevel(t *testing.T) {
+	t.Setenv("STDERR_LEVEL", "DEBUG")
+
+	writer, opts, err := New()
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
 	}
 
-	for _, test := range cases {
-		t.Run(test.name, func(t *testing.T) {
-			writer, opts, err := NewFromConfig(test.cfg)
-			if err != nil {
-				t.Fatalf("new from config: %v", err)
-			}
+	if writer != os.Stderr {
+		t.Fatalf("writer = %v, want os.Stderr", writer)
+	}
 
-			if writer != os.Stderr {
-				t.Fatal("writer is not stderr")
-			}
+	if opts == nil {
+		t.Fatal("expected handler options")
+	}
 
-			if opts == nil || opts.Level == nil {
-				t.Fatal("handler options are incomplete")
-			}
+	if opts.Level.Level() != slog.LevelDebug {
+		t.Fatalf("Level = %v, want DEBUG", opts.Level.Level())
+	}
+}
 
-			testutils.Equal(t, opts.Level.Level(), test.wantLevel)
-		})
+func TestNewFallsBackToStderrWhenEnvIsInvalid(t *testing.T) {
+	t.Setenv("STDERR_LEVEL", "not-a-level")
+
+	writer, opts, err := New()
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+
+	if writer != os.Stderr {
+		t.Fatalf("writer = %v, want os.Stderr", writer)
+	}
+
+	if opts != nil {
+		t.Fatalf("opts = %+v, want nil fallback options", opts)
 	}
 }

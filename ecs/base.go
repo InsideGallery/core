@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/InsideGallery/core/memory/registry"
+	"github.com/FrogoAI/memory/registry"
 )
 
 // Registry owns ECS entity ID generation state for application composition.

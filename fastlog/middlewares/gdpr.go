@@ -4,25 +4,23 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/samber/lo"
+	"github.com/FrogoAI/set"
 	slogmulti "github.com/samber/slog-multi"
-
-	"github.com/InsideGallery/core/memory/set"
 )
 
-var maskKeySet = set.NewGenericDataSet[string](
+const maskValue = "*******"
+
+var maskKeySet = set.NewGenericDataSet[string]( //nolint:gochecknoglobals // immutable lookup table
 	"password",
 	"email",
 	"phone",
 )
 
-const maskValue = "*******"
-
+// NewGDPRMiddleware returns a slog middleware that masks common PII fields.
 func NewGDPRMiddleware() slogmulti.Middleware {
 	return func(next slog.Handler) slog.Handler {
 		return &gdprMiddleware{
-			next:      next,
-			anonymize: false,
+			next: next,
 		}
 	}
 }
@@ -51,7 +49,6 @@ func (h *gdprMiddleware) Handle(ctx context.Context, record slog.Record) error {
 		return true
 	})
 
-	// new record with anonymized data
 	record = slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
 	record.AddAttrs(attrs...)
 
@@ -59,14 +56,8 @@ func (h *gdprMiddleware) Handle(ctx context.Context, record slog.Record) error {
 }
 
 func (h *gdprMiddleware) WithAttrs(attrs []slog.Attr) slog.Handler {
-	if h.anonymize {
-		for i := range attrs {
-			attrs[i] = anonymize(attrs[i])
-		}
-	}
-
 	for i := range attrs {
-		if mightContainPII(attrs[i].Key) {
+		if h.anonymize || mightContainPII(attrs[i].Key) {
 			attrs[i] = anonymize(attrs[i])
 		}
 	}
@@ -89,19 +80,19 @@ func mightContainPII(key string) bool {
 }
 
 func anonymize(attr slog.Attr) slog.Attr {
-	k := attr.Key
-	v := attr.Value
-	kind := attr.Value.Kind()
-
-	switch kind {
-	case slog.KindGroup:
-		attrs := v.Group()
-		for i := range attrs {
-			attrs[i] = anonymize(attrs[i])
-		}
-
-		return slog.Group(k, lo.ToAnySlice(attrs)...)
-	default:
-		return slog.String(k, maskValue)
+	if attr.Value.Kind() != slog.KindGroup {
+		return slog.String(attr.Key, maskValue)
 	}
+
+	attrs := attr.Value.Group()
+	for i := range attrs {
+		attrs[i] = anonymize(attrs[i])
+	}
+
+	args := make([]any, len(attrs))
+	for i := range attrs {
+		args[i] = attrs[i]
+	}
+
+	return slog.Group(attr.Key, args...)
 }

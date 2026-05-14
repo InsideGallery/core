@@ -52,7 +52,7 @@ func Combine(errs ...error) (err error) {
 	return err
 }
 
-// Error return string based on error
+// Error return strings based on error
 func (s MultipleError) Error() string {
 	return strings.Join([]string{s.Cause.Error(), s.Effect.Error()}, ": ")
 }

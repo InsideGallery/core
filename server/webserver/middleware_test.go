@@ -4,10 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/FrogoAI/testutils"
 	"github.com/gofiber/fiber/v3"
 	"github.com/valyala/fasthttp"
-
-	"github.com/InsideGallery/core/testutils"
 )
 
 func TestMiddleware(t *testing.T) {
@@ -30,13 +29,13 @@ func TestMiddleware(t *testing.T) {
 		result  string
 	}{
 		{
-			name:    "should return expected string for echo sequence",
+			name:    "should return expected strings for echo sequence",
 			chains:  []Chain{echoChain},
 			handler: handler,
 			result:  "echoChain:handler",
 		},
 		{
-			name:    "should return expected string without any chains",
+			name:    "should return expected strings without any chains",
 			chains:  []Chain{},
 			handler: handler,
 			result:  "handler",

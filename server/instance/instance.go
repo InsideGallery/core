@@ -4,18 +4,18 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/InsideGallery/core/utils"
+	"github.com/InsideGallery/core/stdx/strings"
 )
 
 var (
-	id      = utils.GetUniqueID()
+	id      = strings.GetUniqueID()
 	shortID string
 	once    sync.Once
 )
 
 func initShortID() {
 	once.Do(func() {
-		sid, err := utils.GetShortID()
+		sid, err := strings.GetShortID()
 		if err != nil {
 			slog.Default().Error("get short instance id", "err", err)
 			return

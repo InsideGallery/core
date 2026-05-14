@@ -3,7 +3,7 @@ package bunt
 import (
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 type Test struct {

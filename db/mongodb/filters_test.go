@@ -39,7 +39,7 @@ func TestCoreOwnedFilters(t *testing.T) {
 			wantErr: ErrFilterPairCount,
 		},
 		{
-			name: "filter from pairs rejects non string key",
+			name: "filter from pairs rejects non strings key",
 			operation: func() (any, error) {
 				return FilterFromPairs(1, "a@test")
 			},

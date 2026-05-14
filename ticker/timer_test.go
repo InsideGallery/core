@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 func TestExecuteWithDelay(t *testing.T) {

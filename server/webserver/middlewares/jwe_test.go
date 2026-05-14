@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/FrogoAI/testutils"
 	"github.com/go-jose/go-jose/v3"
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/InsideGallery/core/pki/aes"
-	"github.com/InsideGallery/core/testutils"
 )
 
 func TestJWEAES(t *testing.T) {

@@ -25,7 +25,7 @@ var (
 	Ready atomic.Bool
 )
 
-var defaultState = &State{ //nolint:gochecknoglobals // compatibility state backing legacy package functions
+var defaultState = &State{ //nolint:gochecknoglobals // backs package-level compatibility helpers
 	started: &Started,
 	ready:   &Ready,
 }
@@ -66,8 +66,7 @@ func (s *State) AddHealthCheck(f func() error) {
 	s.healthChecks = append(s.healthChecks, f)
 }
 
-// CheckHealth runs every registered health check concurrently and returns
-// a joined error if any fail.
+// CheckHealth runs every registered health check concurrently and returns a joined error if any fail.
 func (s *State) CheckHealth() error {
 	if s == nil {
 		return DefaultState().CheckHealth()
@@ -114,8 +113,6 @@ func (s *State) IsReady() bool {
 
 // AddHealthCheck registers a function called on /healthz, /readyz, and /livez.
 // If any check returns an error the service is considered unhealthy.
-//
-// Deprecated: use NewState and State.AddHealthCheck for explicit ownership.
 func AddHealthCheck(f func() error) {
 	DefaultState().AddHealthCheck(f)
 }
@@ -123,15 +120,11 @@ func AddHealthCheck(f func() error) {
 // CheckHealth runs every registered health check concurrently and returns
 // a joined error if any fail. Exported so the main app server can expose
 // /healthz on the Traefik-facing port without auth.
-//
-// Deprecated: use NewState and State.CheckHealth for explicit ownership.
 func CheckHealth() error {
 	return DefaultState().CheckHealth()
 }
 
 // ExecuteHealthCheck runs every registered health check.
-//
-// Deprecated: use CheckHealth.
 func ExecuteHealthCheck() error {
 	return CheckHealth()
 }
@@ -144,8 +137,6 @@ func ExecuteHealthCheck() error {
 //
 //	shutdown := profiler.Monitor(":8011")
 //	defer shutdown()
-//
-// Deprecated: use NewState and State.Monitor for explicit ownership.
 func Monitor(addr string) func() {
 	return DefaultState().Monitor(addr)
 }
@@ -219,7 +210,7 @@ func (s *State) healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(msg)
+	writeJSON(w, msg)
 }
 
 // readyzHandler checks if the service is ready to accept traffic.
@@ -247,12 +238,10 @@ func (s *State) readyzHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(msg)
+	writeJSON(w, msg)
 }
 
 // livezHandler checks if the service process is alive.
-// This is lightweight — no dependency checks. If the HTTP server can respond, the process is alive.
-// K8s uses this to detect deadlocks/hangs. Dependency health is checked by /healthz and /readyz.
 func livezHandler(w http.ResponseWriter, _ *http.Request) {
 	DefaultState().livezHandler(w, nil)
 }
@@ -260,7 +249,7 @@ func livezHandler(w http.ResponseWriter, _ *http.Request) {
 func (s *State) livezHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{"live": true})
+	writeJSON(w, map[string]any{"live": true})
 }
 
 // startupzHandler checks if the service has completed initialization.
@@ -279,7 +268,7 @@ func (s *State) startupzHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]any{"started": started})
+	writeJSON(w, map[string]any{"started": started})
 }
 
 func (s *State) executeHealthChecks() error {
@@ -337,4 +326,10 @@ func (s *State) readyProbe() *atomic.Bool {
 	}
 
 	return s.ready
+}
+
+func writeJSON(w http.ResponseWriter, payload any) {
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		slog.Warn("write profiler probe response failed", "err", err)
+	}
 }

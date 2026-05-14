@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FrogoAI/testutils"
 	"github.com/gofiber/fiber/v3"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 
 	coreJWT "github.com/InsideGallery/core/server/jwt"
 	jwtModel "github.com/InsideGallery/core/server/jwt/model"
-	"github.com/InsideGallery/core/testutils"
 )
 
 const trackedJWTMiddlewareRSAKeyBits = 2048

@@ -5,138 +5,107 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"sync"
-	"sync/atomic"
+	"syscall"
+
+	_ "github.com/InsideGallery/core/fastlog/all" // register supported log handlers
+	_ "github.com/InsideGallery/core/metrics/all" // register supported metrics processors
+
+	"github.com/FrogoAI/mq-balancer/subscriber"
+	mqdriver "github.com/FrogoAI/mq-balancer/subscriber/driver"
+	mqclient "github.com/FrogoAI/mq-balancer/subscriber/driver/client"
 
 	"github.com/InsideGallery/core/metrics"
+	"github.com/InsideGallery/core/oslistener"
 	"github.com/InsideGallery/core/profiler"
-	"github.com/InsideGallery/core/queue/nats/client"
-	"github.com/InsideGallery/core/queue/nats/middleware"
-	"github.com/InsideGallery/core/queue/nats/subscriber"
 )
 
-type InitSubscriptions func(
-	ctx context.Context, met *metrics.Client, m *middleware.Middleware, handler *subscriber.Subscriber,
-) error
+// InitSubscriptions is a closure that wires service-specific dependencies (DB, etc.)
+// and registers NATS subscriptions. If it returns nil, all setup succeeded.
+type InitSubscriptions func(ctx context.Context, sub *subscriber.Subscriber) error
 
-const defaultNATSServiceName = "nats"
+// NATSMain is the complete entrypoint for a NATS worker service.
+// It handles: logging → profiler → NATS connect → init closure → signals → wait.
+// Reads NATS_ADDR, NATS_CONCURRENT_SIZE, NATS_READ_TIMEOUT from environment.
+func NATSMain(name, monitorAddr string, initSubs InitSubscriptions) {
+	setupLogging(name)
 
-func NATSMain(ctx context.Context, initSubscriptions InitSubscriptions) {
-	closeLogger, err := setupLogger(ctx)
+	ctx := context.Background()
+
+	defer profiler.Monitor(monitorAddr)()
+
+	metricsCfg, err := appMetricsConfig()
 	if err != nil {
-		slog.Default().Error("init logger", "err", err)
-
-		return
+		slog.Error("Metrics config failed", "service", name, "err", err)
+		os.Exit(1) //nolint:gocritic // intentional
 	}
-	defer closeAndLog("close logger", closeLogger)
 
-	profilerState := resetProfiler()
-
-	shutdownMonitor := profilerState.Monitor(os.Getenv("MONITOR_ADDR"))
-	defer shutdownMonitor()
-	defer recoverPanic("Recovered nats panic")
-
-	metricsClient, closeMetrics, err := setupMetrics(defaultNATSServiceName, profilerState)
+	mc, err := metrics.New(metricsCfg, name)
 	if err != nil {
-		slog.Default().Error("init metrics", "err", err)
-
-		return
+		slog.Error("Metrics init failed", "service", name, "err", err)
+		os.Exit(1) //nolint:gocritic // intentional
 	}
 
-	var closeMetricsOnce sync.Once
+	metrics.SetDefault(mc)
 
-	closeMetricsFunc := func() {
-		closeMetricsOnce.Do(func() {
-			closeAndLog("close metrics", closeMetrics)
-		})
-	}
-	defer closeMetricsFunc()
-
-	natsConfig, err := client.GetNATSConnectionConfigFromEnv()
+	natsClient, err := mqclient.Default(ctx, slog.Default())
 	if err != nil {
-		slog.Default().Error("get nats config", "err", err)
-
-		return
+		slog.Error("NATS connect failed", "service", name, "err", err)
+		os.Exit(1) //nolint:gocritic // intentional
 	}
 
-	natsClient, err := client.ConnectClient(ctx, natsConfig, slog.Default())
-	if err != nil {
-		slog.Default().Error("get nats client", "err", err)
-
-		return
+	natsSubscriber := mqdriver.NewNATSSubscriber(natsClient)
+	if mc != nil {
+		natsSubscriber.WithMeter(mc)
 	}
 
-	natsConnection := subscriber.NewSubscriber(natsClient)
-	m := middleware.NewMiddleware(
-		middleware.GetChains(
-			middleware.NewTracer().Call,
-			middleware.NewMetrics(middleware.CreateMeasuresWithClient(metricsClient)).Call,
-		)...,
-	)
-
-	var appStopped atomic.Bool
-
-	profilerState.AddHealthCheck(func() error {
+	profiler.AddHealthCheck(func() error {
 		conn := natsClient.Conn()
 		if !conn.IsConnected() {
-			return fmt.Errorf("nats connection is closed: %w", profiler.ErrServiceIsOffline)
+			return fmt.Errorf("nats: not connected (status=%v)", conn.Status())
 		}
 
+		// Actual round-trip: sends PING, waits for PONG.
 		if _, err := conn.RTT(); err != nil {
-			return fmt.Errorf("nats ping: %w", err)
-		}
-
-		if appStopped.Load() {
-			return fmt.Errorf("app stopped: %w", profiler.ErrServiceIsOffline)
+			return fmt.Errorf("nats: ping failed: %w", err)
 		}
 
 		return nil
 	})
 
-	if initSubscriptions != nil {
-		if err = initSubscriptions(ctx, metricsClient, m, natsConnection); err != nil {
-			slog.Default().Error("init subscriptions", "err", err)
+	slog.Info("NATS connected", "url", natsClient.Conn().ConnectedUrl(), "name", name)
 
-			return
+	sub := subscriber.NewSubscriber(natsSubscriber)
+
+	if err := initSubs(ctx, sub); err != nil {
+		slog.Error("Init failed", "service", name, "err", err)
+		os.Exit(1) //nolint:gocritic // intentional
+	}
+
+	profiler.Started.Store(true)
+	profiler.Ready.Store(true)
+
+	shutdown := func() {
+		profiler.Ready.Store(false)
+		slog.Info("Shutting down", "service", name)
+
+		if err := sub.Close(); err != nil {
+			slog.Error("Shutdown error", "err", err)
+		}
+
+		if err := mc.Close(); err != nil {
+			slog.Error("Metrics close error", "err", err)
 		}
 	}
 
-	profilerState.SetStarted(true)
-	profilerState.SetReady(true)
+	listener := oslistener.Get()
+	listener.Append(syscall.SIGINT, shutdown)
+	listener.Append(syscall.SIGTERM, shutdown)
+	listener.Append(syscall.SIGQUIT, shutdown)
 
-	var shutdownOnce sync.Once
+	oslistener.Start(ctx, listener)
 
-	shutdown := func() {
-		shutdownOnce.Do(func() {
-			appStopped.Store(true)
-			profilerState.SetReady(false)
-			slog.Default().Info("shutting down nats worker")
-
-			if err := natsConnection.Close(); err != nil {
-				slog.Default().Error("stop nats subscriptions", "err", err)
-			}
-
-			if err := natsClient.Close(); err != nil {
-				slog.Default().Error("stop nats connection", "err", err)
-			}
-
-			closeMetricsFunc()
-		})
+	if err := sub.Wait(); err != nil {
+		slog.Error("Worker stopped", "service", name, "err", err)
+		os.Exit(1) //nolint:gocritic // intentional
 	}
-
-	registerShutdown(shutdown)
-	startSignalListener(ctx)
-
-	go func() {
-		<-ctx.Done()
-		shutdown()
-	}()
-
-	if err = natsConnection.Wait(); err != nil {
-		slog.Default().Error("run nats handler", "err", err)
-
-		return
-	}
-
-	shutdown()
 }

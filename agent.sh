@@ -192,7 +192,7 @@ emit_runner_output() {
             end
           )
         ) |
-        select(type == "string" and length > 0)
+        select(type == "strings" and length > 0)
       ' "$file" 2>/dev/null || true
     )
 

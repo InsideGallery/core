@@ -5,9 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/FrogoAI/testutils"
 	guuid "github.com/google/uuid"
-
-	"github.com/InsideGallery/core/testutils"
 )
 
 func TestScopeChecker_IsAllowed(t *testing.T) {

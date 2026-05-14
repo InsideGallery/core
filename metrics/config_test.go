@@ -64,6 +64,18 @@ func TestGetEnvConfig_UnsetDefaultsToPrometheus(t *testing.T) {
 	assertProcessors(t, cfg.EnabledProcessors(), []string{"prometheus"})
 }
 
+func TestGetEnvConfig_DatadogAgentEnvDoesNotSelectDatadogProcessor(t *testing.T) {
+	t.Setenv("DD_STATSD_ADDR", "datadog:8125")
+	t.Setenv("METRICS_DATADOG_ADDR", "datadog:8125")
+
+	cfg, err := GetEnvConfig()
+	if err != nil {
+		t.Fatalf("GetEnvConfig() error: %v", err)
+	}
+
+	assertProcessors(t, cfg.EnabledProcessors(), []string{"prometheus"})
+}
+
 func TestGetEnvConfig_Disabled(t *testing.T) {
 	t.Setenv("METRICS_PROCESSORS", "none")
 
@@ -74,6 +86,32 @@ func TestGetEnvConfig_Disabled(t *testing.T) {
 
 	if cfg.Enabled() {
 		t.Fatal("expected disabled metrics")
+	}
+}
+
+func TestPrometheusOnly(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  Config
+		want []string
+	}{
+		{"empty config stays disabled", Config{}, nil},
+		{"disabled config stays disabled", Config{Processors: []string{"none"}}, nil},
+		{"prometheus stays prometheus", Config{Processors: []string{"prometheus"}}, []string{"prometheus"}},
+		{"datadog is replaced by prometheus", Config{Processors: []string{"datadog"}}, []string{"prometheus"}},
+		{
+			"mixed processors collapse to prometheus",
+			Config{Processors: []string{"statsd,prometheus", "otel", "datadog"}},
+			[]string{"prometheus"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := PrometheusOnly(tt.cfg).EnabledProcessors()
+
+			assertProcessors(t, got, tt.want)
+		})
 	}
 }
 

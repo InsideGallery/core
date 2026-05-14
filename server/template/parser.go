@@ -1,13 +1,7 @@
-// Package template is the legacy server HTML-template import path.
+// Package template provides server-side HTML template rendering helpers.
 //
-// New code should import the focused replacement package:
-//
-//	import "github.com/InsideGallery/core/server/view"
-//
-// Compatibility: existing template exports remain available for downstream
-// consumers that still import server/template. Prefer server/view.NewWithDir or
-// server/view.NewFromOptions so template directory configuration is explicit and
-// call sites avoid a local name collision with html/template.
+// Prefer NewTemplateWithDir or NewTemplateFromOptions so template directory
+// configuration is explicit.
 package template //nolint:revive
 
 import (
@@ -135,7 +129,7 @@ func (e *Engine) Exists(name string) bool {
 	return exists
 }
 
-// Execute execute current template and return parsed string
+// Execute execute current template and return parsed strings
 func (e *Engine) Execute(name string, data interface{}) ([]byte, error) {
 	var (
 		err error

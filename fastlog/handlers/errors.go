@@ -1,5 +1,5 @@
 package handlers
 
-import "github.com/InsideGallery/core/errors"
+import "errors"
 
 var ErrNotFoundHandler = errors.New("not found handler")

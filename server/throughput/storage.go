@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/InsideGallery/core/memory/orderedmap"
+	"github.com/FrogoAI/memory/orderedmap"
 )
 
 const Days30 = time.Hour * 24 * 30

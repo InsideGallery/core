@@ -51,12 +51,6 @@ benchmarks/*.txt
 !benchmarks/baseline.txt
 benchmarks/gen-*
 
-# Local-only docs
-docs/source/
-!docs/source/README.md
-!docs/source/AIC Template.md
-!docs/source/Go Server Useful Packages.md
-
 # AIC story files are tracked.
 .codex
 .gocache*

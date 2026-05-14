@@ -14,7 +14,7 @@ func TestSAESCipher(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, a)
 
-	val := []byte("test string")
+	val := []byte("test strings")
 	res, err := a.Encrypt(val)
 	assert.NoError(t, err)
 
@@ -29,7 +29,7 @@ func TestStaticAESCipher(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, a)
 
-	val := []byte("test string")
+	val := []byte("test strings")
 	res, err := a.Encrypt(val)
 	assert.NoError(t, err)
 
@@ -83,7 +83,7 @@ func TestAESCipherRestore(t *testing.T) {
 	c, err := a.FromBinary(raw)
 	assert.NoError(t, err)
 
-	val := []byte("test string")
+	val := []byte("test strings")
 	res, err := c.Encrypt(val)
 	assert.NoError(t, err)
 

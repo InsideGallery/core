@@ -6,9 +6,18 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
-const envPrefix = "METRICS"
+const (
+	envPrefix             = "METRICS"
+	prometheusProcessor   = "prometheus"
+	disabledProcessorNone = "none"
+	disabledProcessorOff  = "off"
+	disabledProcessorText = "disabled"
+)
 
 // Config holds backend-agnostic metrics configuration.
+//
+// Environment:
+//   - METRICS_PROCESSORS defaults to prometheus.
 type Config struct {
 	Processors []string `env:"_PROCESSORS" envDefault:"prometheus"`
 }
@@ -42,6 +51,15 @@ func GetEnvConfig(prefix ...string) (Config, error) {
 	return cfg, nil
 }
 
+// PrometheusOnly returns a config that uses Prometheus for every enabled metrics setup.
+func PrometheusOnly(cfg Config) Config {
+	if !cfg.Enabled() {
+		return Config{}
+	}
+
+	return Config{Processors: []string{prometheusProcessor}}
+}
+
 func normalizeProcessors(raw []string) []string {
 	if len(raw) == 0 {
 		return nil
@@ -70,5 +88,7 @@ func normalizeProcessors(raw []string) []string {
 }
 
 func isDisabledProcessor(processor string) bool {
-	return processor == "none" || processor == "off" || processor == "disabled"
+	return processor == disabledProcessorNone ||
+		processor == disabledProcessorOff ||
+		processor == disabledProcessorText
 }

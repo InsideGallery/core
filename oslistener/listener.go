@@ -7,16 +7,16 @@ import (
 	"os/signal"
 )
 
-// OsSignalsList is a collection of signals
+// OsSignalsList is a collection of signals.
 type OsSignalsList []os.Signal
 
-// OsListener is an interface which allows the object to listen to certain signals
+// OsListener is an interface that allows the object to listen to certain signals.
 type OsListener interface {
 	SignalsToSubscribe() OsSignalsList
 	ReceiveSignal(os.Signal)
 }
 
-// Start will start a Go routine in the background, which listens to OS signals
+// Start launches a goroutine that listens for OS signals and dispatches them to the listener.
 func Start(ctx context.Context, listener OsListener) {
 	signalsForSubscription := listener.SignalsToSubscribe()
 	sigs := make(chan os.Signal, len(signalsForSubscription))
@@ -26,8 +26,8 @@ func Start(ctx context.Context, listener OsListener) {
 		for {
 			select {
 			case <-ctx.Done():
+				slog.Warn("Stopping the signal listener")
 				signal.Stop(sigs)
-				slog.Default().Warn("Stopping the signal listener")
 
 				return
 			case receivedSignal := <-sigs:
@@ -37,7 +37,7 @@ func Start(ctx context.Context, listener OsListener) {
 	}()
 }
 
-// Raise sends the given signal to the current process
+// Raise sends the given signal to the current process.
 func Raise(sig os.Signal) error {
 	p, err := os.FindProcess(os.Getpid())
 	if err != nil {

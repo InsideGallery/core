@@ -116,7 +116,7 @@ default:
 ```go
 switch v := value.(type) {
 case string:
-    fmt.Println(v) // v is string here
+    fmt.Println(v) // v is strings here
 case int:
     fmt.Println(v) // v is int here
 default:
@@ -269,7 +269,7 @@ m := map[string]int{
 // Safe form (always use this)
 s, ok := val.(string)
 if !ok {
-    // val is not a string
+    // val is not a strings
 }
 
 // Unsafe form (panics on failure -- avoid)

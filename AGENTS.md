@@ -7,7 +7,7 @@ This file provides guidance to AI coding assistants (Claude Code, Copilot, Curso
 `core` is a shared Go vendor library for InsideGallery projects. It provides reusable infrastructure packages imported via `go get github.com/InsideGallery/core`. There is no `main()` -- this is a library, not an application.
 
 - **Module**: `github.com/InsideGallery/core`
-- **Go version**: 1.24.0
+- **Go version**: 1.26.3
 - **Type**: Vendor library (`go get`-able, no `cmd/`, no `main.go`)
 
 ## 2. Directory Structure
@@ -16,31 +16,30 @@ This file provides guidance to AI coding assistants (Claude Code, Copilot, Curso
 |------|-------------|
 | `antibot/` | Anti-bot utilities (proof of work) |
 | `app/` | Application bootstrap helpers (web server, NATS) |
-| `commands/` | Command handler pattern |
 | `dataconv/` | Data conversion utilities (binary, IP, merge) |
-| `db/` | Database connectors: aerospike, bunt, elasticsearch, gremlin, mongodb, neo4j, postgres, redis |
+| `db/` | Database connectors: aerospike, bunt, elasticsearch, frogodb, gremlin, mongodb, neo4j, postgres, redis |
+| `docs/` | Source architecture and engineering references, plus AIC documentation |
 | `ecs/` | Entity-Component-System framework |
-| `embedded/` | Embedded resources |
 | `errors/` | Error utilities |
-| `fastlog/` | Structured logging: pluggable slog handlers (stderr, stdout, datadog, logfile, logstash, otel, nop), metrics |
+| `fastlog/` | Structured logging: slog config, middleware, handlers, and bundle imports |
 | `fixtures/` | Test fixtures |
 | `machielearning/` | Machine learning (neural networks via Gorgonia) |
-| `mathutils/` | Math utilities |
-| `memory/` | In-memory data structures (sorted sets, fuzzy search, etc.) |
-| `multiproc/` | Multi-process coordination |
+| `metrics/` | Metrics client, processor registry, and Datadog, OTEL, Prometheus, StatsD processors |
 | `oslistener/` | OS signal listener |
 | `pki/` | Public key infrastructure, encryption (AES, JWT, etc.) |
-| `queue/` | Message queue clients (NATS) |
+| `profiler/` | Health, readiness/liveness, pprof, and probe support |
 | `server/` | Server utilities (JWT, HTTP helpers) |
-| `testutils/` | Shared test utilities |
+| `stdx/` | Focused standard-extension helpers for bytes, maths, slices, and strings |
 | `ticker/` | Periodic task runner |
-| `utils/` | General-purpose utilities (strings, phone, etc.) |
 
 ## 3. Mandatory Post-Change Verification
 
 **After EVERY code change, you MUST run both tests and linter before considering the work done.**
 
 ```bash
+# Run the complete local CI gate when possible
+make ci
+
 # Run tests (mandatory after every change)
 go test ./...
 
@@ -50,7 +49,7 @@ go test -race -count=1 ./...
 # Run linter (mandatory after every change)
 golangci-lint run ./...
 
-# Auto-fix formatting issues
+# Auto-fix formatting issues when the linter reports fixable issues
 golangci-lint run --fix ./...
 ```
 
@@ -91,7 +90,7 @@ Do NOT skip these steps. Do NOT consider a task complete until both tests pass a
 ### Formatting & Linting
 
 - **Formatter**: `gofumpt` (strict superset of gofmt).
-- **Linter**: `golangci-lint v2` (config in `.golangci.yml`).
+- **Linter**: `golangci-lint v2.4.0` in CI (config in `.golangci.yml`).
 - **Import ordering** (enforced by gci): standard library, blank, dot, third-party, then `github.com/InsideGallery/core` packages.
 - **Line length**: 120 characters max.
 - **WSL (whitespace linter)** is enabled -- follow its blank-line conventions around blocks, declarations, and returns.
@@ -201,7 +200,7 @@ These apply when this library is used in applications:
 ## 10. Rules
 
 1. **Use `#AI-assisted` in commit messages** for AI-assisted code.
-2. **Run tests and linter after every change** -- `go test ./...` and `golangci-lint run ./...`.
+2. **Run tests and linter after every change** -- `go test ./...`, `go test -race -count=1 ./...`, and `golangci-lint run ./...`.
 3. **Never ignore errors** -- every `error` return must be checked.
 4. **No `fmt.Print*` / `log.Print*`** in production code -- use `log/slog`.
 5. **Import order enforced by gci**: standard -> blank -> dot -> default -> `github.com/InsideGallery/core` prefix.

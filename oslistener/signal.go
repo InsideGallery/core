@@ -5,22 +5,14 @@ import (
 	"sync"
 )
 
-// SignalListener contains signal and callbacks
-type SignalListener struct {
-	callbacks map[os.Signal][]func()
-	mu        sync.Mutex
-}
-
 var (
 	defaultListenerMu sync.RWMutex
 	defaultListener   = NewSignalListener()
 )
 
-// NewSignalListener return new signal listener
-func NewSignalListener() *SignalListener {
-	return &SignalListener{
-		callbacks: map[os.Signal][]func(){},
-	}
+// Get returns the package-level default SignalListener.
+func Get() *SignalListener {
+	return DefaultListener()
 }
 
 // DefaultListener returns the package-level compatibility signal listener.
@@ -62,23 +54,27 @@ func (h *DefaultListenerHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultListenerMu.Lock()
-
 		defaultListener = h.previous
-
 		defaultListenerMu.Unlock()
 	})
 
 	return nil
 }
 
-// Get returns the package-level compatibility signal listener.
-//
-// Deprecated: use NewSignalListener for explicit ownership or DefaultListener for compatibility.
-func Get() *SignalListener {
-	return DefaultListener()
+// SignalListener maps OS signals to callback functions.
+type SignalListener struct {
+	callbacks map[os.Signal][]func()
+	mu        sync.Mutex
 }
 
-// Append signal to listen
+// NewSignalListener creates a new empty SignalListener.
+func NewSignalListener() *SignalListener {
+	return &SignalListener{
+		callbacks: map[os.Signal][]func(){},
+	}
+}
+
+// Append adds a callback to be executed when the signal is received.
 func (l *SignalListener) Append(signal os.Signal, fn func()) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -86,7 +82,7 @@ func (l *SignalListener) Append(signal os.Signal, fn func()) {
 	l.callbacks[signal] = append(l.callbacks[signal], fn)
 }
 
-// Prepend signal to listen
+// Prepend adds a callback to be executed first when the signal is received.
 func (l *SignalListener) Prepend(signal os.Signal, fn func()) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -94,7 +90,7 @@ func (l *SignalListener) Prepend(signal os.Signal, fn func()) {
 	l.callbacks[signal] = append([]func(){fn}, l.callbacks[signal]...)
 }
 
-// Set signal to listen
+// Set replaces all callbacks for the given signal with a single callback.
 func (l *SignalListener) Set(signal os.Signal, fn func()) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -102,7 +98,7 @@ func (l *SignalListener) Set(signal os.Signal, fn func()) {
 	l.callbacks[signal] = []func(){fn}
 }
 
-// Reset signal to listen
+// Reset removes all callbacks for the given signal.
 func (l *SignalListener) Reset(signal os.Signal) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -110,40 +106,20 @@ func (l *SignalListener) Reset(signal os.Signal) {
 	l.callbacks[signal] = []func(){}
 }
 
-// Get signal to listen
-func (l *SignalListener) Get(signal os.Signal) []func() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	return l.callbacks[signal]
-}
-
-// Wrap signal to listen
-func (l *SignalListener) Wrap(signal os.Signal, fn func(...func()) func()) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	l.callbacks[signal] = []func(){fn(l.callbacks[signal]...)}
-}
-
-// SignalsToSubscribe return list of signals
+// SignalsToSubscribe returns the list of signals that have registered callbacks.
 func (l *SignalListener) SignalsToSubscribe() OsSignalsList {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	signals := make(OsSignalsList, len(l.callbacks))
-
-	var i int
-
+	signals := make(OsSignalsList, 0, len(l.callbacks))
 	for s := range l.callbacks {
-		signals[i] = s
-		i++
+		signals = append(signals, s)
 	}
 
 	return signals
 }
 
-// ReceiveSignal call when signal received
+// ReceiveSignal executes all callbacks registered for the given signal.
 func (l *SignalListener) ReceiveSignal(s os.Signal) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

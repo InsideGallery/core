@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FrogoAI/testutils"
 	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/InsideGallery/core/server/jwt/model"
-	"github.com/InsideGallery/core/testutils"
 )
 
 const generatedTestRSAKeyBits = 2048

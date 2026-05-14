@@ -19,6 +19,7 @@ const (
 	refreshTokenExpire = 24 * time.Hour
 
 	ContextJWTKey = "user"
+	publicKeyPEM  = "PUBLIC KEY"
 )
 
 type Payload struct {
@@ -139,13 +140,13 @@ func (j *Service) PublicSigningKey() (SigningKey, error) {
 	return SigningKey{
 		Algorithm: jwt.SigningMethodRS512.Name,
 		PublicKey: pem.EncodeToMemory(&pem.Block{
-			Type:  "PUBLIC KEY",
+			Type:  publicKeyPEM,
 			Bytes: publicKey,
 		}),
 	}, nil
 }
 
-// ParsePayload parses and validates a JWT string into the core Payload model.
+// ParsePayload parses and validates a JWT strings into the core Payload model.
 func (j *Service) ParsePayload(tokenString string) (*Payload, error) {
 	claims := new(payloadClaims)
 

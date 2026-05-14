@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/FrogoAI/memory/registry"
 	gremlingo "github.com/apache/tinkerpop/gremlin-go/v3/driver"
-
-	"github.com/InsideGallery/core/memory/registry"
 )
 
 type VertexGetter interface {

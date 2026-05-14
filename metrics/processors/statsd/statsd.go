@@ -15,7 +15,7 @@ import (
 const ProcessorName = "statsd"
 
 func init() {
-	metrics.DefaultRegistry().Register(ProcessorName, New)
+	metrics.Register(ProcessorName, New)
 }
 
 type processor struct {

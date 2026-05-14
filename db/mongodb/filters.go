@@ -16,8 +16,8 @@ const (
 // ErrFilterPairCount reports an odd key/value filter input.
 var ErrFilterPairCount = errors.New("filter pairs must contain key and value")
 
-// ErrFilterKeyType reports a non-string filter key.
-var ErrFilterKeyType = errors.New("filter key must be a string")
+// ErrFilterKeyType reports a non-strings filter key.
+var ErrFilterKeyType = errors.New("filter key must be a strings")
 
 // Field is a core-owned document field.
 type Field struct {

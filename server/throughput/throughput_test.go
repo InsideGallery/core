@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/InsideGallery/core/testutils"
+	"github.com/FrogoAI/testutils"
 )
 
 func TestThroughput(t *testing.T) {

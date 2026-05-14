@@ -8,27 +8,21 @@ import (
 	"github.com/InsideGallery/core/fastlog/handlers"
 )
 
+// OutKind is the registry key for the stderr handler.
 const OutKind = "stderr"
 
 func init() {
-	handlers.DefaultRegistry().RegisterWriter(OutKind, New)
+	handlers.RegisterWriter(OutKind, New)
 }
 
-// NewFromConfig creates a stderr writer from explicit config.
-func NewFromConfig(cfg Config) (io.Writer, *slog.HandlerOptions, error) {
+// New returns os.Stderr as the writer with level from env config.
+func New() (io.Writer, *slog.HandlerOptions, error) {
+	cfg, err := getConfigFromEnv()
+	if err != nil {
+		return os.Stderr, nil, nil //nolint:nilerr
+	}
+
 	return os.Stderr, &slog.HandlerOptions{
 		Level: cfg.Level,
 	}, nil
-}
-
-// New creates a stderr writer from environment config.
-//
-// Deprecated: use NewFromConfig with explicit config ownership.
-func New() (io.Writer, *slog.HandlerOptions, error) {
-	cfg, err := GetConfigFromEnv()
-	if err != nil {
-		return os.Stderr, nil, nil
-	}
-
-	return NewFromConfig(*cfg)
 }

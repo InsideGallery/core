@@ -241,7 +241,7 @@ func TestWrapf(t *testing.T) {
 			wantNil: true,
 		},
 		{
-			name:    "simple format string",
+			name:    "simple format strings",
 			err:     errA,
 			format:  "wrap: %s",
 			args:    []any{"detail"},
@@ -878,7 +878,7 @@ func TestNew(t *testing.T) {
 			text: "simple error",
 		},
 		{
-			name: "empty string",
+			name: "empty strings",
 			text: "",
 		},
 		{
@@ -1110,13 +1110,13 @@ func TestWrapSymmetryAndEdgeCases(t *testing.T) {
 			wantMsg: "error B: error A",
 		},
 		{
-			name:    "wrap with empty string error",
+			name:    "wrap with empty strings error",
 			cause:   coreerrors.New(""),
 			effect:  coreerrors.New("x"),
 			wantMsg: ": x",
 		},
 		{
-			name:    "wrap both empty string errors deduplicates",
+			name:    "wrap both empty strings errors deduplicates",
 			cause:   coreerrors.New(""),
 			effect:  coreerrors.New(""),
 			wantMsg: "",
