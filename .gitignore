@@ -12,6 +12,9 @@ go.work
 
 # Binary output
 /server
+!/server/
+!/server/**/
+!/server/**/README.md
 /bin/
 !/bin/run.sh
 /build/

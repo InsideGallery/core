@@ -117,7 +117,9 @@ func (h *DefaultHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultMu.Lock()
+
 		defaultClient = h.previous
+
 		defaultMu.Unlock()
 
 		h.err = h.client.Close()

@@ -54,7 +54,9 @@ func (h *DefaultListenerHandle) Close() error {
 
 	h.once.Do(func() {
 		defaultListenerMu.Lock()
+
 		defaultListener = h.previous
+
 		defaultListenerMu.Unlock()
 	})
 

@@ -90,7 +90,7 @@ Do NOT skip these steps. Do NOT consider a task complete until both tests pass a
 ### Formatting & Linting
 
 - **Formatter**: `gofumpt` (strict superset of gofmt).
-- **Linter**: `golangci-lint v2.4.0` in CI (config in `.golangci.yml`).
+- **Linter**: `golangci-lint v2.12.2` in CI (config in `.golangci.yml`).
 - **Import ordering** (enforced by gci): standard library, blank, dot, third-party, then `github.com/InsideGallery/core` packages.
 - **Line length**: 120 characters max.
 - **WSL (whitespace linter)** is enabled -- follow its blank-line conventions around blocks, declarations, and returns.
