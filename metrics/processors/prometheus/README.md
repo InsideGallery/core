@@ -60,3 +60,17 @@ closing the active processor clears it.
 Counts become counters and reject negative values. Gauges become gauges. Distributions become histograms. Tags in
 `key:value` form become labels after normalization and sanitization; loose tags are ignored by this processor. When no
 processor is active, `HTTPHandler` returns `200 OK` with an empty Prometheus text response.
+
+## Recording Cost
+
+The processor is safe to call from a data path. The first record of a `(name, tags)` tuple resolves its labels and
+registers the collector; every later record of that tuple reuses the resolved child metric through a lock-free memo, so
+it costs one map lookup plus the increment and allocates nothing (~65ns against ~1µs and 10 allocations without the
+memo). Two cases fall back to resolving labels per record, which is correct but not allocation-free:
+
+- tag lists wider than six entries, the fixed-size memo key;
+- tuples first seen after the memo reached 4096 entries, the bound that keeps an unintended high-cardinality label
+  (a request ID, a timestamp) from growing the memo without limit.
+
+Emitted metric names, label names, and label values are identical either way. Prefer stable, bounded label values for
+anything recorded per request.

@@ -3,6 +3,7 @@ package prometheus
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/InsideGallery/core/metrics"
@@ -15,6 +16,11 @@ func BenchmarkProcessorRecord(b *testing.B) {
 		"status:200",
 		"method:GET",
 		"route:/v2/notifyapi/notifications",
+	}
+	wideTags := make([]string, 0, maxCachedTagCount+1)
+
+	for index := range maxCachedTagCount + 1 {
+		wideTags = append(wideTags, "label"+strconv.Itoa(index)+":value"+strconv.Itoa(index))
 	}
 	cases := []struct {
 		name   string
@@ -36,6 +42,15 @@ func BenchmarkProcessorRecord(b *testing.B) {
 			name: "distribution_existing_collector",
 			record: func(processor metrics.Processor) error {
 				return processor.Distribution("ptolemy_request_duration_ms", 12.5, tags)
+			},
+		},
+		{
+			// Tag lists too wide for the handle cache key resolve their labels
+			// on every record: the fallback path, and what every record cost
+			// before the cache existed.
+			name: "count_uncached_wide_tags",
+			record: func(processor metrics.Processor) error {
+				return processor.Count("ptolemy_wide_total", 1, wideTags)
 			},
 		},
 	}

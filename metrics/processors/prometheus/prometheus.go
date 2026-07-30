@@ -20,6 +20,11 @@ const ProcessorName = "prometheus"
 const (
 	contentType = "text/plain; version=0.0.4; charset=utf-8"
 	serviceKey  = "service"
+
+	// fallbackMetricName and fallbackLabelName name a metric or label whose
+	// original name sanitizes to nothing usable.
+	fallbackMetricName = "metric"
+	fallbackLabelName  = "label"
 )
 
 func init() {
@@ -37,6 +42,12 @@ type processor struct {
 	counters   map[collectorKey]*stdprom.CounterVec
 	gauges     map[collectorKey]*stdprom.GaugeVec
 	histograms map[collectorKey]*stdprom.HistogramVec
+
+	// Resolved children, memoized per recorded (name, tags) tuple so repeat
+	// records skip label normalization entirely. See handles.go.
+	counterHandles   handleCache[stdprom.Counter]
+	gaugeHandles     handleCache[stdprom.Gauge]
+	histogramHandles handleCache[stdprom.Observer]
 }
 
 type collectorKey struct {
@@ -119,34 +130,87 @@ func (p *processor) Count(name string, value int64, tags []string) error {
 		return fmt.Errorf("counter value must not be negative")
 	}
 
+	if counter, ok := p.counterHandles.load(name, tags); ok {
+		counter.Add(float64(value))
+
+		return nil
+	}
+
+	return p.countResolved(name, value, tags)
+}
+
+// countResolved records a tuple whose child counter is not memoized yet: it
+// resolves the labels, finds or registers the collector, records, and memoizes
+// the child so later records of the same tuple take the hot path above.
+func (p *processor) countResolved(name string, value int64, tags []string) error {
 	collector, labels, err := p.counter(name, tags)
 	if err != nil {
 		return err
 	}
 
-	collector.WithLabelValues(labels.values...).Add(float64(value))
+	counter, err := collector.GetMetricWithLabelValues(labels.values...)
+	if err != nil {
+		return fmt.Errorf("resolve counter %q labels: %w", name, err)
+	}
+
+	counter.Add(float64(value))
+	p.counterHandles.store(name, tags, counter)
 
 	return nil
 }
 
 func (p *processor) Gauge(name string, value float64, tags []string) error {
+	if gauge, ok := p.gaugeHandles.load(name, tags); ok {
+		gauge.Set(value)
+
+		return nil
+	}
+
+	return p.gaugeResolved(name, value, tags)
+}
+
+// gaugeResolved is the Gauge counterpart of countResolved.
+func (p *processor) gaugeResolved(name string, value float64, tags []string) error {
 	collector, labels, err := p.gauge(name, tags)
 	if err != nil {
 		return err
 	}
 
-	collector.WithLabelValues(labels.values...).Set(value)
+	gauge, err := collector.GetMetricWithLabelValues(labels.values...)
+	if err != nil {
+		return fmt.Errorf("resolve gauge %q labels: %w", name, err)
+	}
+
+	gauge.Set(value)
+	p.gaugeHandles.store(name, tags, gauge)
 
 	return nil
 }
 
 func (p *processor) Distribution(name string, value float64, tags []string) error {
+	if observer, ok := p.histogramHandles.load(name, tags); ok {
+		observer.Observe(value)
+
+		return nil
+	}
+
+	return p.distributionResolved(name, value, tags)
+}
+
+// distributionResolved is the Distribution counterpart of countResolved.
+func (p *processor) distributionResolved(name string, value float64, tags []string) error {
 	collector, labels, err := p.histogram(name, tags)
 	if err != nil {
 		return err
 	}
 
-	collector.WithLabelValues(labels.values...).Observe(value)
+	observer, err := collector.GetMetricWithLabelValues(labels.values...)
+	if err != nil {
+		return fmt.Errorf("resolve histogram %q labels: %w", name, err)
+	}
+
+	observer.Observe(value)
+	p.histogramHandles.store(name, tags, observer)
 
 	return nil
 }
@@ -293,6 +357,10 @@ func helpText(name string) string {
 }
 
 func sanitizeName(name string) string {
+	if isSanitizedName(name) {
+		return name
+	}
+
 	var builder strings.Builder
 
 	for _, r := range name {
@@ -311,7 +379,7 @@ func sanitizeName(name string) string {
 	}
 
 	if builder.Len() == 0 {
-		return "metric"
+		return fallbackMetricName
 	}
 
 	result := builder.String()
@@ -322,10 +390,44 @@ func sanitizeName(name string) string {
 	return result
 }
 
+// isSanitizedName reports whether the name already satisfies the Prometheus
+// name charset, so an already-valid name is returned as-is instead of being
+// rebuilt rune by rune. Any byte outside the ASCII charset, including every
+// byte of a multi-byte rune, sends the name down the rewriting path.
+func isSanitizedName(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	if name[0] >= '0' && name[0] <= '9' {
+		return false
+	}
+
+	for index := range len(name) {
+		if !isNameByte(name[index]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isNameByte(char byte) bool {
+	switch {
+	case char >= 'a' && char <= 'z',
+		char >= 'A' && char <= 'Z',
+		char >= '0' && char <= '9',
+		char == '_':
+		return true
+	default:
+		return false
+	}
+}
+
 func sanitizeLabelName(name string) string {
 	result := sanitizeName(name)
-	if result == "metric" {
-		return "label"
+	if result == fallbackMetricName {
+		return fallbackLabelName
 	}
 
 	return result
