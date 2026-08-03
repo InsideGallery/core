@@ -69,11 +69,20 @@ it costs one map lookup plus the increment and allocates nothing (~65ns against 
 memo). Two cases fall back to resolving labels per record, which is correct but not allocation-free:
 
 - tag lists wider than six entries, the fixed-size memo key;
-- tuples first seen after the memo reached 4096 entries, the bound that keeps an unintended high-cardinality label
+- tuples the memo turns away once it holds 4096 entries, the bound that keeps an unintended high-cardinality label
   (a request ID, a timestamp) from growing the memo without limit.
 
 Emitted metric names, label names, and label values are identical either way. Prefer stable, bounded label values for
 anything recorded per request.
+
+Reaching the bound is not permanent. A full memo admits one turned-away tuple every 512 attempts, evicting an
+arbitrary resident to make room, so a cardinality burst costs the tuples it displaces per-call label resolution until
+they are recorded often enough to be re-admitted — not for the life of the process. Admission is rationed because
+publication is copy-on-write: every admission rebuilds the whole map, and admitting every first-seen tuple would turn
+an unbounded label into a 176µs recording path against 465ns for the rationed policy and 153ns for refusing outright
+(`BenchmarkHandleCachePolicy/oversized_cycle`). Since attempts are what wins admission, the tuples recorded most often
+come back first. Recording is correct throughout: an evicted tuple keeps its Prometheus child and its accumulated
+value, and re-resolves to the same series.
 
 ## Self-Instrumentation
 
@@ -83,12 +92,14 @@ processor exports its own cache state on every scrape. No caller wiring is requi
 
 - `metrics_handle_cache_size{kind="counter|gauge|histogram"}` (gauge): handles currently memoized for that cache.
 - `metrics_handle_cache_bypass_total{kind,reason="width|full"}` (counter): records that bypassed the memo, split by
-  cause — `width` for tag lists wider than six entries, `full` for tuples first seen after the cache reached 4096
-  entries.
+  cause — `width` for tag lists wider than six entries, `full` for records of a tuple a full cache turned away.
+- `metrics_handle_cache_evictions_total{kind}` (counter): memoized handles dropped to admit a turned-away tuple.
 
-Both carry the same constant `service` label as every other series from this processor.
+All three carry the same constant `service` label as every other series from this processor.
 
-`metrics_handle_cache_size` reaching 4096 is the condition worth alerting on: the memo is full, `bypass_total{reason="full"}`
-is climbing, and every tuple first seen from then on resolves its labels on every record for the life of the process.
-That points at an unintended high-cardinality label value. A non-zero `reason="width"` is milder and static — some
-call site records more than six tags and always will.
+`metrics_handle_cache_size` reaching 4096 is the condition worth alerting on: the memo is full, and
+`bypass_total{reason="full"}` and `evictions_total` are both climbing — the cache is churning, and the tuples in flight
+resolve their labels on every record until they are re-admitted. That points at an unintended high-cardinality label
+value; the fix is at the emission site, not here. `evictions_total` climbing while `bypass_total{reason="full"}` is flat
+means a working set slightly larger than the bound rather than an unbounded label. A non-zero `reason="width"` is
+milder and static — some call site records more than six tags and always will.

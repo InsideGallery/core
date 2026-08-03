@@ -206,16 +206,21 @@ func TestWideTagListsRecordWithoutMemo(t *testing.T) {
 	}
 }
 
-// TestHandleCacheStopsAtCapacity keeps caller-supplied tag values from growing
-// the memo without bound: past the limit, tuples are recorded but not memoized.
-func TestHandleCacheStopsAtCapacity(t *testing.T) {
+// TestHandleCacheEvictsAtCapacity keeps caller-supplied tag values from growing
+// the memo without bound, and keeps the bound from sealing the memo shut: at the
+// limit a newly recorded tuple displaces a resident instead of being refused
+// forever. The limit is small, so its admission interval is one attempt and every
+// store evicts.
+func TestHandleCacheEvictsAtCapacity(t *testing.T) {
 	t.Parallel()
+
+	const stores = 5
 
 	var cache handleCache[int]
 
 	cache.limit = 2
 
-	for index := range 5 {
+	for index := range stores {
 		cache.store("metric", []string{"index:" + strconv.Itoa(index)}, index)
 	}
 
@@ -223,12 +228,70 @@ func TestHandleCacheStopsAtCapacity(t *testing.T) {
 		t.Fatalf("memoized handles = %d, want %d", got, cache.limit)
 	}
 
-	if _, ok := cache.load("metric", []string{"index:0"}); !ok {
-		t.Fatal("expected the first tuple to stay memoized")
+	// The last tuple stored is the one certain to be resident: it was just
+	// published, and nothing has been stored since to displace it.
+	if _, ok := cache.load("metric", []string{"index:" + strconv.Itoa(stores-1)}); !ok {
+		t.Fatal("expected the most recently stored tuple to be memoized")
 	}
 
-	if _, ok := cache.load("metric", []string{"index:4"}); ok {
-		t.Fatal("expected the tuple past the limit to be absent")
+	if got, want := cache.Stats().Evictions, int64(stores-cache.limit); got != want {
+		t.Fatalf("Evictions = %d, want %d", got, want)
+	}
+
+	if got := cache.Stats().BypassFull; got != 0 {
+		t.Fatalf("BypassFull = %d, want 0 while every attempt is admitted", got)
+	}
+}
+
+// TestHandleCacheRationsAdmission covers the other half of the policy: a full
+// memo whose rebuild is expensive turns most first-seen tuples away, so an
+// unbounded label cannot make every record rebuild the map. Only the attempt that
+// exhausts the interval is admitted.
+func TestHandleCacheRationsAdmission(t *testing.T) {
+	t.Parallel()
+
+	var cache handleCache[int]
+
+	cache.limit = 2 * admissionIntervalDivisor
+
+	interval := cache.admissionInterval()
+	if interval < 2 {
+		t.Fatalf("admissionInterval = %d, want at least 2 for this test", interval)
+	}
+
+	for index := range cache.limit {
+		cache.store("metric", []string{"index:" + strconv.Itoa(index)}, index)
+	}
+
+	// One attempt short of the interval: every attempt is turned away, and the
+	// memo has published nothing new.
+	for attempt := range interval - 1 {
+		cache.store("metric", []string{"turned:" + strconv.Itoa(attempt)}, attempt)
+	}
+
+	stats := cache.Stats()
+
+	if got, want := stats.BypassFull, int64(interval-1); got != want {
+		t.Fatalf("BypassFull = %d, want %d", got, want)
+	}
+
+	if stats.Evictions != 0 {
+		t.Fatalf("Evictions = %d, want 0 before the interval is exhausted", stats.Evictions)
+	}
+
+	admitted := []string{"admitted:0"}
+	cache.store("metric", admitted, -1)
+
+	if _, ok := cache.load("metric", admitted); !ok {
+		t.Fatal("expected the attempt that exhausts the interval to be memoized")
+	}
+
+	if got := cache.Stats().Evictions; got != 1 {
+		t.Fatalf("Evictions = %d, want 1", got)
+	}
+
+	if got := cache.size(); got != cache.limit {
+		t.Fatalf("memoized handles = %d, want %d: an admission replaces, it does not grow", got, cache.limit)
 	}
 }
 
@@ -258,8 +321,103 @@ func TestHandleCacheStatsCountBypasses(t *testing.T) {
 		t.Fatalf("BypassWidth = %d, want 1", stats.BypassWidth)
 	}
 
-	if stats.BypassFull != 1 {
-		t.Fatalf("BypassFull = %d, want 1", stats.BypassFull)
+	// A capacity of one admits every attempt, so nothing is turned away and the
+	// second store evicts the first.
+	if stats.BypassFull != 0 {
+		t.Fatalf("BypassFull = %d, want 0", stats.BypassFull)
+	}
+
+	if stats.Evictions != 1 {
+		t.Fatalf("Evictions = %d, want 1", stats.Evictions)
+	}
+}
+
+// TestReStoringAResidentTupleEvictsNothing covers the race the memo has always
+// had: two records of a first-seen tuple can both miss load and both reach
+// store. The loser must not evict a resident to re-publish an entry that is
+// already there.
+func TestReStoringAResidentTupleEvictsNothing(t *testing.T) {
+	t.Parallel()
+
+	var cache handleCache[int]
+
+	cache.limit = 2
+
+	resident := []string{"index:0"}
+
+	cache.store("metric", resident, 0)
+	cache.store("metric", []string{"index:1"}, 1)
+	cache.store("metric", resident, 0)
+
+	if got := cache.size(); got != cache.limit {
+		t.Fatalf("memoized handles = %d, want %d", got, cache.limit)
+	}
+
+	if got := cache.Stats().Evictions; got != 0 {
+		t.Fatalf("Evictions = %d, want 0", got)
+	}
+
+	for _, tags := range [][]string{resident, {"index:1"}} {
+		if _, ok := cache.load("metric", tags); !ok {
+			t.Fatalf("expected %v to stay memoized", tags)
+		}
+	}
+}
+
+// TestEvictedTupleRecordsAndIsReMemoized is the behaviour the policy change
+// exists for: a tuple the memo dropped keeps recording correctly, and comes back
+// into the memo instead of resolving its labels for the life of the process.
+// Every record must be counted exactly once across the eviction.
+func TestEvictedTupleRecordsAndIsReMemoized(t *testing.T) {
+	const (
+		floodLimit = 100
+		hotRecords = 3
+	)
+
+	processor := newTestProcessor(t)
+
+	// A small bound so its admission interval is one attempt: each flooding
+	// record evicts, and the hot tuple is displaced within a few of them.
+	processor.counterHandles.limit = 2
+
+	hot := []string{"route:hot"}
+
+	if err := processor.Count("evicted.requests", 1, hot); err != nil {
+		t.Fatalf("Count() error: %v", err)
+	}
+
+	flooded := 0
+
+	for ; flooded < floodLimit; flooded++ {
+		if _, resident := processor.counterHandles.load("evicted.requests", hot); !resident {
+			break
+		}
+
+		if err := processor.Count("flood.requests", 1, []string{"index:" + strconv.Itoa(flooded)}); err != nil {
+			t.Fatalf("Count() error: %v", err)
+		}
+	}
+
+	if flooded == floodLimit {
+		t.Fatalf("the hot tuple survived %d evictions; expected it to be displaced", flooded)
+	}
+
+	for range hotRecords - 1 {
+		if err := processor.Count("evicted.requests", 1, hot); err != nil {
+			t.Fatalf("Count() error: %v", err)
+		}
+	}
+
+	if _, resident := processor.counterHandles.load("evicted.requests", hot); !resident {
+		t.Fatal("expected the evicted tuple to be memoized again")
+	}
+
+	if got := counterValue(t, processor, "evicted_requests"); got != hotRecords {
+		t.Fatalf("counter = %v, want %d: records must survive eviction exactly once each", got, hotRecords)
+	}
+
+	if got := seriesCount(t, processor, "evicted_requests"); got != 1 {
+		t.Fatalf("series = %d, want 1", got)
 	}
 }
 
@@ -274,6 +432,7 @@ func TestScrapeExportsEveryHandleCacheKind(t *testing.T) {
 	for _, want := range []string{
 		"# TYPE " + handleCacheSizeMetric + " gauge",
 		"# TYPE " + handleCacheBypassMetric + " counter",
+		"# TYPE " + handleCacheEvictionsMetric + " counter",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("body missing %q in:\n%s", want, body)
@@ -287,6 +446,10 @@ func TestScrapeExportsEveryHandleCacheKind(t *testing.T) {
 			t.Fatalf("%s{kind=%s} = %v, want 0", handleCacheSizeMetric, kind, got)
 		}
 
+		if got := scrapedValue(t, body, handleCacheEvictionsMetric, kindFragment, `service="test-svc"`); got != 0 {
+			t.Fatalf("%s{kind=%s} = %v, want 0", handleCacheEvictionsMetric, kind, got)
+		}
+
 		for _, reason := range []string{bypassReasonWidth, bypassReasonFull} {
 			reasonFragment := reasonLabel + `="` + reason + `"`
 
@@ -297,16 +460,19 @@ func TestScrapeExportsEveryHandleCacheKind(t *testing.T) {
 	}
 }
 
-// TestScrapeExportsHandleCacheSaturation is why the counters exist: once the
-// memo fills, every tuple first seen afterwards resolves its labels on every
-// record for the rest of the process, and nothing about that is observable from
-// outside the package unless the scrape says so.
+// TestScrapeExportsHandleCacheSaturation is why the counters exist: once the memo
+// fills, the tuples it turns away resolve their labels on every record until they
+// win an admission, and nothing about that is observable from outside the package
+// unless the scrape says so. Recording exactly one admission interval past the
+// bound pins both halves of the policy at the real capacity: the interval's worth
+// of turned-away records, then one admission that replaces a resident rather than
+// growing the memo.
 func TestScrapeExportsHandleCacheSaturation(t *testing.T) {
-	const overflow = 3
-
 	processor := newTestProcessor(t)
 
-	for index := range maxCachedHandles + overflow {
+	interval := processor.gaugeHandles.admissionInterval()
+
+	for index := range maxCachedHandles + interval {
 		if err := processor.Gauge("saturating.sessions", 1, []string{"index:" + strconv.Itoa(index)}); err != nil {
 			t.Fatalf("Gauge() error: %v", err)
 		}
@@ -321,8 +487,12 @@ func TestScrapeExportsHandleCacheSaturation(t *testing.T) {
 
 	fullReason := reasonLabel + `="` + bypassReasonFull + `"`
 
-	if got := scrapedValue(t, body, handleCacheBypassMetric, gaugeKind, fullReason); got != overflow {
-		t.Fatalf("%s{kind=gauge,reason=full} = %v, want %d", handleCacheBypassMetric, got, overflow)
+	if got, want := scrapedValue(t, body, handleCacheBypassMetric, gaugeKind, fullReason), float64(interval-1); got != want {
+		t.Fatalf("%s{kind=gauge,reason=full} = %v, want %v", handleCacheBypassMetric, got, want)
+	}
+
+	if got := scrapedValue(t, body, handleCacheEvictionsMetric, gaugeKind); got != 1 {
+		t.Fatalf("%s{kind=gauge} = %v, want 1", handleCacheEvictionsMetric, got)
 	}
 }
 
@@ -414,6 +584,66 @@ func TestConcurrentRecordingKeepsEveryRecord(t *testing.T) {
 
 	if want := float64(writers * recordsPerWriter); total != want {
 		t.Fatalf("recorded total = %v, want %v", total, want)
+	}
+}
+
+// TestConcurrentRecordingSurvivesEviction runs the same race with a memo far too
+// small for the tuple space, so readers are looking up handles while store keeps
+// republishing snapshots that drop entries. Every record must still land exactly
+// once: a snapshot must never be mutated after publication.
+func TestConcurrentRecordingSurvivesEviction(t *testing.T) {
+	const (
+		writers          = 8
+		recordsPerWriter = 200
+		tupleSpace       = 32
+		cacheLimit       = 4
+	)
+
+	processor := newTestProcessor(t)
+	processor.counterHandles.limit = cacheLimit
+
+	var waitGroup sync.WaitGroup
+
+	for writer := range writers {
+		waitGroup.Add(1)
+
+		go func(writer int) {
+			defer waitGroup.Done()
+
+			for record := range recordsPerWriter {
+				index := (writer*recordsPerWriter + record) % tupleSpace
+
+				if err := processor.Count("evicting.requests", 1, []string{"index:" + strconv.Itoa(index)}); err != nil {
+					t.Errorf("Count() error: %v", err)
+
+					return
+				}
+			}
+		}(writer)
+	}
+
+	waitGroup.Wait()
+
+	if got := seriesCount(t, processor, "evicting_requests"); got != tupleSpace {
+		t.Fatalf("series = %d, want %d", got, tupleSpace)
+	}
+
+	var total float64
+
+	for _, series := range familyMetrics(t, processor, "evicting_requests") {
+		total += series.GetCounter().GetValue()
+	}
+
+	if want := float64(writers * recordsPerWriter); total != want {
+		t.Fatalf("recorded total = %v, want %v", total, want)
+	}
+
+	if got := processor.counterHandles.size(); got > cacheLimit {
+		t.Fatalf("memoized handles = %d, want at most %d", got, cacheLimit)
+	}
+
+	if processor.counterHandles.Stats().Evictions == 0 {
+		t.Fatal("expected the memo to have evicted under this tuple space")
 	}
 }
 

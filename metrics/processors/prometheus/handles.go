@@ -31,10 +31,17 @@ const (
 
 	// maxCachedHandles bounds the memo. Tag values are caller-supplied, so an
 	// unintended high-cardinality label (a request ID, a timestamp) would
-	// otherwise make every snapshot publication copy an ever-growing map. Once
-	// the bound is reached the memo stops growing and further tuples resolve
-	// per call, which is the behavior that existed before the cache.
+	// otherwise make every snapshot publication copy an ever-growing map. At the
+	// bound the memo starts evicting rather than sealing itself shut, so a
+	// cardinality burst costs the tuples it displaces per-call label resolution
+	// until they are recorded often enough to be re-admitted, instead of for the
+	// life of the process. See admissionInterval for the rate.
 	maxCachedHandles = 4096
+
+	// admissionIntervalDivisor sets how often a full memo admits a first-seen
+	// tuple: one attempt in capacity/admissionIntervalDivisor. See
+	// admissionInterval.
+	admissionIntervalDivisor = 8
 )
 
 // handleKey identifies one recorded (metric name, tag list) tuple. It is a
@@ -63,26 +70,36 @@ type handleCache[T any] struct {
 	mu       sync.Mutex
 	snapshot atomic.Pointer[map[handleKey]T]
 
-	// Slow-path fallbacks, counted so that a cache which has quietly stopped
-	// memoizing is visible from a scrape instead of only from a profile. Both
-	// are written on paths that already resolve labels per record, and never on
-	// a cache hit; they are declared last so the hot-path fields keep their
-	// offsets.
+	// Slow-path counters, kept so that a cache which has quietly stopped
+	// memoizing, or is churning, is visible from a scrape instead of only from a
+	// profile. All are written on paths that already resolve labels per record,
+	// and never on a cache hit; they are declared last so the hot-path fields
+	// keep their offsets.
 	bypassWidth atomic.Int64
 	bypassFull  atomic.Int64
+	evictions   atomic.Int64
+
+	// admissionPressure counts first-seen tuples the full memo has turned away
+	// since its last admission. Read and written only under mu.
+	admissionPressure int
 }
 
 // CacheStats reports one handle cache's occupancy and its cumulative slow-path
-// fallbacks. BypassWidth counts records whose tag list was too wide for the
-// fixed-size key; BypassFull counts first-seen tuples refused because the memo
-// was already at capacity. Both are monotonic for the life of the processor.
+// events. BypassWidth counts records whose tag list was too wide for the
+// fixed-size key; BypassFull counts records of a tuple the full memo turned
+// away; Evictions counts residents dropped to admit one. BypassFull no longer
+// means "locked out for the life of the process" — a turned-away tuple is
+// admitted once it accumulates enough attempts — so the pair reads as churn:
+// BypassFull climbing with Evictions is a cardinality burst being absorbed. All
+// three are monotonic for the life of the processor.
 type CacheStats struct {
 	Size        int
 	BypassWidth int64
 	BypassFull  int64
+	Evictions   int64
 }
 
-// Stats reads the cache's occupancy and bypass counters. The three values are
+// Stats reads the cache's occupancy and slow-path counters. The values are
 // loaded independently, so a concurrent record can land between them; they are
 // intended for observability, not for exact cross-field arithmetic.
 func (c *handleCache[T]) Stats() CacheStats {
@@ -90,6 +107,7 @@ func (c *handleCache[T]) Stats() CacheStats {
 		Size:        c.size(),
 		BypassWidth: c.bypassWidth.Load(),
 		BypassFull:  c.bypassFull.Load(),
+		Evictions:   c.evictions.Load(),
 	}
 }
 
@@ -118,39 +136,99 @@ func (c *handleCache[T]) load(name string, tags []string) (T, bool) {
 }
 
 // store memoizes the handle for the tuple by publishing a snapshot that
-// includes it. It is only reached the first time a tuple is recorded.
+// includes it. It is reached the first time a tuple is recorded, and again if
+// that tuple's entry was evicted in the meantime.
 func (c *handleCache[T]) store(name string, tags []string, handle T) {
 	if len(tags) > maxCachedTagCount {
 		return
 	}
 
+	key := newHandleKey(name, tags)
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	current := c.snapshot.Load()
+	evicting := false
 
-	size := 1
-
-	if current != nil {
-		if len(*current) >= c.capacity() {
+	if c.isFull(current, key) {
+		if !c.admit() {
 			c.bypassFull.Add(1)
 
 			return
 		}
 
+		evicting = true
+	}
+
+	updated := c.republish(current, evicting)
+
+	updated[key] = handle
+	c.snapshot.Store(&updated)
+
+	if evicting {
+		c.evictions.Add(1)
+	}
+}
+
+// isFull reports whether the memo is at its bound and this tuple would have to
+// displace a resident to get in. A tuple already resident never displaces one:
+// two records of a first-seen tuple can race into store, and the loser must not
+// evict anything to re-publish an entry that is already there.
+func (c *handleCache[T]) isFull(current *map[handleKey]T, key handleKey) bool {
+	if current == nil || len(*current) < c.capacity() {
+		return false
+	}
+
+	_, resident := (*current)[key]
+
+	return !resident
+}
+
+// admit reports whether this attempt is the one the full memo lets in, and
+// clears the pressure it accumulated when it is. Callers hold mu.
+func (c *handleCache[T]) admit() bool {
+	c.admissionPressure++
+
+	if c.admissionPressure < c.admissionInterval() {
+		return false
+	}
+
+	c.admissionPressure = 0
+
+	return true
+}
+
+// republish copies the published snapshot into a fresh map, dropping one entry
+// when the insert has to evict. Go randomizes where a map range starts, so the
+// entry dropped is an arbitrary resident: random replacement needs no per-hit
+// bookkeeping, which is what keeps a cache hit down to one atomic load and one
+// map lookup — an LRU list or a clock bit would have to be maintained on every
+// hit, on the one path this design exists to keep cheap.
+func (c *handleCache[T]) republish(current *map[handleKey]T, evicting bool) map[handleKey]T {
+	size := 1
+	if current != nil {
 		size += len(*current)
 	}
 
 	updated := make(map[handleKey]T, size)
-
-	if current != nil {
-		for key, cached := range *current {
-			updated[key] = cached
-		}
+	if current == nil {
+		return updated
 	}
 
-	updated[newHandleKey(name, tags)] = handle
-	c.snapshot.Store(&updated)
+	dropped := !evicting
+
+	for cachedKey, cached := range *current {
+		if !dropped {
+			dropped = true
+
+			continue
+		}
+
+		updated[cachedKey] = cached
+	}
+
+	return updated
 }
 
 // capacity is the memo bound in effect.
@@ -160,6 +238,33 @@ func (c *handleCache[T]) capacity() int {
 	}
 
 	return maxCachedHandles
+}
+
+// admissionInterval is how many first-seen tuples a full memo turns away before
+// it admits one, and it is why eviction is affordable at all. Publication is
+// copy-on-write, so every admission rebuilds the whole map — an O(capacity) copy
+// on a path whose whole point is to be cheap. Admitting every first-seen tuple
+// turns an unbounded label, the exact defect the bound exists to survive, into a
+// 176µs recording path against 153ns for refusing (BenchmarkHandleCachePolicy
+// oversized_cycle, 4096-entry memo, tuple space one eighth past it). Evicting a
+// batch per admission does not fix that: the batch changes how many entries a
+// rebuild drops, not how often a rebuild happens. Rationing admission does, and
+// it costs 465ns/op on the same workload — 3.0x refusing, and cheap in absolute
+// terms because a record that misses the memo already pays ~0.6µs to resolve its
+// labels.
+//
+// What this keeps from refuse-at-capacity is its cost; what it drops is its
+// permanence. A tuple is no longer locked out for the life of the process, only
+// until it is recorded often enough to win an admission — and since attempts are
+// what wins admission, the tuples recorded most often win first. The interval
+// scales with capacity because the rebuild it rations does.
+func (c *handleCache[T]) admissionInterval() int {
+	interval := c.capacity() / admissionIntervalDivisor
+	if interval < 1 {
+		return 1
+	}
+
+	return interval
 }
 
 // size reports how many handles are memoized.
@@ -172,13 +277,15 @@ func (c *handleCache[T]) size() int {
 	return len(*snapshot)
 }
 
-// Names and label values of the processor's self-instrumentation. Saturating
-// the memo degrades recording silently and permanently — every later tuple pays
-// full label resolution — so the condition is exported as ordinary series that
-// an existing scrape already collects, rather than left to a profile.
+// Names and label values of the processor's self-instrumentation. Saturating the
+// memo degrades recording silently — the displaced tuples pay full label
+// resolution until they are recorded again — so the condition is exported as
+// ordinary series that an existing scrape already collects, rather than left to
+// a profile.
 const (
-	handleCacheSizeMetric   = "metrics_handle_cache_size"
-	handleCacheBypassMetric = "metrics_handle_cache_bypass_total"
+	handleCacheSizeMetric      = "metrics_handle_cache_size"
+	handleCacheBypassMetric    = "metrics_handle_cache_bypass_total"
+	handleCacheEvictionsMetric = "metrics_handle_cache_evictions_total"
 
 	kindLabel   = "kind"
 	reasonLabel = "reason"
@@ -197,8 +304,9 @@ const (
 type handleCacheCollector struct {
 	processor *processor
 
-	sizeDesc   *stdprom.Desc
-	bypassDesc *stdprom.Desc
+	sizeDesc      *stdprom.Desc
+	bypassDesc    *stdprom.Desc
+	evictionsDesc *stdprom.Desc
 }
 
 func newHandleCacheCollector(p *processor) *handleCacheCollector {
@@ -216,6 +324,12 @@ func newHandleCacheCollector(p *processor) *handleCacheCollector {
 			[]string{kindLabel, reasonLabel},
 			nil,
 		),
+		evictionsDesc: stdprom.NewDesc(
+			handleCacheEvictionsMetric,
+			"Memoized handles dropped to make room for a newly recorded tuple.",
+			[]string{kindLabel},
+			nil,
+		),
 	}
 }
 
@@ -223,6 +337,8 @@ func (c *handleCacheCollector) Describe(descs chan<- *stdprom.Desc) {
 	descs <- c.sizeDesc
 
 	descs <- c.bypassDesc
+
+	descs <- c.evictionsDesc
 }
 
 func (c *handleCacheCollector) Collect(collected chan<- stdprom.Metric) {
@@ -241,6 +357,8 @@ func (c *handleCacheCollector) Collect(collected chan<- stdprom.Metric) {
 			float64(cache.stats.BypassWidth), cache.kind, bypassReasonWidth)
 		emitConstMetric(collected, c.bypassDesc, stdprom.CounterValue,
 			float64(cache.stats.BypassFull), cache.kind, bypassReasonFull)
+		emitConstMetric(collected, c.evictionsDesc, stdprom.CounterValue,
+			float64(cache.stats.Evictions), cache.kind)
 	}
 }
 
