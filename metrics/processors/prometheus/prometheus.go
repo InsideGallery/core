@@ -159,20 +159,35 @@ func (p *processor) Count(name string, value int64, tags []string) error {
 // resolves the labels, finds or registers the collector, records, and memoizes
 // the child so later records of the same tuple take the hot path above.
 func (p *processor) countResolved(name string, value int64, tags []string) error {
-	collector, labels, err := p.counter(name, tags)
+	counter, err := p.resolveCounter(name, tags)
 	if err != nil {
 		return err
-	}
-
-	counter, err := collector.GetMetricWithLabelValues(labels.values...)
-	if err != nil {
-		return fmt.Errorf("resolve counter %q labels: %w", name, err)
 	}
 
 	counter.Add(float64(value))
 	p.counterHandles.store(name, tags, counter)
 
 	return nil
+}
+
+// resolveCounter finds or registers the collector for name's label set and
+// resolves the child counter carrying these tag values. It is the step both the
+// per-record slow path and CounterHandle need; only the former memoizes what it
+// resolves (see handles.go).
+//
+//nolint:ireturn // resolves the backend's own child-metric abstraction
+func (p *processor) resolveCounter(name string, tags []string) (stdprom.Counter, error) {
+	collector, labels, err := p.counter(name, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	counter, err := collector.GetMetricWithLabelValues(labels.values...)
+	if err != nil {
+		return nil, fmt.Errorf("resolve counter %q labels: %w", name, err)
+	}
+
+	return counter, nil
 }
 
 func (p *processor) Gauge(name string, value float64, tags []string) error {
@@ -187,20 +202,32 @@ func (p *processor) Gauge(name string, value float64, tags []string) error {
 
 // gaugeResolved is the Gauge counterpart of countResolved.
 func (p *processor) gaugeResolved(name string, value float64, tags []string) error {
-	collector, labels, err := p.gauge(name, tags)
+	gauge, err := p.resolveGauge(name, tags)
 	if err != nil {
 		return err
-	}
-
-	gauge, err := collector.GetMetricWithLabelValues(labels.values...)
-	if err != nil {
-		return fmt.Errorf("resolve gauge %q labels: %w", name, err)
 	}
 
 	gauge.Set(value)
 	p.gaugeHandles.store(name, tags, gauge)
 
 	return nil
+}
+
+// resolveGauge is the Gauge counterpart of resolveCounter.
+//
+//nolint:ireturn // resolves the backend's own child-metric abstraction
+func (p *processor) resolveGauge(name string, tags []string) (stdprom.Gauge, error) {
+	collector, labels, err := p.gauge(name, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	gauge, err := collector.GetMetricWithLabelValues(labels.values...)
+	if err != nil {
+		return nil, fmt.Errorf("resolve gauge %q labels: %w", name, err)
+	}
+
+	return gauge, nil
 }
 
 func (p *processor) Distribution(name string, value float64, tags []string) error {
@@ -215,20 +242,32 @@ func (p *processor) Distribution(name string, value float64, tags []string) erro
 
 // distributionResolved is the Distribution counterpart of countResolved.
 func (p *processor) distributionResolved(name string, value float64, tags []string) error {
-	collector, labels, err := p.histogram(name, tags)
+	observer, err := p.resolveHistogram(name, tags)
 	if err != nil {
 		return err
-	}
-
-	observer, err := collector.GetMetricWithLabelValues(labels.values...)
-	if err != nil {
-		return fmt.Errorf("resolve histogram %q labels: %w", name, err)
 	}
 
 	observer.Observe(value)
 	p.histogramHandles.store(name, tags, observer)
 
 	return nil
+}
+
+// resolveHistogram is the Distribution counterpart of resolveCounter.
+//
+//nolint:ireturn // resolves the backend's own child-metric abstraction
+func (p *processor) resolveHistogram(name string, tags []string) (stdprom.Observer, error) {
+	collector, labels, err := p.histogram(name, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	observer, err := collector.GetMetricWithLabelValues(labels.values...)
+	if err != nil {
+		return nil, fmt.Errorf("resolve histogram %q labels: %w", name, err)
+	}
+
+	return observer, nil
 }
 
 // HTTPHandler writes the active Prometheus scrape response.

@@ -778,3 +778,276 @@ func TestSanitizeNameKeepsAlreadyValidNames(t *testing.T) {
 		})
 	}
 }
+
+// Resolved handles (MET-11). The properties that matter are that a handle records
+// into the SAME series the Count/Gauge/Distribution path would have produced, that
+// it allocates nothing, and that resolving one does not consume a memo slot the
+// hot path needs.
+
+func TestHandleRecordingMatchesTheRecordPath(t *testing.T) {
+	const (
+		counterMetric = "handled.requests"
+		gaugeMetric   = "handled.sessions"
+		histoMetric   = "handled.duration"
+		records       = 3
+	)
+
+	tags := []string{"status:200", "method:GET"}
+
+	recorded := newTestProcessor(t)
+	handled := newTestProcessor(t)
+
+	for range records {
+		if err := recorded.Count(counterMetric, 2, tags); err != nil {
+			t.Fatalf("Count() error: %v", err)
+		}
+
+		if err := recorded.Gauge(gaugeMetric, 7, tags); err != nil {
+			t.Fatalf("Gauge() error: %v", err)
+		}
+
+		if err := recorded.Distribution(histoMetric, 0.5, tags); err != nil {
+			t.Fatalf("Distribution() error: %v", err)
+		}
+	}
+
+	counter, err := handled.CounterHandle(counterMetric, tags)
+	if err != nil {
+		t.Fatalf("CounterHandle() error: %v", err)
+	}
+
+	gauge, err := handled.GaugeHandle(gaugeMetric, tags)
+	if err != nil {
+		t.Fatalf("GaugeHandle() error: %v", err)
+	}
+
+	observer, err := handled.DistributionHandle(histoMetric, tags)
+	if err != nil {
+		t.Fatalf("DistributionHandle() error: %v", err)
+	}
+
+	for range records {
+		counter.Add(2)
+		gauge.Set(7)
+		observer.Observe(0.5)
+	}
+
+	for _, metric := range []string{"handled_requests", "handled_sessions", "handled_duration"} {
+		requireSameSeries(t, recorded, handled, metric)
+	}
+}
+
+// requireSameSeries fails unless both processors emit the metric family with the
+// same series: same label names, same label values, same recorded value. The
+// created timestamp is excluded — it records when each processor registered its
+// collector, not what was recorded.
+func requireSameSeries(t *testing.T, want, got *processor, name string) {
+	t.Helper()
+
+	wantSeries := familyMetrics(t, want, name)
+	gotSeries := familyMetrics(t, got, name)
+
+	if len(wantSeries) != len(gotSeries) {
+		t.Fatalf("%s series = %d, want %d", name, len(gotSeries), len(wantSeries))
+	}
+
+	for index := range wantSeries {
+		wantText := seriesIdentity(wantSeries[index])
+
+		if gotText := seriesIdentity(gotSeries[index]); gotText != wantText {
+			t.Fatalf("%s series %d:\n got %s\nwant %s", name, index, gotText, wantText)
+		}
+	}
+}
+
+// seriesIdentity renders one series as its label set plus its recorded value.
+func seriesIdentity(series *dto.Metric) string {
+	var builder strings.Builder
+
+	for _, label := range series.GetLabel() {
+		builder.WriteString(label.GetName() + "=" + label.GetValue() + " ")
+	}
+
+	switch {
+	case series.GetCounter() != nil:
+		builder.WriteString("counter=" + strconv.FormatFloat(series.GetCounter().GetValue(), 'g', -1, 64))
+	case series.GetGauge() != nil:
+		builder.WriteString("gauge=" + strconv.FormatFloat(series.GetGauge().GetValue(), 'g', -1, 64))
+	case series.GetHistogram() != nil:
+		histogram := series.GetHistogram()
+		builder.WriteString("histogram count=" + strconv.FormatUint(histogram.GetSampleCount(), 10) +
+			" sum=" + strconv.FormatFloat(histogram.GetSampleSum(), 'g', -1, 64))
+
+		for _, bucket := range histogram.GetBucket() {
+			builder.WriteString(" le=" + strconv.FormatFloat(bucket.GetUpperBound(), 'g', -1, 64) +
+				":" + strconv.FormatUint(bucket.GetCumulativeCount(), 10))
+		}
+	}
+
+	return builder.String()
+}
+
+func TestHandleRecordingIsAllocationFree(t *testing.T) {
+	const runs = 1000
+
+	tags := []string{"status:200", "method:GET", "route:lookup"}
+
+	processor := newTestProcessor(t)
+
+	counter, err := processor.CounterHandle("handle.alloc.requests", tags)
+	if err != nil {
+		t.Fatalf("CounterHandle() error: %v", err)
+	}
+
+	gauge, err := processor.GaugeHandle("handle.alloc.sessions", tags)
+	if err != nil {
+		t.Fatalf("GaugeHandle() error: %v", err)
+	}
+
+	observer, err := processor.DistributionHandle("handle.alloc.duration", tags)
+	if err != nil {
+		t.Fatalf("DistributionHandle() error: %v", err)
+	}
+
+	cases := []struct {
+		name   string
+		record func()
+	}{
+		{name: "counter", record: func() { counter.Add(1) }},
+		{name: "gauge", record: func() { gauge.Set(3) }},
+		{name: "observer", record: func() { observer.Observe(5) }},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if allocs := testing.AllocsPerRun(runs, testCase.record); allocs != 0 {
+				t.Fatalf("allocations = %v, want 0", allocs)
+			}
+		})
+	}
+}
+
+// A handle never looks its tuple up again, so an entry for it would occupy one of
+// the bounded memo slots without ever being read.
+func TestHandleResolutionLeavesTheMemoEmpty(t *testing.T) {
+	processor := newTestProcessor(t)
+
+	tags := []string{"status:200"}
+
+	counter, err := processor.CounterHandle("memo.free.requests", tags)
+	if err != nil {
+		t.Fatalf("CounterHandle() error: %v", err)
+	}
+
+	if _, err := processor.GaugeHandle("memo.free.sessions", tags); err != nil {
+		t.Fatalf("GaugeHandle() error: %v", err)
+	}
+
+	if _, err := processor.DistributionHandle("memo.free.duration", tags); err != nil {
+		t.Fatalf("DistributionHandle() error: %v", err)
+	}
+
+	counter.Add(1)
+
+	for _, cache := range []struct {
+		kind string
+		size int
+	}{
+		{kind: cacheKindCounter, size: processor.counterHandles.size()},
+		{kind: cacheKindGauge, size: processor.gaugeHandles.size()},
+		{kind: cacheKindHistogram, size: processor.histogramHandles.size()},
+	} {
+		if cache.size != 0 {
+			t.Fatalf("%s memo size = %d, want 0", cache.kind, cache.size)
+		}
+	}
+}
+
+// Count rejects a negative value with an error; a handle has no error channel and
+// stdprom.Counter.Add panics on a negative, so the handle drops it.
+func TestCounterHandleDropsNegativeValues(t *testing.T) {
+	processor := newTestProcessor(t)
+
+	counter, err := processor.CounterHandle("negative.requests", []string{"status:200"})
+	if err != nil {
+		t.Fatalf("CounterHandle() error: %v", err)
+	}
+
+	counter.Add(4)
+	counter.Add(-1)
+
+	if got := counterValue(t, processor, "negative_requests"); got != 4 {
+		t.Fatalf("counter = %v, want 4", got)
+	}
+}
+
+// The Prometheus processor must be usable as a handle provider through the client
+// abstraction, since that is how every caller reaches it.
+func TestProcessorSatisfiesHandleProvider(t *testing.T) {
+	processor := newTestProcessor(t)
+
+	if _, ok := metrics.Processor(processor).(metrics.HandleProvider); !ok {
+		t.Fatal("processor does not implement metrics.HandleProvider")
+	}
+}
+
+// BenchmarkResolvedHandleVersusMemoizedRecord is the A/B for what a resolved handle
+// removes: both arms record the same tuple into the same processor in one process,
+// one through Count (memo hit: hash a 112-byte key, map lookup, interface call)
+// and one through a handle resolved up front.
+//
+//	go test -run=^$ -bench=BenchmarkResolvedHandleVersusMemoizedRecord -benchmem \
+//	    ./metrics/processors/prometheus/
+func BenchmarkResolvedHandleVersusMemoizedRecord(b *testing.B) {
+	const metric = "bench.handle.requests"
+
+	tags := []string{"status:200", "method:GET", "route:lookup"}
+
+	resetActiveProcessorForBenchmark()
+
+	rawProcessor, err := New(metrics.Config{}, "bench-svc")
+	if err != nil {
+		b.Fatalf("New() error: %v", err)
+	}
+
+	b.Cleanup(func() {
+		if err := rawProcessor.Close(); err != nil {
+			b.Fatalf("Close() error: %v", err)
+		}
+
+		resetActiveProcessorForBenchmark()
+	})
+
+	promProcessor, ok := rawProcessor.(*processor)
+	if !ok {
+		b.Fatalf("processor type = %T", rawProcessor)
+	}
+
+	// Warm the memo so the Count arm measures a hit, not a resolution.
+	if err := promProcessor.Count(metric, 1, tags); err != nil {
+		b.Fatalf("warm Count() error: %v", err)
+	}
+
+	counter, err := promProcessor.CounterHandle(metric, tags)
+	if err != nil {
+		b.Fatalf("CounterHandle() error: %v", err)
+	}
+
+	b.Run("memoized_count", func(b *testing.B) {
+		b.ReportAllocs()
+
+		for range b.N {
+			if err := promProcessor.Count(metric, 1, tags); err != nil {
+				b.Fatalf("Count() error: %v", err)
+			}
+		}
+	})
+
+	b.Run("resolved_handle", func(b *testing.B) {
+		b.ReportAllocs()
+
+		for range b.N {
+			counter.Add(1)
+		}
+	})
+}

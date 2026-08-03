@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 
 	stdprom "github.com/prometheus/client_golang/prometheus"
+
+	"github.com/InsideGallery/core/metrics"
 )
 
 // Label resolution, not the actual increment, is what recording costs: Count,
@@ -275,6 +277,71 @@ func (c *handleCache[T]) size() int {
 	}
 
 	return len(*snapshot)
+}
+
+// Resolved handles (metrics.HandleProvider). The memo above removes label
+// resolution from a repeat record but not the lookup that finds the memoized
+// child: the key is hashed per record, and on a caller's hot path that lookup is
+// what is left to remove. A caller that records the same tuple for the life of the
+// process resolves it once here instead and keeps the child.
+//
+// This path deliberately does NOT populate the memo. A handle never looks its
+// tuple up again, so an entry for it would occupy one of the bounded slots without
+// ever being read — and, once the memo is at capacity, would ration admission
+// against tuples that do read it.
+//
+//nolint:ireturn // handle API returns the abstraction by design
+func (p *processor) CounterHandle(name string, tags []string) (metrics.Counter, error) {
+	counter, err := p.resolveCounter(name, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	return counterHandle{counter: counter}, nil
+}
+
+// GaugeHandle resolves a gauge child. A Prometheus gauge already satisfies
+// metrics.Gauge, so the child is returned as-is.
+//
+//nolint:ireturn // handle API returns the abstraction by design
+func (p *processor) GaugeHandle(name string, tags []string) (metrics.Gauge, error) {
+	gauge, err := p.resolveGauge(name, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	return gauge, nil
+}
+
+// DistributionHandle resolves a histogram child. A Prometheus observer already
+// satisfies metrics.Observer, so the child is returned as-is.
+//
+//nolint:ireturn // handle API returns the abstraction by design
+func (p *processor) DistributionHandle(name string, tags []string) (metrics.Observer, error) {
+	observer, err := p.resolveHistogram(name, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	return observer, nil
+}
+
+// counterHandle adapts a Prometheus counter child to metrics.Counter, which counts
+// in int64 like Processor.Count while Prometheus counts in float64. Gauges and
+// histograms need no such adapter.
+type counterHandle struct {
+	counter stdprom.Counter
+}
+
+// Add records the increment. A negative value is dropped: Count reports it as an
+// error, a handle has no error channel, and stdprom.Counter.Add panics on a
+// negative — taking down the caller's record path over a sample.
+func (h counterHandle) Add(value int64) {
+	if value < 0 {
+		return
+	}
+
+	h.counter.Add(float64(value))
 }
 
 // Names and label values of the processor's self-instrumentation. Saturating the

@@ -22,6 +22,40 @@ type Processor interface {
 	Distribution(name string, value float64, tags []string) error
 }
 
+// Counter, Gauge and Observer are resolved metric handles: a caller resolves one
+// through HandleProvider at wiring time and records through it afterwards, so
+// turning a (name, tags) tuple back into a backend child metric happens once
+// instead of on every record. On a data path that records the same bounded set of
+// tuples forever, that is the difference between a hashed cache lookup per record
+// and an increment.
+//
+// They are aliases to interface literals rather than defined types, and that is
+// load-bearing. A consumer pinned to a release of this module that predates
+// HandleProvider cannot name metrics.Counter, but it can declare the identical
+// literal locally and assert the capability structurally, because Go matches
+// method signatures on type identity and a defined type is never identical to any
+// other type. The aliases are therefore what let a consumer use handles when the
+// linked version provides them and keep using Count/Gauge/Distribution when it
+// does not, without bumping its pin in lockstep with this addition. Do not turn
+// them into defined types.
+type (
+	Counter  = interface{ Add(value int64) }
+	Gauge    = interface{ Set(value float64) }
+	Observer = interface{ Observe(value float64) }
+)
+
+// HandleProvider is the optional capability of resolving a metric handle before
+// recording. It is deliberately not part of Processor: a processor that does not
+// implement it keeps recording through Count, Gauge and Distribution, so
+// implementing it stays opt-in per backend and callers detect support with a type
+// assertion. A returned handle must be safe for concurrent use and stays valid
+// for the life of the processor.
+type HandleProvider interface {
+	CounterHandle(name string, tags []string) (Counter, error)
+	GaugeHandle(name string, tags []string) (Gauge, error)
+	DistributionHandle(name string, tags []string) (Observer, error)
+}
+
 // Factory creates a concrete metrics processor for a service.
 type Factory func(Config, string) (Processor, error)
 
@@ -265,6 +299,213 @@ func (c *Client) Distribution(name string, value float64, tags []string) error {
 	}
 
 	return wrapMetricErrors("distribution", name, errs)
+}
+
+// CounterHandle resolves one counter handle for the metric, covering every
+// configured processor. See HandleProvider.
+//
+//nolint:ireturn // handle API returns the abstraction by design
+func (c *Client) CounterHandle(name string, tags []string) (Counter, error) {
+	if c == nil {
+		return discardHandle{}, nil
+	}
+
+	handles, err := resolveHandles(c, "counter handle", name, tags,
+		HandleProvider.CounterHandle, newProcessorCounter)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(handles) == 1 {
+		return handles[0], nil
+	}
+
+	return counterFanout(handles), nil
+}
+
+// GaugeHandle resolves one gauge handle for the metric, covering every configured
+// processor. See HandleProvider.
+//
+//nolint:ireturn // handle API returns the abstraction by design
+func (c *Client) GaugeHandle(name string, tags []string) (Gauge, error) {
+	if c == nil {
+		return discardHandle{}, nil
+	}
+
+	handles, err := resolveHandles(c, "gauge handle", name, tags,
+		HandleProvider.GaugeHandle, newProcessorGauge)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(handles) == 1 {
+		return handles[0], nil
+	}
+
+	return gaugeFanout(handles), nil
+}
+
+// DistributionHandle resolves one distribution handle for the metric, covering
+// every configured processor. See HandleProvider.
+//
+//nolint:ireturn // handle API returns the abstraction by design
+func (c *Client) DistributionHandle(name string, tags []string) (Observer, error) {
+	if c == nil {
+		return discardHandle{}, nil
+	}
+
+	handles, err := resolveHandles(c, "distribution handle", name, tags,
+		HandleProvider.DistributionHandle, newProcessorObserver)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(handles) == 1 {
+		return handles[0], nil
+	}
+
+	return observerFanout(handles), nil
+}
+
+// resolveHandles builds one handle per configured processor: resolved through
+// HandleProvider where the processor implements it, and adapted from
+// Count/Gauge/Distribution where it does not, so a mixed set of processors records
+// through a single handle and no backend has to implement the capability to keep
+// working.
+//
+// A resolution error is returned rather than absorbed: the caller asked for a
+// handle and does not have one, and it can still record through Count/Gauge/
+// Distribution.
+func resolveHandles[T any](
+	c *Client,
+	operation, name string,
+	tags []string,
+	resolve func(HandleProvider, string, []string) (T, error),
+	adapt func(Processor, string, []string) T,
+) ([]T, error) {
+	// An adapted handle keeps the tag slice for the life of the process, so it is
+	// copied: a caller that assembles its labels in a reused or stack-allocated
+	// array must be free to reuse the array after resolving.
+	if len(tags) > 0 {
+		tags = append(make([]string, 0, len(tags)), tags...)
+	}
+
+	var errs []error
+
+	handles := make([]T, 0, len(c.processors))
+
+	for _, processor := range c.processors {
+		provider, ok := processor.(HandleProvider)
+		if !ok {
+			handles = append(handles, adapt(processor, name, tags))
+
+			continue
+		}
+
+		handle, err := resolve(provider, name, tags)
+		if err != nil {
+			errs = append(errs, err)
+
+			continue
+		}
+
+		handles = append(handles, handle)
+	}
+
+	if len(errs) > 0 {
+		return nil, wrapMetricErrors(operation, name, errs)
+	}
+
+	return handles, nil
+}
+
+// discardHandle is the handle a nil Client resolves. A nil Client records nothing
+// (see Count), and a caller must be able to record through a resolved handle
+// without a nil check, so the handle discards rather than being nil.
+type discardHandle struct{}
+
+func (discardHandle) Add(_ int64) {}
+
+func (discardHandle) Set(_ float64) {}
+
+func (discardHandle) Observe(_ float64) {}
+
+// processorCounter, processorGauge and processorObserver adapt a Processor that
+// does not implement HandleProvider into a handle. The per-record error the
+// Processor returns is dropped because a handle has no error channel by design —
+// it is the same error the Count/Gauge/Distribution path reports, and a caller
+// that wants it can record through that path instead.
+type processorCounter struct {
+	processor Processor
+	name      string
+	tags      []string
+}
+
+//nolint:ireturn // adapter returns the handle abstraction by design
+func newProcessorCounter(processor Processor, name string, tags []string) Counter {
+	return processorCounter{processor: processor, name: name, tags: tags}
+}
+
+func (h processorCounter) Add(value int64) {
+	_ = h.processor.Count(h.name, value, h.tags)
+}
+
+type processorGauge struct {
+	processor Processor
+	name      string
+	tags      []string
+}
+
+//nolint:ireturn // adapter returns the handle abstraction by design
+func newProcessorGauge(processor Processor, name string, tags []string) Gauge {
+	return processorGauge{processor: processor, name: name, tags: tags}
+}
+
+func (h processorGauge) Set(value float64) {
+	_ = h.processor.Gauge(h.name, value, h.tags)
+}
+
+type processorObserver struct {
+	processor Processor
+	name      string
+	tags      []string
+}
+
+//nolint:ireturn // adapter returns the handle abstraction by design
+func newProcessorObserver(processor Processor, name string, tags []string) Observer {
+	return processorObserver{processor: processor, name: name, tags: tags}
+}
+
+func (h processorObserver) Observe(value float64) {
+	_ = h.processor.Distribution(h.name, value, h.tags)
+}
+
+// counterFanout, gaugeFanout and observerFanout record one value into every
+// processor's handle. A single-processor client — the common configuration — gets
+// its processor's handle directly instead, so the fan-out costs nothing when
+// there is nothing to fan out to.
+type counterFanout []Counter
+
+func (f counterFanout) Add(value int64) {
+	for _, handle := range f {
+		handle.Add(value)
+	}
+}
+
+type gaugeFanout []Gauge
+
+func (f gaugeFanout) Set(value float64) {
+	for _, handle := range f {
+		handle.Set(value)
+	}
+}
+
+type observerFanout []Observer
+
+func (f observerFanout) Observe(value float64) {
+	for _, handle := range f {
+		handle.Observe(value)
+	}
 }
 
 func wrapMetricErrors(operation, name string, errs []error) error {
