@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -505,4 +506,80 @@ func requireHistogram(t *testing.T, families []*dto.MetricFamily, name string) *
 	t.Fatalf("missing metric family %q", name)
 
 	return nil
+}
+
+// scrapeBody serves the active processor through HTTPHandler and returns the
+// Prometheus text response, so a test can assert on what a scraper actually
+// receives rather than on the registry behind it.
+func scrapeBody(t *testing.T) string {
+	t.Helper()
+
+	recorder := httptest.NewRecorder()
+	HTTPHandler(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("scrape status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+
+	return recorder.Body.String()
+}
+
+// scrapedValue returns the value of the one scraped sample of metric name whose
+// label section contains every fragment in labelFragments, such as `kind="gauge"`.
+// Matching by fragment keeps the assertion independent of the order Prometheus
+// renders labels in, and of labels the test does not care about.
+func scrapedValue(t *testing.T, body, name string, labelFragments ...string) float64 {
+	t.Helper()
+
+	var (
+		matched []string
+		value   float64
+	)
+
+	for _, line := range strings.Split(body, "\n") {
+		labelPart, valuePart, ok := splitSample(line, name)
+		if !ok || !containsAll(labelPart, labelFragments) {
+			continue
+		}
+
+		parsed, err := strconv.ParseFloat(valuePart, 64)
+		if err != nil {
+			t.Fatalf("parse value of %q: %v", line, err)
+		}
+
+		matched = append(matched, line)
+		value = parsed
+	}
+
+	if len(matched) != 1 {
+		t.Fatalf("samples of %s%v = %d, want 1:\n%s", name, labelFragments, len(matched), body)
+	}
+
+	return value
+}
+
+// splitSample cuts a `name{labels} value` line into its label and value parts.
+// No label value this package emits contains a brace, so a plain cut is enough.
+func splitSample(line, name string) (string, string, bool) {
+	rest, ok := strings.CutPrefix(line, name+"{")
+	if !ok {
+		return "", "", false
+	}
+
+	labelPart, valuePart, ok := strings.Cut(rest, "} ")
+	if !ok {
+		return "", "", false
+	}
+
+	return labelPart, strings.TrimSpace(valuePart), true
+}
+
+func containsAll(haystack string, needles []string) bool {
+	for _, needle := range needles {
+		if !strings.Contains(haystack, needle) {
+			return false
+		}
+	}
+
+	return true
 }

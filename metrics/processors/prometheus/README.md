@@ -74,3 +74,21 @@ memo). Two cases fall back to resolving labels per record, which is correct but 
 
 Emitted metric names, label names, and label values are identical either way. Prefer stable, bounded label values for
 anything recorded per request.
+
+## Self-Instrumentation
+
+Both fallbacks are silent — recording stays correct, it just costs what it cost before the memo existed — so the
+processor exports its own cache state on every scrape. No caller wiring is required; the collector is registered in
+`New` and reads the caches at scrape time, so being observable costs the recording path nothing.
+
+- `metrics_handle_cache_size{kind="counter|gauge|histogram"}` (gauge): handles currently memoized for that cache.
+- `metrics_handle_cache_bypass_total{kind,reason="width|full"}` (counter): records that bypassed the memo, split by
+  cause — `width` for tag lists wider than six entries, `full` for tuples first seen after the cache reached 4096
+  entries.
+
+Both carry the same constant `service` label as every other series from this processor.
+
+`metrics_handle_cache_size` reaching 4096 is the condition worth alerting on: the memo is full, `bypass_total{reason="full"}`
+is climbing, and every tuple first seen from then on resolves its labels on every record for the life of the process.
+That points at an unintended high-cardinality label value. A non-zero `reason="width"` is milder and static — some
+call site records more than six tags and always will.

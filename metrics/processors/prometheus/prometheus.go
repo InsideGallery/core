@@ -89,9 +89,25 @@ func New(_ metrics.Config, service string) (metrics.Processor, error) {
 		histograms: make(map[collectorKey]*stdprom.HistogramVec),
 	}
 
+	// Registered after p exists because the collector reads p's caches at scrape
+	// time; every processor therefore exports its own cache state with no wiring
+	// on the caller's side.
+	if err := registerHandleCacheCollector(registry, service, p); err != nil {
+		return nil, err
+	}
+
 	setActiveProcessor(p)
 
 	return p, nil
+}
+
+func registerHandleCacheCollector(registry *stdprom.Registry, service string, p *processor) error {
+	registerer := stdprom.WrapRegistererWith(stdprom.Labels{serviceKey: service}, registry)
+	if err := registerer.Register(newHandleCacheCollector(p)); err != nil {
+		return fmt.Errorf("register handle cache collector: %w", err)
+	}
+
+	return nil
 }
 
 func registerStandardCollectors(registry *stdprom.Registry, service string) error {

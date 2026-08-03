@@ -232,6 +232,128 @@ func TestHandleCacheStopsAtCapacity(t *testing.T) {
 	}
 }
 
+// TestHandleCacheStatsCountBypasses pins each counter to the one path it stands
+// for, without going through a processor.
+func TestHandleCacheStatsCountBypasses(t *testing.T) {
+	t.Parallel()
+
+	var cache handleCache[int]
+
+	cache.limit = 1
+
+	if _, ok := cache.load("metric", make([]string, maxCachedTagCount+1)); ok {
+		t.Fatal("expected a tag list wider than the key to miss the cache")
+	}
+
+	cache.store("metric", []string{"index:0"}, 0)
+	cache.store("metric", []string{"index:1"}, 1)
+
+	stats := cache.Stats()
+
+	if stats.Size != cache.limit {
+		t.Fatalf("Size = %d, want %d", stats.Size, cache.limit)
+	}
+
+	if stats.BypassWidth != 1 {
+		t.Fatalf("BypassWidth = %d, want 1", stats.BypassWidth)
+	}
+
+	if stats.BypassFull != 1 {
+		t.Fatalf("BypassFull = %d, want 1", stats.BypassFull)
+	}
+}
+
+// TestScrapeExportsEveryHandleCacheKind locks the collector's registration, its
+// types, and its label set: all three caches report on every scrape from the
+// first one, so a dashboard can rely on the series existing before saturation.
+func TestScrapeExportsEveryHandleCacheKind(t *testing.T) {
+	newTestProcessor(t)
+
+	body := scrapeBody(t)
+
+	for _, want := range []string{
+		"# TYPE " + handleCacheSizeMetric + " gauge",
+		"# TYPE " + handleCacheBypassMetric + " counter",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing %q in:\n%s", want, body)
+		}
+	}
+
+	for _, kind := range []string{cacheKindCounter, cacheKindGauge, cacheKindHistogram} {
+		kindFragment := kindLabel + `="` + kind + `"`
+
+		if got := scrapedValue(t, body, handleCacheSizeMetric, kindFragment, `service="test-svc"`); got != 0 {
+			t.Fatalf("%s{kind=%s} = %v, want 0", handleCacheSizeMetric, kind, got)
+		}
+
+		for _, reason := range []string{bypassReasonWidth, bypassReasonFull} {
+			reasonFragment := reasonLabel + `="` + reason + `"`
+
+			if got := scrapedValue(t, body, handleCacheBypassMetric, kindFragment, reasonFragment); got != 0 {
+				t.Fatalf("%s{kind=%s,reason=%s} = %v, want 0", handleCacheBypassMetric, kind, reason, got)
+			}
+		}
+	}
+}
+
+// TestScrapeExportsHandleCacheSaturation is why the counters exist: once the
+// memo fills, every tuple first seen afterwards resolves its labels on every
+// record for the rest of the process, and nothing about that is observable from
+// outside the package unless the scrape says so.
+func TestScrapeExportsHandleCacheSaturation(t *testing.T) {
+	const overflow = 3
+
+	processor := newTestProcessor(t)
+
+	for index := range maxCachedHandles + overflow {
+		if err := processor.Gauge("saturating.sessions", 1, []string{"index:" + strconv.Itoa(index)}); err != nil {
+			t.Fatalf("Gauge() error: %v", err)
+		}
+	}
+
+	body := scrapeBody(t)
+	gaugeKind := kindLabel + `="` + cacheKindGauge + `"`
+
+	if got := scrapedValue(t, body, handleCacheSizeMetric, gaugeKind); got != maxCachedHandles {
+		t.Fatalf("%s{kind=gauge} = %v, want %d", handleCacheSizeMetric, got, maxCachedHandles)
+	}
+
+	fullReason := reasonLabel + `="` + bypassReasonFull + `"`
+
+	if got := scrapedValue(t, body, handleCacheBypassMetric, gaugeKind, fullReason); got != overflow {
+		t.Fatalf("%s{kind=gauge,reason=full} = %v, want %d", handleCacheBypassMetric, got, overflow)
+	}
+}
+
+// TestScrapeExportsWideTagBypass covers the other fallback: a tag list too wide
+// for the fixed-size key records correctly but is never memoized, so it pays
+// full label resolution on every record.
+func TestScrapeExportsWideTagBypass(t *testing.T) {
+	const records = 2
+
+	processor := newTestProcessor(t)
+
+	tags := make([]string, 0, maxCachedTagCount+1)
+	for index := range maxCachedTagCount + 1 {
+		tags = append(tags, "label"+strconv.Itoa(index)+":value"+strconv.Itoa(index))
+	}
+
+	for range records {
+		if err := processor.Count("wide.bypass.requests", 1, tags); err != nil {
+			t.Fatalf("Count() error: %v", err)
+		}
+	}
+
+	body := scrapeBody(t)
+	counterKind := kindLabel + `="` + cacheKindCounter + `"`
+	widthReason := reasonLabel + `="` + bypassReasonWidth + `"`
+
+	if got := scrapedValue(t, body, handleCacheBypassMetric, counterKind, widthReason); got != records {
+		t.Fatalf("%s{kind=counter,reason=width} = %v, want %d", handleCacheBypassMetric, got, records)
+	}
+}
+
 func TestHandleCacheDefaultCapacity(t *testing.T) {
 	t.Parallel()
 
