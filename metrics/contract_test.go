@@ -271,6 +271,145 @@ func TestNilClientHandlesDiscard(t *testing.T) {
 	observer.Observe(1)
 }
 
+// Optional series-delete contract (SeriesDeleter). It is additive like
+// HandleProvider, but it cannot be adapted the way a handle can — a push backend has
+// no resident series to retire — so the properties under test are that a processor
+// without the capability is skipped rather than failed, and that a caller whose
+// client cannot delete at all is told so instead of being left to assume the series
+// is gone.
+
+// deleteRequest is one delete as a processor saw it.
+type deleteRequest struct {
+	name string
+	tags []string
+}
+
+// deletingProcessor stands in for a backend that holds its series in-process and can
+// retire one (as the Prometheus processor does).
+type deletingProcessor struct {
+	*recordingProcessor
+	err error
+
+	mu      sync.Mutex
+	deletes []deleteRequest
+}
+
+func (p *deletingProcessor) DeleteSeriesMatching(name string, tags []string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.deletes = append(p.deletes, deleteRequest{name: name, tags: slices.Clone(tags)})
+
+	return p.err
+}
+
+func (p *deletingProcessor) requested() []deleteRequest {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return slices.Clone(p.deletes)
+}
+
+func TestSeriesDeleteReachesEveryCapableProcessor(t *testing.T) {
+	failure := errors.New("delete failed")
+
+	cases := []struct {
+		name    string
+		capable []error
+		plain   int
+		wantErr error
+	}{
+		{name: "single capable processor", capable: []error{nil}},
+		{name: "capable and incapable processors mixed", capable: []error{nil}, plain: 1},
+		{name: "every capable processor is reached", capable: []error{nil, nil}, plain: 2},
+		{name: "no capable processor at all", plain: 2, wantErr: ErrSeriesDeleteUnsupported},
+		{name: "client with no processors", wantErr: ErrSeriesDeleteUnsupported},
+		{name: "processor failure is reported", capable: []error{failure}, wantErr: failure},
+		{name: "one failure among several is reported", capable: []error{nil, failure}, wantErr: failure},
+	}
+
+	const name = "fabric_connection_errors_total"
+
+	tags := []string{"peer:10.0.0.7:3001"}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				processors []Processor
+				capable    []*deletingProcessor
+				plain      []*recordingProcessor
+			)
+
+			for _, err := range testCase.capable {
+				processor := &deletingProcessor{recordingProcessor: &recordingProcessor{}, err: err}
+				capable = append(capable, processor)
+				processors = append(processors, processor)
+			}
+
+			for range testCase.plain {
+				processor := &recordingProcessor{}
+				plain = append(plain, processor)
+				processors = append(processors, processor)
+			}
+
+			client := &Client{processors: processors, service: "test-svc"}
+
+			err := client.DeleteSeriesMatching(name, tags)
+			if !errors.Is(err, testCase.wantErr) {
+				t.Fatalf("DeleteSeriesMatching() error = %v, want %v", err, testCase.wantErr)
+			}
+
+			for index, processor := range capable {
+				got := processor.requested()
+				want := []deleteRequest{{name: name, tags: tags}}
+
+				if len(got) != 1 || got[0].name != want[0].name || !slices.Equal(got[0].tags, want[0].tags) {
+					t.Fatalf("capable processor %d requests = %+v, want %+v", index, got, want)
+				}
+			}
+
+			// A processor that cannot delete must be left completely alone: skipping it
+			// means skipping it, not recording something in its place.
+			for index, processor := range plain {
+				if recorded := processor.recorded(); len(recorded) != 0 {
+					t.Fatalf("incapable processor %d recorded %+v", index, recorded)
+				}
+			}
+		})
+	}
+}
+
+func TestNilClientSeriesDeleteDiscards(t *testing.T) {
+	var client *Client
+
+	if err := client.DeleteSeriesMatching("fabric_pool_active", []string{"peer:10.0.0.7:3001"}); err != nil {
+		t.Fatalf("DeleteSeriesMatching() error: %v", err)
+	}
+}
+
+// The capability is detected structurally by consumers pinned to a release that
+// predates it: they declare this exact interface literal locally and type-assert it,
+// so the method set of *Client is the contract, not the named interface. Changing the
+// signature — even to something more convenient — silently turns the assertion false
+// in every such consumer instead of failing their build, so it is pinned here.
+func TestClientSatisfiesAStructuralSeriesDeleteAssertion(t *testing.T) {
+	client := &Client{processors: []Processor{&recordingProcessor{}}, service: "test-svc"}
+
+	var processor Processor = client
+
+	if _, ok := processor.(interface {
+		DeleteSeriesMatching(name string, tags []string) error
+	}); !ok {
+		t.Fatal("*Client does not satisfy the structural series-delete assertion")
+	}
+
+	if _, ok := processor.(SeriesDeleter); !ok {
+		t.Fatal("*Client does not implement SeriesDeleter")
+	}
+}
+
 func TestHandleResolutionErrorIsReturned(t *testing.T) {
 	failure := errors.New("resolve failed")
 	provider := providerProcessor{recordingProcessor: &recordingProcessor{}, err: failure}

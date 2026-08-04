@@ -56,6 +56,48 @@ type HandleProvider interface {
 	DistributionHandle(name string, tags []string) (Observer, error)
 }
 
+var (
+	// ErrSeriesDeleteUnsupported reports that none of the configured processors can
+	// retire a series, so the series a caller asked to delete is still published.
+	// It is returned rather than absorbed because the caller cannot tell otherwise:
+	// a successful delete and a delete nobody could perform both leave it with no
+	// error and no way to know the label it wanted gone is still being exported.
+	ErrSeriesDeleteUnsupported = errors.New("no configured processor can delete a series")
+
+	// ErrEmptySeriesMatch reports a delete whose tags named no label. An empty match
+	// selects every child of the metric, so it is refused instead of being obeyed:
+	// wiping a whole metric family is not what a caller who passed no tags — or
+	// passed one assembled from an empty subject — meant to ask for.
+	ErrEmptySeriesMatch = errors.New("series delete requires at least one key:value tag")
+)
+
+// SeriesDeleter is the optional capability of retiring a published series: delete
+// every child of name whose labels include all of tags. Like HandleProvider it is
+// deliberately not part of Processor — only a backend that holds its series
+// in-process has anything to retire, so a push backend needs no change and callers
+// detect support with a type assertion. *Client implements it and fans the delete
+// out to whichever processors do.
+//
+// The match is partial rather than exact because the labels that identify a subject
+// are usually not all of its labels: a series split by an open-ended label (an error
+// reason, a status class) has children a caller cannot enumerate, and retiring the
+// subject has to retire all of them. An empty match is refused with
+// ErrEmptySeriesMatch instead of matching everything.
+//
+// Two rules for callers:
+//
+//   - Retire only what has genuinely gone away. A counter for a subject that is
+//     merely unreachable is exactly the signal an operator needs during an incident,
+//     and deleting it destroys that signal at the moment it matters.
+//   - Retire series recorded through Count, Gauge and Distribution, which resolve
+//     their backend child per record and therefore recreate it. A handle resolved
+//     through HandleProvider holds the child directly, so deleting that child
+//     orphans the handle: records through it are accepted and exported nowhere. Give
+//     a retirable series the recording path, or re-resolve the handle afterwards.
+type SeriesDeleter interface {
+	DeleteSeriesMatching(name string, tags []string) error
+}
+
 // Factory creates a concrete metrics processor for a service.
 type Factory func(Config, string) (Processor, error)
 
@@ -365,6 +407,43 @@ func (c *Client) DistributionHandle(name string, tags []string) (Observer, error
 	}
 
 	return observerFanout(handles), nil
+}
+
+// DeleteSeriesMatching retires the series in every configured processor that can
+// retire one. See SeriesDeleter for the match semantics and for when retiring is
+// the right thing to do at all.
+//
+// A processor without the capability is skipped rather than reported: it holds no
+// resident series, so there is nothing there to retire and its presence in the
+// client is not a failure. Only a client where no processor at all can delete
+// reports ErrSeriesDeleteUnsupported.
+func (c *Client) DeleteSeriesMatching(name string, tags []string) error {
+	if c == nil {
+		return nil
+	}
+
+	var errs []error
+
+	supported := false
+
+	for _, processor := range c.processors {
+		deleter, ok := processor.(SeriesDeleter)
+		if !ok {
+			continue
+		}
+
+		supported = true
+
+		if err := deleter.DeleteSeriesMatching(name, tags); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if !supported {
+		errs = append(errs, ErrSeriesDeleteUnsupported)
+	}
+
+	return wrapMetricErrors("delete series", name, errs)
 }
 
 // resolveHandles builds one handle per configured processor: resolved through

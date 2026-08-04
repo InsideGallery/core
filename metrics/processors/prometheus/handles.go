@@ -173,6 +173,42 @@ func (c *handleCache[T]) store(name string, tags []string, handle T) {
 	}
 }
 
+// forget drops every memoized handle whose key matches, republishing the snapshot
+// without them. It is the memo half of series retirement (see retire.go): the child
+// a matching entry resolved to has been deleted, so the entry has to go with it or
+// records of that tuple keep landing on a child no scrape can see.
+//
+// It walks every entry instead of keeping an index, because retirement happens on a
+// lifecycle event while an index would have to be maintained per record — the one
+// path this design keeps cheap. The snapshot is republished only when something
+// matched, so a delete for a subject this cache never memoized costs nothing but the
+// walk.
+func (c *handleCache[T]) forget(matches func(key handleKey) bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	current := c.snapshot.Load()
+	if current == nil {
+		return
+	}
+
+	updated := make(map[handleKey]T, len(*current))
+
+	for key, handle := range *current {
+		if matches(key) {
+			continue
+		}
+
+		updated[key] = handle
+	}
+
+	if len(updated) == len(*current) {
+		return
+	}
+
+	c.snapshot.Store(&updated)
+}
+
 // isFull reports whether the memo is at its bound and this tuple would have to
 // displace a resident to get in. A tuple already resident never displaces one:
 // two records of a first-seen tuple can race into store, and the loser must not

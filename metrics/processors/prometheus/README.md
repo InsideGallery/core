@@ -12,6 +12,8 @@ exposes the active registry through `HTTPHandler`.
 - `HTTPHandler(w http.ResponseWriter, r *http.Request)` serves the active scrape response.
 - The processor implements `metrics.HandleProvider`: `CounterHandle`, `GaugeHandle`, and `DistributionHandle`
   return the resolved child metric for a tuple.
+- The processor implements `metrics.SeriesDeleter`: `DeleteSeriesMatching` deletes the children of a metric that carry
+  a given set of labels, so a retired subject leaves the scrape.
 
 ## Usage
 
@@ -75,6 +77,35 @@ for it would occupy one of the bounded slots without ever being read, and once t
 admission against tuples that do read it. A handle records into exactly the series `Count`/`Gauge`/`Distribution` would
 have produced for the same tuple. Because a handle has no error channel, a negative counter increment is dropped rather
 than reported — `Count` returns an error for it, and `stdprom.Counter.Add` panics on it.
+
+## Series Retirement
+
+A Prometheus child metric lives in its vec until the process exits, so a caller that stops feeding a series does not
+stop exporting it — every scrape keeps carrying the last value, frozen (`rate()` reads 0). `DeleteSeriesMatching`
+deletes the children, which is the only thing that removes a series, and the vecs are private to this package so
+nothing else can reach them:
+
+```go
+err := processor.DeleteSeriesMatching("fabric_connection_errors_total", []string{"peer:10.0.0.7:3001"})
+```
+
+- The match is partial: labels the caller did not name may hold any value, so one call retires a subject across a
+  metric split by an open-ended label. Tags become labels through the same path a record takes, so a tag name that
+  needed sanitizing (`peer.id` → `peer_id`) matches the label the series actually carries.
+- An empty match — no tags, or tags carrying no `key:value` pair — is refused with `metrics.ErrEmptySeriesMatch`
+  instead of selecting every child.
+- Retirement is idempotent: an unrecorded metric, a match no child satisfies, and a second delete of the same subject
+  are all silent successes, because callers retire from lifecycle events.
+- The vec stays registered, empty. A vec with no children exports no metric family at all, and a subject that returns
+  records into the collector it already had.
+- The memoized child is dropped with it, so a returning subject counts **from zero**: without that, a record would hit
+  the memo, land on the deleted child, and the series would never come back. Children are deleted first and the memo
+  second — the reverse order would let a concurrent record re-memoize the child about to be deleted and leave an
+  orphan for the life of the process. The residual race is one record landing on an already-deleted child while the
+  memo is rewritten; the next record of that tuple recreates the series.
+- A handle resolved earlier through `metrics.HandleProvider` is **orphaned** by a delete: it holds the child directly,
+  so records through it are accepted and exported nowhere. Keep a retirable series on the `Count`/`Gauge`/
+  `Distribution` path, or re-resolve the handle after retiring.
 
 ## Recording Cost
 

@@ -19,6 +19,9 @@ Import path: `github.com/InsideGallery/core/metrics`
   resolving one, implemented by `*Client` and by the Prometheus processor.
 - `(*Client).CounterHandle`, `GaugeHandle`, and `DistributionHandle` resolve a handle across every configured
   processor.
+- `SeriesDeleter` is the optional capability of retiring a published series, implemented by `*Client` and by the
+  Prometheus processor; `(*Client).DeleteSeriesMatching` fans the delete out to whichever processors have it.
+- `ErrSeriesDeleteUnsupported` and `ErrEmptySeriesMatch` are the two refusals a delete can report.
 
 ## Usage
 
@@ -95,6 +98,42 @@ and detect the capability with a type assertion, using handles when the linked v
 `Count`/`Distribution` when it does not. Do not turn them into defined types: Go matches method signatures on type
 identity, and a defined type is never identical to any other type, so consumers would have to bump their pin in
 lockstep.
+
+## Series Retirement
+
+A backend that holds its series in-process keeps exporting one after the last record: the value freezes and the series
+stays on every scrape until the process exits. Where the label identifies something that comes and goes — a peer
+address, a pod IP, a tenant — that is unbounded cardinality growth in dead series, and a frozen counter reads to an
+operator like an active fault. `DeleteSeriesMatching` removes the children themselves:
+
+```go
+if err := client.DeleteSeriesMatching("fabric_connection_errors_total", []string{"peer:" + address}); err != nil {
+	slog.Warn("retire peer series", "peer", address, "error", err)
+}
+```
+
+The match is **partial**: `tags` names the labels that identify the subject, and every child carrying them is deleted
+whatever its other labels hold. That is deliberate — a series split by an open-ended label (an error `reason`, a status
+class) has children the caller cannot enumerate, and retiring the subject has to take all of them. An empty match would
+select every child of the metric, so it is refused with `ErrEmptySeriesMatch` rather than obeyed; the case that matters
+is not a caller typing `nil` but a caller assembling a tag from an empty subject.
+
+`SeriesDeleter` is **not** part of `Processor`, for the same reason `HandleProvider` is not — but unlike a handle it
+cannot be adapted, because a push backend has no resident series to retire and the OpenTelemetry SDK exposes no removal
+at all. A processor without the capability is therefore skipped rather than failed. A client where *no* processor can
+delete reports `ErrSeriesDeleteUnsupported`, so a caller learns the label it wanted gone is still being exported
+instead of assuming success.
+
+Two rules for callers:
+
+- **Retire only what has genuinely gone away.** A counter for a subject that is merely unreachable is exactly the
+  signal an operator needs during an incident, and deleting it destroys that signal at the moment it matters. Where
+  the same subject can come back at the same identity, treat its series as a counter reset — do not write `absent()`
+  alerts on them.
+- **Retire series recorded through `Count`, `Gauge`, and `Distribution`.** Those resolve their backend child per record
+  and recreate it, so a returning subject counts from zero with no residue. A handle resolved through `HandleProvider`
+  holds the child directly, so deleting that child orphans the handle: records through it are accepted and exported
+  nowhere. Re-resolve the handle after retiring, or keep a retirable series on the recording path.
 
 ## Operational Notes
 
